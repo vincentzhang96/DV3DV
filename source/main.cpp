@@ -67,7 +67,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	std::cout << "Starting..." << std::endl;
 
-	if (!CreateOGLWindow(L"DV3DV", 1600, 900, 24, false))
+	if (!CreateOGLWindow(L"DV3DV", 1600, 900, 32, false))
 	{
 		return 0;
 	}
