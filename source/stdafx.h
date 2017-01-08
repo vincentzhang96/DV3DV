@@ -15,3 +15,5 @@
 
 #include <gl/GL.h>
 #include <gl/GLU.h>
+
+#include "lib/easylogging++.h"

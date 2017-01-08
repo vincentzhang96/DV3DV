@@ -3,6 +3,8 @@
 
 #define DV_CLASS_NAME L"OpenGL"
 
+INITIALIZE_EASYLOGGINGPP
+
 HDC hDC = nullptr;
 HGLRC hRC = nullptr;
 HWND hWnd = nullptr;
@@ -38,6 +40,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	LPSTR lpCmdLine, 
 	int nCmdShow)
 {
+	//	Disable FATAL app aborts
+	el::Loggers::addFlag(el::LoggingFlag::DisableApplicationAbortOnFatalLog);
+
 	//	Options
 	bool optShowConsole = true;
 
@@ -65,10 +70,11 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		}
 	}
 
-	std::cout << "Starting..." << std::endl;
+	LOG(INFO) << "Starting...";
 
 	if (!CreateOGLWindow(L"DV3DV", 1600, 900, 32, false))
 	{
+		LOG(ERROR) << "Failed to create window, program will exit";
 		return 0;
 	}
 
