@@ -62,7 +62,10 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	argv = CommandLineToArgvW(GetCommandLine(), &argc);
 	if (argv == nullptr)
 	{
-		MessageBox(nullptr, L"Failed to parse command line.", L"DV3DV Startup Error", MB_OK | MB_ICONERROR);
+		MessageBox(nullptr, 
+			L"Failed to parse command line.", 
+			L"DV3DV Startup Error", 
+			MB_OK | MB_ICONERROR);
 		return -1;
 	}
 	//	Handle arguments
@@ -74,7 +77,10 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	//	Create console if necessary
 	if (optShowConsole && !_ShowConsole())
 	{
-		if (!MessageBox(nullptr, L"Failed to create console window. Do you wish to continue?", L"DV3DV Startup Error", MB_YESNO | MB_ICONEXCLAMATION))
+		if (!MessageBox(nullptr, 
+			L"Failed to create console window. Do you wish to continue?", 
+			L"DV3DV Startup Error", 
+			MB_YESNO | MB_ICONEXCLAMATION))
 		{
 			return 0;
 		}
@@ -218,7 +224,10 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	if (!RegisterClass(&wc))
 	{
 		LOG(ERROR) << "Window registration failed";
-		MessageBox(nullptr, L"Failed to register window.", L"DV3DV Startup Error", MB_OK | MB_ICONERROR);
+		MessageBox(nullptr, 
+			L"Failed to register window.", 
+			L"DV3DV Startup Error", 
+			MB_OK | MB_ICONERROR);
 		return false;
 	}
 
@@ -265,7 +274,10 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	{
 		LOG(ERROR) << "Failed to create window";
 		KillOGLWindow();
-		MessageBox(nullptr, L"Failed to create window", L"DV3DV Error", MB_OK | MB_ICONERROR);
+		MessageBox(nullptr, 
+			L"Failed to create window", 
+			L"DV3DV Error", 
+			MB_OK | MB_ICONERROR);
 		return false;
 	}
 
@@ -284,7 +296,10 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	{
 		LOG(ERROR) << "Failed to create OpenGL device";
 		KillOGLWindow();
-		MessageBox(nullptr, L"Failed to create OpenGL device", L"DV3DV Error", MB_OK | MB_ICONERROR);
+		MessageBox(nullptr, 
+			L"Failed to create OpenGL device", 
+			L"DV3DV Error", 
+			MB_OK | MB_ICONERROR);
 		return false;
 	}
 	pixelFormat = ChoosePixelFormat(hDC, &pfd);
@@ -292,14 +307,20 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	{
 		LOG(ERROR) << "Unable to find a suitable pixel format";
 		KillOGLWindow();
-		MessageBox(nullptr, L"No suitable pixel format found", L"DV3DV Error", MB_OK | MB_ICONERROR);
+		MessageBox(nullptr, 
+			L"No suitable pixel format found", 
+			L"DV3DV Error", 
+			MB_OK | MB_ICONERROR);
 		return false;
 	}
 	if (!SetPixelFormat(hDC, pixelFormat, &pfd))
 	{
 		LOG(ERROR) << "Failed to set pixel format";
 		KillOGLWindow();
-		MessageBox(nullptr, L"Failed to set pixel format", L"DV3DV Error", MB_OK | MB_ICONERROR);
+		MessageBox(nullptr, 
+			L"Failed to set pixel format", 
+			L"DV3DV Error", 
+			MB_OK | MB_ICONERROR);
 		return false;
 	}
 	hRC = wglCreateContext(hDC);
@@ -307,21 +328,28 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	{
 		LOG(ERROR) << "Failed to create OpenGL rendering context";
 		KillOGLWindow();
-		MessageBox(nullptr, L"Failed to create OpenGL rendering context", L"DV3DV Error", MB_OK | MB_ICONERROR);
+		MessageBox(nullptr, 
+			L"Failed to create OpenGL rendering context", 
+			L"DV3DV Error", 
+			MB_OK | MB_ICONERROR);
 		return false;
 	}
 	if (!wglMakeCurrent(hDC, hRC))
 	{
 		LOG(ERROR) << "Failed to activate OpenGL rendering context";
 		KillOGLWindow();
-		MessageBox(nullptr, L"Failed to activate OpenGL rendering context", L"DV3DV Error", MB_OK | MB_ICONERROR);
+		MessageBox(nullptr, 
+			L"Failed to activate OpenGL rendering context", 
+			L"DV3DV Error", 
+			MB_OK | MB_ICONERROR);
 		return false;
 	}
 	ShowWindow(hWnd, SW_SHOW);
 	SetForegroundWindow(hWnd);
 	SetFocus(hWnd);
 	MoveWindow(hWnd, 0, 0, winWidth, winHeight, true);	//	TODO Center
-	LOG(INFO) << "Created window " << winWidth << "x" << winHeight << "x" << bitdepth << " in " << (fullscreen ? "fullscreen" : "windowed") << " mode";
+	LOG(INFO) << "Created window " << winWidth << "x" << winHeight << "x" << bitdepth 
+		<< " in " << (fullscreen ? "fullscreen" : "windowed") << " mode";
 	return true;
 }
 
