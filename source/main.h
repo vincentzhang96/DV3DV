@@ -28,4 +28,13 @@ void OnWindowActive();
 ///	Handler for window inactivation (minimize)
 void OnWindowInactive();
 
+
+void OnWindowResize(int newWidth, int newHeight);
+
+
+void OnKeyDown(int keyCode);
+
+
+void OnKeyUp(int keyCode);
+
 #endif

@@ -12,6 +12,8 @@ HINSTANCE hInstance;
 
 bool active;
 bool fullscreen;
+int _windowWidth;
+int _windowHeight;
 
 void OnWindowActive()
 {
@@ -31,6 +33,24 @@ void OnWindowInactive()
 	{
 		LOG(DEBUG) << "Window minimized";
 	}
+}
+
+void OnWindowResize(int newWidth, int newHeight)
+{
+	_windowWidth = newWidth;
+	_windowHeight = newHeight;
+
+	//	TODO resetup stuff
+}
+
+void OnKeyDown(int keyCode)
+{
+	//	TODO
+}
+
+void OnKeyUp(int keyCode)
+{
+	//	TODO
 }
 
 bool _ShowConsole()
@@ -121,7 +141,12 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		else
 		{
 			//	Inner loop
+			glViewport(0, 0, _windowWidth, _windowHeight);
+			glClearColor(0, 0, 0, 0);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+			SwapBuffers(hDC);
 			//	TODO Clock this
 			Sleep(10);
 		}
@@ -169,20 +194,17 @@ LRESULT CALLBACK WndProc(HWND hWnd,
 	}
 	case WM_KEYDOWN:
 	{
-		//	TODO
-
+		OnKeyDown(wParam);
 		return 0;
 	}
 	case WM_KEYUP:
 	{
-		//	TODO
-
+		OnKeyUp(wParam);
 		return 0;
 	}
 	case WM_SIZE:
 	{
-		//	TODO
-
+		OnWindowResize(LOWORD(lParam), HIWORD(lParam));
 		return 0;
 	}
 	default:
@@ -206,6 +228,9 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	windowRect.right = long(winWidth);
 	windowRect.top = long(0);
 	windowRect.bottom = long(winHeight);
+
+	_windowWidth = winWidth;
+	_windowHeight = winHeight;
 
 	fullscreen = fullscreenWindow;
 
