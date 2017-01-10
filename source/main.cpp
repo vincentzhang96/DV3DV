@@ -34,7 +34,7 @@ void OnWindowInactive()
 void OnWindowResize(int newWidth, int newHeight)
 {
 	oglContext->ResizeWindow(newWidth, newHeight);
-	LOG(INFO) << "Window resized to " << newWidth << "x" << newHeight;
+	LOG(TRACE) << "Window resized to " << newWidth << "x" << newHeight;
 
 	//	TODO resetup stuff
 }
@@ -154,6 +154,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			Sleep(10);
 		}
 	}
+	KillOGLWindow();
 	return msg.wParam;
 }
 
@@ -320,6 +321,7 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 			MB_OK | MB_ICONERROR);
 		return false;
 	}
+	LOG(INFO) << "OpenGL v" << oglContext->GetGLMajorVersion() << "." << oglContext->GetGLMinorVersion();
 
 	ShowWindow(hWnd, SW_SHOW);
 	SetForegroundWindow(hWnd);

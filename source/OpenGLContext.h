@@ -24,5 +24,14 @@ public:
 	void PreRender(void);
 	void PostRender(void);
 
+	GLint GetGLMajorVersion() const
+	{
+		return _glMajorVer;
+	}
+
+	GLint GetGLMinorVersion() const
+	{
+		return _glMinorVer;
+	}
 };
 
