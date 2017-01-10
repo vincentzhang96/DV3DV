@@ -1,19 +1,15 @@
 #include "stdafx.h"
 #include "main.h"
-
-#define DV_CLASS_NAME L"OpenGL"
+#include "OpenGLContext.h"
 
 INITIALIZE_EASYLOGGINGPP
 
-HDC hDC = nullptr;
-HGLRC hRC = nullptr;
+OpenGLContext* oglContext = nullptr;
 HWND hWnd = nullptr;
-HINSTANCE hInstance;
+HINSTANCE hInstance = nullptr;
 
 bool active;
 bool fullscreen;
-int _windowWidth;
-int _windowHeight;
 
 void OnWindowActive()
 {
@@ -37,8 +33,8 @@ void OnWindowInactive()
 
 void OnWindowResize(int newWidth, int newHeight)
 {
-	_windowWidth = newWidth;
-	_windowHeight = newHeight;
+	oglContext->ResizeWindow(newWidth, newHeight);
+	LOG(INFO) << "Window resized to " << newWidth << "x" << newHeight;
 
 	//	TODO resetup stuff
 }
@@ -50,6 +46,12 @@ void OnKeyDown(int keyCode)
 
 void OnKeyUp(int keyCode)
 {
+	//	TODO temporary quit mechanism
+	if (keyCode == VK_ESCAPE)
+	{
+		PostQuitMessage(0);
+	}
+
 	//	TODO
 }
 
@@ -66,9 +68,9 @@ bool _ShowConsole()
 }
 
 int WINAPI WinMain(HINSTANCE hInstance,	
-	HINSTANCE hPrevInstance, 
-	LPSTR lpCmdLine, 
-	int nCmdShow)
+                   HINSTANCE hPrevInstance, 
+                   LPSTR lpCmdLine, 
+                   int nCmdShow)
 {
 	//	Disable FATAL app aborts
 	el::Loggers::addFlag(el::LoggingFlag::DisableApplicationAbortOnFatalLog);
@@ -83,9 +85,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	if (argv == nullptr)
 	{
 		MessageBox(nullptr, 
-			L"Failed to parse command line.", 
-			L"DV3DV Startup Error", 
-			MB_OK | MB_ICONERROR);
+		           L"Failed to parse command line.", 
+		           L"DV3DV Startup Error", 
+		           MB_OK | MB_ICONERROR);
 		return -1;
 	}
 	//	Handle arguments
@@ -98,9 +100,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	if (optShowConsole && !_ShowConsole())
 	{
 		if (!MessageBox(nullptr, 
-			L"Failed to create console window. Do you wish to continue?", 
-			L"DV3DV Startup Error", 
-			MB_YESNO | MB_ICONEXCLAMATION))
+		                L"Failed to create console window. Do you wish to continue?", 
+		                L"DV3DV Startup Error", 
+		                MB_YESNO | MB_ICONEXCLAMATION))
 		{
 			return 0;
 		}
@@ -108,7 +110,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	LOG(INFO) << "Starting...";
 
-	if (!CreateOGLWindow(L"DV3DV", 1600, 900, 32, false))
+	if (!CreateOGLWindow(L"DV3DV", 1600, 900, false))
 	{
 		LOG(ERROR) << "Failed to create window, stopping";
 		return 0;
@@ -141,12 +143,10 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		else
 		{
 			//	Inner loop
-			glViewport(0, 0, _windowWidth, _windowHeight);
-			glClearColor(0, 0, 0, 0);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			oglContext->PreRender();
+			//	TODO Render stuff
 
-
-			SwapBuffers(hDC);
+			oglContext->PostRender();
 			//	TODO Clock this
 			Sleep(10);
 		}
@@ -155,58 +155,58 @@ int WINAPI WinMain(HINSTANCE hInstance,
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd,
-	UINT uMsg,
-	WPARAM wParam,
-	LPARAM lParam)
+                         UINT uMsg,
+                         WPARAM wParam,
+                         LPARAM lParam)
 {
 	switch (uMsg)
 	{
 	case WM_ACTIVATE:
-	{
-		//	Minimization state
-		if (!HIWORD(wParam))
 		{
-			OnWindowActive();
-		}
-		else
-		{
-			OnWindowInactive();
-		}
-		return 0;
-	}
-	case WM_SYSCOMMAND:
-	{
-		switch (wParam)
-		{
-		case SC_SCREENSAVE:
-		case SC_MONITORPOWER:
-			//	Prevent screensaver or monitor entering powersave
+			//	Minimization state
+			if (!HIWORD(wParam))
+			{
+				OnWindowActive();
+			}
+			else
+			{
+				OnWindowInactive();
+			}
 			return 0;
-		default:
+		}
+	case WM_SYSCOMMAND:
+		{
+			switch (wParam)
+			{
+			case SC_SCREENSAVE:
+			case SC_MONITORPOWER:
+				//	Prevent screensaver or monitor entering powersave
+				return 0;
+			default:
+				break;
+			}
 			break;
 		}
-		break;
-	}
 	case WM_CLOSE:
-	{
-		PostQuitMessage(0);
-		return 0;
-	}
+		{
+			PostQuitMessage(0);
+			return 0;
+		}
 	case WM_KEYDOWN:
-	{
-		OnKeyDown(wParam);
-		return 0;
-	}
+		{
+			OnKeyDown(wParam);
+			return 0;
+		}
 	case WM_KEYUP:
-	{
-		OnKeyUp(wParam);
-		return 0;
-	}
+		{
+			OnKeyUp(wParam);
+			return 0;
+		}
 	case WM_SIZE:
-	{
-		OnWindowResize(LOWORD(lParam), HIWORD(lParam));
-		return 0;
-	}
+		{
+			OnWindowResize(LOWORD(lParam), HIWORD(lParam));
+			return 0;
+		}
 	default:
 		break;
 	}
@@ -214,10 +214,9 @@ LRESULT CALLBACK WndProc(HWND hWnd,
 }
 
 bool CreateOGLWindow(LPCWSTR winTitle,
-	int winWidth, 
-	int winHeight, 
-	int bitdepth, 
-	bool fullscreenWindow)
+                     int winWidth, 
+                     int winHeight, 
+                     bool fullscreenWindow)
 {
 	GLuint pixelFormat;
 	WNDCLASS wc;
@@ -228,9 +227,11 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	windowRect.right = long(winWidth);
 	windowRect.top = long(0);
 	windowRect.bottom = long(winHeight);
-
-	_windowWidth = winWidth;
-	_windowHeight = winHeight;
+	if (oglContext != nullptr)
+	{
+		LOG(WARNING) << "Previous OpenGL context was not destroyed, possible resource leak!";
+	}
+	oglContext = new OpenGLContext();
 
 	fullscreen = fullscreenWindow;
 
@@ -250,9 +251,9 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	{
 		LOG(ERROR) << "Window registration failed";
 		MessageBox(nullptr, 
-			L"Failed to register window.", 
-			L"DV3DV Startup Error", 
-			MB_OK | MB_ICONERROR);
+		           L"Failed to register window.", 
+		           L"DV3DV Startup Error", 
+		           MB_OK | MB_ICONERROR);
 		return false;
 	}
 
@@ -263,7 +264,7 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 		devScreenSettings.dmSize = sizeof(devScreenSettings);
 		devScreenSettings.dmPelsWidth = winWidth;
 		devScreenSettings.dmPelsHeight = winHeight;
-		devScreenSettings.dmBitsPerPel = bitdepth;
+		devScreenSettings.dmBitsPerPel = 24;
 		devScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 		if (ChangeDisplaySettings(&devScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
 		{
@@ -284,96 +285,44 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	}
 	AdjustWindowRectEx(&windowRect, dwStyle, false, dwExStyle);
 	hWnd = CreateWindowEx(dwExStyle,
-		DV_CLASS_NAME,
-		winTitle,
-		dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-		0,
-		0,
-		windowRect.right - windowRect.left,
-		windowRect.bottom - windowRect.top,
-		nullptr,
-		nullptr,
-		hInstance,
-		nullptr);
+	                      DV_CLASS_NAME,
+	                      winTitle,
+	                      dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+	                      0,
+	                      0,
+	                      windowRect.right - windowRect.left,
+	                      windowRect.bottom - windowRect.top,
+	                      nullptr,
+	                      nullptr,
+	                      hInstance,
+	                      nullptr);
 	if (!hWnd)
 	{
 		LOG(ERROR) << "Failed to create window";
 		KillOGLWindow();
 		MessageBox(nullptr, 
-			L"Failed to create window", 
-			L"DV3DV Error", 
+		           L"Failed to create window", 
+		           L"DV3DV Error", 
+		           MB_OK | MB_ICONERROR);
+		return false;
+	}
+
+	if (!oglContext->CreateContext(hWnd))
+	{
+		LOG(ERROR) << "Context creation failed";
+		KillOGLWindow();
+		MessageBox(nullptr,
+			L"Failed to create context",
+			L"DV3DV Error",
 			MB_OK | MB_ICONERROR);
 		return false;
 	}
 
-	static PIXELFORMATDESCRIPTOR pfd;
-	ZeroMemory(&pfd, sizeof(PIXELFORMATDESCRIPTOR));
-	pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-	pfd.nVersion = 1;
-	pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-	pfd.iPixelType = PFD_TYPE_RGBA;
-	pfd.cColorBits = bitdepth;
-	pfd.cDepthBits = 24;
-	pfd.iLayerType = PFD_MAIN_PLANE;
-
-	hDC = GetDC(hWnd);
-	if (!hDC)
-	{
-		LOG(ERROR) << "Failed to create OpenGL device";
-		KillOGLWindow();
-		MessageBox(nullptr, 
-			L"Failed to create OpenGL device", 
-			L"DV3DV Error", 
-			MB_OK | MB_ICONERROR);
-		return false;
-	}
-	pixelFormat = ChoosePixelFormat(hDC, &pfd);
-	if (!pixelFormat)
-	{
-		LOG(ERROR) << "Unable to find a suitable pixel format";
-		KillOGLWindow();
-		MessageBox(nullptr, 
-			L"No suitable pixel format found", 
-			L"DV3DV Error", 
-			MB_OK | MB_ICONERROR);
-		return false;
-	}
-	if (!SetPixelFormat(hDC, pixelFormat, &pfd))
-	{
-		LOG(ERROR) << "Failed to set pixel format";
-		KillOGLWindow();
-		MessageBox(nullptr, 
-			L"Failed to set pixel format", 
-			L"DV3DV Error", 
-			MB_OK | MB_ICONERROR);
-		return false;
-	}
-	hRC = wglCreateContext(hDC);
-	if (!hRC)
-	{
-		LOG(ERROR) << "Failed to create OpenGL rendering context";
-		KillOGLWindow();
-		MessageBox(nullptr, 
-			L"Failed to create OpenGL rendering context", 
-			L"DV3DV Error", 
-			MB_OK | MB_ICONERROR);
-		return false;
-	}
-	if (!wglMakeCurrent(hDC, hRC))
-	{
-		LOG(ERROR) << "Failed to activate OpenGL rendering context";
-		KillOGLWindow();
-		MessageBox(nullptr, 
-			L"Failed to activate OpenGL rendering context", 
-			L"DV3DV Error", 
-			MB_OK | MB_ICONERROR);
-		return false;
-	}
 	ShowWindow(hWnd, SW_SHOW);
 	SetForegroundWindow(hWnd);
 	SetFocus(hWnd);
 	MoveWindow(hWnd, 0, 0, winWidth, winHeight, true);	//	TODO Center
-	LOG(INFO) << "Created window " << winWidth << "x" << winHeight << "x" << bitdepth 
+	LOG(INFO) << "Created window " << winWidth << "x" << winHeight << "x24" 
 		<< " in " << (fullscreen ? "fullscreen" : "windowed") << " mode";
 	return true;
 }
@@ -385,23 +334,8 @@ void KillOGLWindow()
 		ChangeDisplaySettings(nullptr, 0);
 		ShowCursor(true);
 	}
-	if (hRC)
-	{
-		if (!wglMakeCurrent(nullptr, nullptr))
-		{
-			//	TODO failed to release dc and rc
-		}
-		if (!wglDeleteContext(hRC))
-		{
-			//	TODO failed to release context
-		}
-		hRC = nullptr;
-	}
-	if (hDC && !ReleaseDC(hWnd, hDC))
-	{
-		//	TODO failed to release device context
-		hDC = nullptr;
-	}
+	delete oglContext;
+	oglContext = nullptr;
 	if (hWnd && !DestroyWindow(hWnd))
 	{
 		//	TODO failed to release window

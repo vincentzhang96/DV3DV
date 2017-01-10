@@ -13,7 +13,10 @@
 #include <shellapi.h>
 #include <iostream>
 
-#include <gl/GL.h>
-#include <gl/GLU.h>
+#include "lib/GL/glew.h"
+#include "lib/GL/wglew.h"
 
 #include "lib/easylogging++.h"
+
+
+#define DV_CLASS_NAME L"DV3DV"

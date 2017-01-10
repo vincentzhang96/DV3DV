@@ -17,7 +17,6 @@ LRESULT CALLBACK WndProc(HWND hWnd,
 bool CreateOGLWindow(LPCWSTR winTitle,
 	int winWidth, 
 	int winHeight, 
-	int bitdepth, 
 	bool fullscreenWindow);
 
 void KillOGLWindow();
