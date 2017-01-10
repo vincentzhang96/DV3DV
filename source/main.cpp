@@ -72,6 +72,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
                    LPSTR lpCmdLine, 
                    int nCmdShow)
 {
+	el::Configurations loggingConfig("logging.conf");
+	el::Loggers::reconfigureAllLoggers(loggingConfig);
+
 	//	Disable FATAL app aborts
 	el::Loggers::addFlag(el::LoggingFlag::DisableApplicationAbortOnFatalLog);
 

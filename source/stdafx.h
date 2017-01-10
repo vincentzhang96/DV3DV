@@ -12,10 +12,12 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <iostream>
+#include <Strsafe.h>
 
 #include "lib/GL/glew.h"
 #include "lib/GL/wglew.h"
 
+#define ELPP_NO_DEFAULT_LOG_FILE
 #include "lib/easylogging++.h"
 
 
