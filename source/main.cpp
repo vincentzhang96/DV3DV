@@ -72,8 +72,20 @@ int WINAPI WinMain(HINSTANCE hInstance,
                    LPSTR lpCmdLine, 
                    int nCmdShow)
 {
-	el::Configurations loggingConfig("logging.conf");
-	el::Loggers::reconfigureAllLoggers(loggingConfig);
+	DWORD dwAttrib = GetFileAttributesW(L"logging.conf");
+	if (dwAttrib == 0xFFFFFFFF)
+	{
+		//	Logging configuration does not exist, so we'll use the default instead except we'll set the log file
+		el::Configurations loggingConfig;
+		loggingConfig.setToDefault();
+		loggingConfig.setGlobally(el::ConfigurationType::Filename, "logs/dv3dv-%datetime{%Y%M%d_%H%m%s}.log");
+		el::Loggers::reconfigureAllLoggers(loggingConfig);
+	}
+	else
+	{
+		el::Configurations loggingConfig("logging.conf");
+		el::Loggers::reconfigureAllLoggers(loggingConfig);
+	}
 
 	//	Disable FATAL app aborts
 	el::Loggers::addFlag(el::LoggingFlag::DisableApplicationAbortOnFatalLog);
