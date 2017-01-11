@@ -131,9 +131,9 @@ void _SetUpLogger()
 	el::Loggers::addFlag(el::LoggingFlag::DisableApplicationAbortOnFatalLog);
 }
 
-int WINAPI WinMain(HINSTANCE hInstance,	
-                   HINSTANCE hPrevInstance, 
-                   LPSTR lpCmdLine, 
+int WINAPI WinMain(HINSTANCE hInstance,
+                   HINSTANCE hPrevInstance,
+                   LPSTR lpCmdLine,
                    int nCmdShow)
 {
 	_SetUpLogger();
@@ -150,10 +150,10 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	//	Failed to parse command line, fail out
 	if (argv == nullptr)
 	{
-		MessageBoxW(nullptr, 
-		           L"Failed to parse command line.", 
-		           L"DV3DV Startup Error", 
-		           MB_OK | MB_ICONERROR);
+		MessageBoxW(nullptr,
+		            L"Failed to parse command line.",
+		            L"DV3DV Startup Error",
+		            MB_OK | MB_ICONERROR);
 		return -1;
 	}
 	//	Handle arguments
@@ -168,10 +168,10 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	//	Create console if necessary
 	if (optShowConsole && !_ShowConsole())
 	{
-		if (!MessageBoxW(nullptr, 
-		                L"Failed to create console window. Do you wish to continue?", 
-		                L"DV3DV Startup Error", 
-		                MB_YESNO | MB_ICONEXCLAMATION))
+		if (!MessageBoxW(nullptr,
+		                 L"Failed to create console window. Do you wish to continue?",
+		                 L"DV3DV Startup Error",
+		                 MB_YESNO | MB_ICONEXCLAMATION))
 		{
 			return 0;
 		}
@@ -191,7 +191,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	auto exitLoop = false;
 	//	Main loop
 	LOG(INFO) << "Entering main loop";
-	while (!exitLoop) 
+	while (!exitLoop)
 	{
 		exitLoop = _DoMainLoop();
 	}
@@ -294,8 +294,8 @@ void _TrySetupFullscreen(int winWidth, int winHeight, DWORD& dwExStyle, DWORD& d
 }
 
 bool CreateOGLWindow(LPCWSTR winTitle,
-                     int winWidth, 
-                     int winHeight, 
+                     int winWidth,
+                     int winHeight,
                      bool fullscreenWindow)
 {
 	GLuint pixelFormat;
@@ -322,19 +322,19 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
 	wc.hInstance = hInstance;
-	wc.hIcon = LoadIconW(nullptr, IDI_WINLOGO);	//	TODO load icon
+	wc.hIcon = LoadIconW(nullptr, IDI_WINLOGO); //	TODO load icon
 	wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
 	wc.hbrBackground = nullptr;
 	wc.lpszMenuName = nullptr;
 	wc.lpszClassName = DV_CLASS_NAME;
-	
+
 	if (!RegisterClass(&wc))
 	{
 		LOG(ERROR) << "Window registration failed";
-		MessageBoxW(nullptr, 
-		           L"Failed to register window.", 
-		           L"DV3DV Startup Error", 
-		           MB_OK | MB_ICONERROR);
+		MessageBoxW(nullptr,
+		            L"Failed to register window.",
+		            L"DV3DV Startup Error",
+		            MB_OK | MB_ICONERROR);
 		return false;
 	}
 
@@ -343,25 +343,25 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	AdjustWindowRectEx(&windowRect, dwStyle, false, dwExStyle);
 	//	Create the window
 	hWnd = CreateWindowExW(dwExStyle,
-	                      DV_CLASS_NAME,
-	                      winTitle,
-	                      dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-	                      0,
-	                      0,
-	                      windowRect.right - windowRect.left,
-	                      windowRect.bottom - windowRect.top,
-	                      nullptr,
-	                      nullptr,
-	                      hInstance,
-	                      nullptr);
+	                       DV_CLASS_NAME,
+	                       winTitle,
+	                       dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+	                       0,
+	                       0,
+	                       windowRect.right - windowRect.left,
+	                       windowRect.bottom - windowRect.top,
+	                       nullptr,
+	                       nullptr,
+	                       hInstance,
+	                       nullptr);
 	if (!hWnd)
 	{
 		LOG(ERROR) << "Failed to create window";
 		KillOGLWindow();
-		MessageBoxW(nullptr, 
-		           L"Failed to create window", 
-		           L"DV3DV Error", 
-		           MB_OK | MB_ICONERROR);
+		MessageBoxW(nullptr,
+		            L"Failed to create window",
+		            L"DV3DV Error",
+		            MB_OK | MB_ICONERROR);
 		return false;
 	}
 	//	Create the OpenGL context
@@ -370,9 +370,9 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 		LOG(ERROR) << "Context creation failed";
 		KillOGLWindow();
 		MessageBoxW(nullptr,
-			L"Failed to create context",
-			L"DV3DV Error",
-			MB_OK | MB_ICONERROR);
+		            L"Failed to create context",
+		            L"DV3DV Error",
+		            MB_OK | MB_ICONERROR);
 		return false;
 	}
 	LOG(INFO) << "OpenGL v" << oglContext->GetGLMajorVersion() << "." << oglContext->GetGLMinorVersion();
@@ -382,9 +382,9 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	SetForegroundWindow(hWnd);
 	SetFocus(hWnd);
 	//	Center the window
-	MoveWindow(hWnd, 0, 0, winWidth, winHeight, true);	//	TODO Center
+	MoveWindow(hWnd, 0, 0, winWidth, winHeight, true); //	TODO Center
 	//	Finished
-	LOG(INFO) << "Created window " << winWidth << "x" << winHeight << "x24" 
+	LOG(INFO) << "Created window " << winWidth << "x" << winHeight << "x24"
 		<< " in " << (fullscreen ? "fullscreen" : "windowed") << " mode";
 	return true;
 }
