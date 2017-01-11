@@ -24,6 +24,10 @@ namespace PPAC
 #define CHECK_META_GUARD(meta) (meta.mGuard == PPAC_META_GUARD)
 #define CHECK_TRASH_GUARD(trash) (trash.iGuard == PPAC_TRASH_GUARD)
 
+#define PPACF_USE_LONG_OFFSETS 0x00000001
+#define PPACF_JAVA_ARRAY_COMPAT 0x00000002
+#define CHECK_FLAG(flags, flag) ((flags & flags) != 0)
+
 	//	Forward declarations
 	union TPUID;
 	struct PPACHEADER;
