@@ -18,6 +18,7 @@ void OnWindowActive()
 	if (active != wasActive)
 	{
 		LOG(DEBUG) << "Window unminimized";
+		//	TODO Notify
 	}
 }
 
@@ -28,6 +29,7 @@ void OnWindowInactive()
 	if (active != wasActive)
 	{
 		LOG(DEBUG) << "Window minimized";
+		//	TODO Notify
 	}
 }
 
@@ -55,6 +57,7 @@ void OnKeyUp(int keyCode)
 	//	TODO
 }
 
+///	Allocates a windows console
 bool _ShowConsole()
 {
 	if (!AllocConsole())
@@ -62,6 +65,7 @@ bool _ShowConsole()
 		LOG(ERROR) << "Failed to allocate console";
 		return false;
 	}
+	//	Redirect STDOUT
 	FILE* newStd;
 	freopen_s(&newStd, "CONOUT$", "w", stdout);
 	return true;
@@ -72,18 +76,23 @@ int WINAPI WinMain(HINSTANCE hInstance,
                    LPSTR lpCmdLine, 
                    int nCmdShow)
 {
+	//	Check that the logging config file exists before attempting to load it
 	DWORD dwAttrib = GetFileAttributesW(L"logging.conf");
 	if (dwAttrib == 0xFFFFFFFF)
 	{
 		//	Logging configuration does not exist, so we'll use the default instead except we'll set the log file
 		el::Configurations loggingConfig;
 		loggingConfig.setToDefault();
+		//	Set output log file
 		loggingConfig.setGlobally(el::ConfigurationType::Filename, "logs/dv3dv-%datetime{%Y%M%d_%H%m%s}.log");
+		//	Set all loggers to use this config
 		el::Loggers::reconfigureAllLoggers(loggingConfig);
 	}
 	else
 	{
+		//	Load logging config
 		el::Configurations loggingConfig("logging.conf");
+		//	Set all loggers to use this config
 		el::Loggers::reconfigureAllLoggers(loggingConfig);
 	}
 
@@ -92,29 +101,35 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	//	Options
 	auto optShowConsole = true;
+	//	TODO more
 
 	//	Handle command line
 	LPWSTR* argv;
 	int argc;
-	argv = CommandLineToArgvW(GetCommandLine(), &argc);
+	auto lpCommandLine = GetCommandLineW();
+	argv = CommandLineToArgvW(lpCommandLine, &argc);
+	//	Failed to parse command line, fail out
 	if (argv == nullptr)
 	{
-		MessageBox(nullptr, 
+		MessageBoxW(nullptr, 
 		           L"Failed to parse command line.", 
 		           L"DV3DV Startup Error", 
 		           MB_OK | MB_ICONERROR);
 		return -1;
 	}
 	//	Handle arguments
+	//	TODO
 	for (auto i = 0; i < argc; ++i)
 	{
-		MessageBox(nullptr, argv[i], L"DV3DV", MB_OK);
+		MessageBoxW(nullptr, argv[i], L"DV3DV", MB_OK);
 	}
+	//	Don't need argv anymore, free
 	LocalFree(argv);
+
 	//	Create console if necessary
 	if (optShowConsole && !_ShowConsole())
 	{
-		if (!MessageBox(nullptr, 
+		if (!MessageBoxW(nullptr, 
 		                L"Failed to create console window. Do you wish to continue?", 
 		                L"DV3DV Startup Error", 
 		                MB_YESNO | MB_ICONEXCLAMATION))
@@ -122,18 +137,20 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			return 0;
 		}
 	}
-
+	//	Go for full startup
 	LOG(INFO) << "Starting...";
+	//	Load config
 
+
+	//	Create the window
 	if (!CreateOGLWindow(L"DV3DV", 1600, 900, false))
 	{
 		LOG(ERROR) << "Failed to create window, stopping";
 		return 0;
 	}
-
+	//	Prep for main loop
 	MSG msg;
 	auto exitLoop = false;
-
 	//	Main loop
 	LOG(INFO) << "Entering main loop";
 	while (!exitLoop) 
@@ -166,6 +183,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 			Sleep(10);
 		}
 	}
+	//	Destroy window
 	KillOGLWindow();
 	return msg.wParam;
 }
