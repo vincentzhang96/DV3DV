@@ -36,4 +36,10 @@ void OnKeyDown(int keyCode);
 
 void OnKeyUp(int keyCode);
 
+void _TrySetupFullscreen(int winWidth, int winHeight, DWORD& dwExStyle, DWORD& dwStyle);
+
+inline bool _DoMainLoop();
+
+void _SetUpLogger();
+
 #endif

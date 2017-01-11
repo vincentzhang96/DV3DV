@@ -8,6 +8,7 @@ INITIALIZE_EASYLOGGINGPP
 OpenGLContext* oglContext = nullptr;
 HWND hWnd = nullptr;
 HINSTANCE hInstance = nullptr;
+MSG msg;
 
 bool active;
 bool fullscreen;
@@ -72,13 +73,42 @@ bool _ShowConsole()
 	return true;
 }
 
-int WINAPI WinMain(HINSTANCE hInstance,	
-                   HINSTANCE hPrevInstance, 
-                   LPSTR lpCmdLine, 
-                   int nCmdShow)
+inline bool _DoMainLoop()
+{
+	if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+	{
+		//	Handle window messages
+		if (msg.message == WM_QUIT)
+		{
+			//	Quit requested
+
+			//	TODO have this signal into the program instead of killing immediately
+			return true;
+		}
+		else
+		{
+			//	Handle the incoming message
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
+	else
+	{
+		//	Inner loop
+		oglContext->PreRender();
+		//	TODO Render stuff
+
+		oglContext->PostRender();
+		//	TODO Clock this
+		Sleep(10);
+	}
+	return false;
+}
+
+void _SetUpLogger()
 {
 	//	Check that the logging config file exists before attempting to load it
-	DWORD dwAttrib = GetFileAttributesW(L"logging.conf");
+	auto dwAttrib = GetFileAttributesW(L"logging.conf");
 	if (dwAttrib == 0xFFFFFFFF)
 	{
 		//	Logging configuration does not exist, so we'll use the default instead except we'll set the log file
@@ -99,6 +129,14 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	//	Disable FATAL app aborts
 	el::Loggers::addFlag(el::LoggingFlag::DisableApplicationAbortOnFatalLog);
+}
+
+int WINAPI WinMain(HINSTANCE hInstance,	
+                   HINSTANCE hPrevInstance, 
+                   LPSTR lpCmdLine, 
+                   int nCmdShow)
+{
+	_SetUpLogger();
 
 	//	Options
 	auto optShowConsole = true;
@@ -122,7 +160,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	//	TODO
 	for (auto i = 0; i < argc; ++i)
 	{
-		MessageBoxW(nullptr, argv[i], L"DV3DV", MB_OK);
+		//MessageBoxW(nullptr, argv[i], L"DV3DV", MB_OK);
 	}
 	//	Don't need argv anymore, free
 	LocalFree(argv);
@@ -150,39 +188,12 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		return 0;
 	}
 	//	Prep for main loop
-	MSG msg;
 	auto exitLoop = false;
 	//	Main loop
 	LOG(INFO) << "Entering main loop";
 	while (!exitLoop) 
 	{
-		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
-		{
-			//	Handle window messages
-			if (msg.message == WM_QUIT)
-			{
-				//	Quit requested
-
-				//	TODO have this signal into the program instead of killing immediately
-				exitLoop = true;
-			}
-			else
-			{
-				//	Handle the incoming message
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
-		}
-		else
-		{
-			//	Inner loop
-			oglContext->PreRender();
-			//	TODO Render stuff
-
-			oglContext->PostRender();
-			//	TODO Clock this
-			Sleep(10);
-		}
+		exitLoop = _DoMainLoop();
 	}
 	//	Destroy window
 	KillOGLWindow();
@@ -251,6 +262,37 @@ LRESULT CALLBACK WndProc(HWND hWnd,
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
+void _TrySetupFullscreen(int winWidth, int winHeight, DWORD& dwExStyle, DWORD& dwStyle)
+{
+	if (fullscreen)
+	{
+		DEVMODE devScreenSettings;
+		ZeroMemory(&devScreenSettings, sizeof(devScreenSettings));
+		devScreenSettings.dmSize = sizeof(devScreenSettings);
+		devScreenSettings.dmPelsWidth = winWidth;
+		devScreenSettings.dmPelsHeight = winHeight;
+		devScreenSettings.dmBitsPerPel = 24;
+		devScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+		if (ChangeDisplaySettings(&devScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
+		{
+			LOG(INFO) << "Failed to switch to fullscreen, falling back to windowed";
+			fullscreen = false;
+		}
+	}
+	//	Set styles accordingly
+	//	Note that fullscreen state may have changed when we attempted to enter fullscreen
+	if (fullscreen)
+	{
+		dwExStyle = WS_EX_APPWINDOW;
+		dwStyle = WS_POPUP;
+	}
+	else
+	{
+		dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
+		dwStyle = WS_OVERLAPPEDWINDOW;
+	}
+}
+
 bool CreateOGLWindow(LPCWSTR winTitle,
                      int winWidth, 
                      int winHeight, 
@@ -297,33 +339,7 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	}
 
 	//	Attempt to enter fullscreen
-	if (fullscreen)
-	{
-		DEVMODE devScreenSettings;
-		ZeroMemory(&devScreenSettings, sizeof(devScreenSettings));
-		devScreenSettings.dmSize = sizeof(devScreenSettings);
-		devScreenSettings.dmPelsWidth = winWidth;
-		devScreenSettings.dmPelsHeight = winHeight;
-		devScreenSettings.dmBitsPerPel = 24;
-		devScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-		if (ChangeDisplaySettings(&devScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
-		{
-			LOG(INFO) << "Failed to switch to fullscreen, falling back to windowed";
-			fullscreen = false;
-		}
-	}
-	//	Set styles accordingly
-	//	Note that fullscreen state may have changed when we attempted to enter fullscreen
-	if (fullscreen)
-	{
-		dwExStyle = WS_EX_APPWINDOW;
-		dwStyle = WS_POPUP;
-	}
-	else
-	{
-		dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
-		dwStyle = WS_OVERLAPPEDWINDOW;
-	}
+	_TrySetupFullscreen(winWidth, winHeight, dwExStyle, dwStyle);
 	AdjustWindowRectEx(&windowRect, dwStyle, false, dwExStyle);
 	//	Create the window
 	hWnd = CreateWindowExW(dwExStyle,
