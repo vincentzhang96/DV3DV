@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "main.h"
 #include "OpenGLContext.h"
+#include "Config.h"
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -223,6 +224,7 @@ LRESULT CALLBACK WndProc(HWND hWnd,
 		}
 	case WM_CLOSE:
 		{
+			//	Close requested via Window close button
 			PostQuitMessage(0);
 			return 0;
 		}
@@ -238,12 +240,14 @@ LRESULT CALLBACK WndProc(HWND hWnd,
 		}
 	case WM_SIZE:
 		{
+			//	WINDOW RESIZE
 			OnWindowResize(LOWORD(lParam), HIWORD(lParam));
 			return 0;
 		}
 	default:
 		break;
 	}
+	//	Let the default handlers handle it otherwise
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
@@ -261,6 +265,7 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	windowRect.right = long(winWidth);
 	windowRect.top = long(0);
 	windowRect.bottom = long(winHeight);
+	//	Check that any previous OpenGL context was destroyed first
 	if (oglContext != nullptr)
 	{
 		LOG(WARNING) << "Previous OpenGL context was not destroyed, possible resource leak!";
@@ -275,8 +280,8 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
 	wc.hInstance = hInstance;
-	wc.hIcon = LoadIcon(nullptr, IDI_WINLOGO);	//	TODO load icon
-	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wc.hIcon = LoadIconW(nullptr, IDI_WINLOGO);	//	TODO load icon
+	wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
 	wc.hbrBackground = nullptr;
 	wc.lpszMenuName = nullptr;
 	wc.lpszClassName = DV_CLASS_NAME;
@@ -284,13 +289,14 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	if (!RegisterClass(&wc))
 	{
 		LOG(ERROR) << "Window registration failed";
-		MessageBox(nullptr, 
+		MessageBoxW(nullptr, 
 		           L"Failed to register window.", 
 		           L"DV3DV Startup Error", 
 		           MB_OK | MB_ICONERROR);
 		return false;
 	}
 
+	//	Attempt to enter fullscreen
 	if (fullscreen)
 	{
 		DEVMODE devScreenSettings;
@@ -306,11 +312,12 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 			fullscreen = false;
 		}
 	}
+	//	Set styles accordingly
+	//	Note that fullscreen state may have changed when we attempted to enter fullscreen
 	if (fullscreen)
 	{
 		dwExStyle = WS_EX_APPWINDOW;
 		dwStyle = WS_POPUP;
-		ShowCursor(false);
 	}
 	else
 	{
@@ -318,7 +325,8 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 		dwStyle = WS_OVERLAPPEDWINDOW;
 	}
 	AdjustWindowRectEx(&windowRect, dwStyle, false, dwExStyle);
-	hWnd = CreateWindowEx(dwExStyle,
+	//	Create the window
+	hWnd = CreateWindowExW(dwExStyle,
 	                      DV_CLASS_NAME,
 	                      winTitle,
 	                      dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
@@ -334,18 +342,18 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	{
 		LOG(ERROR) << "Failed to create window";
 		KillOGLWindow();
-		MessageBox(nullptr, 
+		MessageBoxW(nullptr, 
 		           L"Failed to create window", 
 		           L"DV3DV Error", 
 		           MB_OK | MB_ICONERROR);
 		return false;
 	}
-
+	//	Create the OpenGL context
 	if (!oglContext->CreateContext(hWnd))
 	{
 		LOG(ERROR) << "Context creation failed";
 		KillOGLWindow();
-		MessageBox(nullptr,
+		MessageBoxW(nullptr,
 			L"Failed to create context",
 			L"DV3DV Error",
 			MB_OK | MB_ICONERROR);
@@ -353,10 +361,13 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	}
 	LOG(INFO) << "OpenGL v" << oglContext->GetGLMajorVersion() << "." << oglContext->GetGLMinorVersion();
 
+	//	Show the window and make it the front and focused one
 	ShowWindow(hWnd, SW_SHOW);
 	SetForegroundWindow(hWnd);
 	SetFocus(hWnd);
+	//	Center the window
 	MoveWindow(hWnd, 0, 0, winWidth, winHeight, true);	//	TODO Center
+	//	Finished
 	LOG(INFO) << "Created window " << winWidth << "x" << winHeight << "x24" 
 		<< " in " << (fullscreen ? "fullscreen" : "windowed") << " mode";
 	return true;
@@ -364,21 +375,25 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 
 void KillOGLWindow()
 {
+	//	Switch out of fullscreen if we were fullscreened
 	if (fullscreen)
 	{
 		ChangeDisplaySettings(nullptr, 0);
 		ShowCursor(true);
 	}
+	//	Destroy our context
 	delete oglContext;
 	oglContext = nullptr;
+	//	Destroy the window
 	if (hWnd && !DestroyWindow(hWnd))
 	{
-		//	TODO failed to release window
+		LOG(ERROR) << "Failed to destroy window";
 		hWnd = nullptr;
 	}
+	//	Unregister our class
 	if (!UnregisterClass(DV_CLASS_NAME, hInstance))
 	{
-		//	TODO failed to unregister class
+		LOG(ERROR) << "Failed to unregister window class";
 		hInstance = nullptr;
 	}
 	LOG(INFO) << "Window destroyed";
