@@ -1,7 +1,14 @@
 #pragma once
 #ifndef H_DV3DV_MAIN
 #define H_DV3DV_MAIN
-#include "Config.h"
+
+struct DV3DVConfig
+{
+	GLint winWidth;
+	GLint winHeight;
+	bool fullscreen;
+	bool console;
+};
 
 /// Main entry point
 int WINAPI WinMain(HINSTANCE hInstance,
@@ -45,6 +52,8 @@ void _SetUpLogger();
 
 void _CreateUserDir();
 
-void _LoadConfig(DV3DV::Config& config);
+void _LoadConfig(DV3DVConfig& config);
+
+void _ParseCommandLineFlag(DV3DVConfig& config, LPWSTR* argv, int argc, int i);
 
 #endif

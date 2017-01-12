@@ -151,7 +151,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\source\Config.cpp" />
     <ClCompile Include="..\source\main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
@@ -163,7 +162,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\source\Config.h" />
     <ClInclude Include="..\source\main.h" />
     <ClInclude Include="..\source\OpenGLContext.h" />
     <ClInclude Include="..\source\ppac\PhoenixPAC.h" />

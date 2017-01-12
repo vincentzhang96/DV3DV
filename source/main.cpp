@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "main.h"
 #include "OpenGLContext.h"
-#include "Config.h"
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -37,6 +36,11 @@ void OnWindowInactive()
 
 void OnWindowResize(int newWidth, int newHeight)
 {
+	if (oglContext == nullptr)
+	{
+		//	The context no longer exists, don't bother
+		return;
+	}
 	oglContext->ResizeWindow(newWidth, newHeight);
 	LOG(TRACE) << "Window resized to " << newWidth << "x" << newHeight;
 
@@ -131,6 +135,40 @@ void _SetUpLogger()
 	el::Loggers::addFlag(el::LoggingFlag::DisableApplicationAbortOnFatalLog);
 }
 
+void _LoadConfig(DV3DVConfig& config)
+{
+	//	TODO
+
+	config.winWidth = 1600;
+	config.winHeight = 900;
+	config.console = true;
+	config.fullscreen = true;
+}
+
+void _ParseCommandLineFlag(DV3DVConfig& config, LPWSTR* argv, int argc, int i)
+{
+	if (lstrcmpiW(L"/console", argv[i]) == 0)
+	{
+		config.console = true;
+	}
+	else if (lstrcmpiW(L"/w", argv[i]) == 0 && i + 1 < argc)
+	{
+		config.winWidth = _wtoi(argv[i + 1]);
+	}
+	else if (lstrcmpiW(L"/h", argv[i]) == 0 && i + 1 < argc)
+	{
+		config.winHeight = _wtoi(argv[i + 1]);
+	}
+	else if (lstrcmpiW(L"/fullscreen", argv[i]) == 0)
+	{
+		config.fullscreen = true;
+	}
+	else if (lstrcmpiW(L"/windowed", argv[i]) == 0)
+	{
+		config.fullscreen = false;
+	}
+}
+
 int WINAPI WinMain(HINSTANCE hInstance,
                    HINSTANCE hPrevInstance,
                    LPSTR lpCmdLine,
@@ -139,8 +177,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	_SetUpLogger();
 
 	//	Options
-	auto optShowConsole = true;
-	//	TODO more
+	DV3DVConfig config;
+	ZeroMemory(&config, sizeof(DV3DVConfig));
+	_LoadConfig(config);
 
 	//	Handle command line
 	LPWSTR* argv;
@@ -157,16 +196,15 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		return -1;
 	}
 	//	Handle arguments
-	//	TODO
 	for (auto i = 0; i < argc; ++i)
 	{
-		//MessageBoxW(nullptr, argv[i], L"DV3DV", MB_OK);
+		_ParseCommandLineFlag(config, argv, argc, i);
 	}
 	//	Don't need argv anymore, free
 	LocalFree(argv);
 
 	//	Create console if necessary
-	if (optShowConsole && !_ShowConsole())
+	if (config.console && !_ShowConsole())
 	{
 		if (!MessageBoxW(nullptr,
 		                 L"Failed to create console window. Do you wish to continue?",
@@ -178,11 +216,10 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	}
 	//	Go for full startup
 	LOG(INFO) << "Starting...";
-	//	Load config
-
-
+	//	Init asset managers
+	//	TODO Init asset managers
 	//	Create the window
-	if (!CreateOGLWindow(L"DV3DV", 1600, 900, false))
+	if (!CreateOGLWindow(L"DV3DV", config.winWidth, config.winHeight, config.fullscreen))
 	{
 		LOG(ERROR) << "Failed to create window, stopping";
 		return 0;
@@ -271,7 +308,7 @@ void _TrySetupFullscreen(int winWidth, int winHeight, DWORD& dwExStyle, DWORD& d
 		devScreenSettings.dmSize = sizeof(devScreenSettings);
 		devScreenSettings.dmPelsWidth = winWidth;
 		devScreenSettings.dmPelsHeight = winHeight;
-		devScreenSettings.dmBitsPerPel = 24;
+		devScreenSettings.dmBitsPerPel = 32;
 		devScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 		if (ChangeDisplaySettings(&devScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
 		{
