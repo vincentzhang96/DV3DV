@@ -1,0 +1,7 @@
+
+# Always include
+!*.ppacbuild
+!.gitignore
+!.keep
+# And include subdirs
+!*/
