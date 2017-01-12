@@ -1,1 +1,3 @@
 OUTPUT=out/init.ppac
+# Application icon
+0x0205,0x0000,0x00000001=init/appicon.ico
