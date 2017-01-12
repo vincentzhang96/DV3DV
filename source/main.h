@@ -1,6 +1,7 @@
 #pragma once
 #ifndef H_DV3DV_MAIN
 #define H_DV3DV_MAIN
+#include "Config.h"
 
 /// Main entry point
 int WINAPI WinMain(HINSTANCE hInstance,
@@ -41,5 +42,9 @@ void _TrySetupFullscreen(int winWidth, int winHeight, DWORD& dwExStyle, DWORD& d
 inline bool _DoMainLoop();
 
 void _SetUpLogger();
+
+void _CreateUserDir();
+
+void _LoadConfig(DV3DV::Config& config);
 
 #endif
