@@ -166,6 +166,7 @@
     <ClInclude Include="..\source\Config.h" />
     <ClInclude Include="..\source\main.h" />
     <ClInclude Include="..\source\OpenGLContext.h" />
+    <ClInclude Include="..\source\ppac\PhoenixPAC.h" />
     <ClInclude Include="..\source\stdafx.h" />
     <ClInclude Include="..\source\targetver.h" />
   </ItemGroup>
