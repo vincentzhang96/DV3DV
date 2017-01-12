@@ -11,6 +11,7 @@
 // Windows Header Files:
 #include <windows.h>
 #include <shellapi.h>
+#include <ShlObj.h>
 #include <iostream>
 #include <Strsafe.h>
 
@@ -19,6 +20,8 @@
 
 #define ELPP_NO_DEFAULT_LOG_FILE
 #include "lib/easylogging++.h"
+
+#include "lib/json.hpp"
 
 
 #define DV_CLASS_NAME L"DV3DV"

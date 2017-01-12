@@ -50,9 +50,11 @@ inline bool _DoMainLoop();
 
 void _SetUpLogger();
 
-void _CreateUserDir();
+bool _CreateUserDir();
 
-void _LoadConfig(DV3DVConfig& config);
+bool _LoadConfig(DV3DVConfig& config);
+
+bool _WriteConfig(DV3DVConfig& config);
 
 void _ParseCommandLineFlag(DV3DVConfig& config, LPWSTR* argv, int argc, int i);
 

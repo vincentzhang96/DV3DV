@@ -8,6 +8,11 @@ OpenGLContext* oglContext = nullptr;
 HWND hWnd = nullptr;
 HINSTANCE hInstance = nullptr;
 MSG msg;
+LPSTR userDataDir;
+
+
+#define USER_DATA_DIRW L"./userdata/"
+#define USER_DATA_DIR_FILEW(SUBPATH) USER_DATA_DIRW SUBPATH
 
 bool active;
 bool fullscreen;
@@ -135,14 +140,117 @@ void _SetUpLogger()
 	el::Loggers::addFlag(el::LoggingFlag::DisableApplicationAbortOnFatalLog);
 }
 
-void _LoadConfig(DV3DVConfig& config)
+bool _CreateUserDir()
 {
-	//	TODO
+	if (GetFileAttributesW(USER_DATA_DIRW) == 0xFFFFFFFF)
+	{
+		if (CreateDirectoryW(USER_DATA_DIRW, nullptr) == 0)
+		{
+			MessageBoxW(nullptr,
+				L"Failed to create user data directory at " USER_DATA_DIRW,
+				L"DV3DV Startup Error",
+				MB_OK | MB_ICONERROR);
+			return false;
+		}
+	}
 
+	if (GetFileAttributesW(USER_DATA_DIR_FILEW(L"config")) == 0xFFFFFFFF)
+	{
+		if (CreateDirectoryW(USER_DATA_DIR_FILEW(L"config"), nullptr) == 0)
+		{
+			MessageBoxW(nullptr,
+				L"Failed to create user config directory at " USER_DATA_DIR_FILEW(L"config"),
+				L"DV3DV Startup Error",
+				MB_OK | MB_ICONERROR);
+			return false;
+		}
+	}
+	return true;
+}
+
+bool _LoadConfig(DV3DVConfig& config)
+{
 	config.winWidth = 1600;
 	config.winHeight = 900;
 	config.console = true;
-	config.fullscreen = true;
+	config.fullscreen = false;
+	//	Check that the config file exists before attempting to load it
+	auto dwAttrib = GetFileAttributesW(USER_DATA_DIR_FILEW(L"config/config.json"));
+	if (dwAttrib == 0xFFFFFFFF)
+	{
+		//	Configuration does not exist, so we'll create it and save it
+		if (!_WriteConfig(config))
+		{
+			return false;
+		}
+	}
+	HANDLE cfgFile = CreateFileW(USER_DATA_DIR_FILEW(L"config/config.json"),
+		GENERIC_READ,
+		0,
+		nullptr,
+		OPEN_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		nullptr);
+	if (cfgFile == INVALID_HANDLE_VALUE)
+	{
+		MessageBoxW(nullptr,
+			L"Failed to open user config at " USER_DATA_DIR_FILEW(L"config/config.json"),
+			L"DV3DV Startup Error",
+			MB_OK | MB_ICONERROR);
+		return false;
+	}
+	//	TODO read in
+	
+	CloseHandle(cfgFile);
+	return true;
+}
+
+bool _WriteConfig(DV3DVConfig& config)
+{
+	HANDLE cfgFile = CreateFileW(USER_DATA_DIR_FILEW(L"config/config.json"),
+		GENERIC_WRITE,
+		0,
+		nullptr,
+		OPEN_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		nullptr);
+	if (cfgFile == INVALID_HANDLE_VALUE)
+	{
+		MessageBoxW(nullptr,
+			L"Failed to create user config at " USER_DATA_DIR_FILEW(L"config/config.json"),
+			L"DV3DV Startup Error",
+			MB_OK | MB_ICONERROR);
+		return false;
+	}
+	nlohmann::json cfgJson = 
+	{
+		{"width", config.winWidth},
+		{"height", config.winHeight},
+		{"fullscreen", config.fullscreen},
+		{"console", config.console}
+	};
+	//	Truncate file
+	SetEndOfFile(cfgFile);
+	std::string jsonStr = cfgJson.dump(4);
+	const char* buf = jsonStr.c_str();
+	DWORD dwBytesWritten;
+	bool success = WriteFile(cfgFile,
+		buf,
+		DWORD(strlen(buf)),
+		&dwBytesWritten,
+		nullptr
+	);
+	if (!success)
+	{
+		MessageBoxW(nullptr,
+			L"Failed to write user config at " USER_DATA_DIR_FILEW(L"config/config.json"),
+			L"DV3DV Startup Error",
+			MB_OK | MB_ICONERROR);
+		CloseHandle(cfgFile);
+		return false;
+	}
+	CloseHandle(cfgFile);
+	return true;
 }
 
 void _ParseCommandLineFlag(DV3DVConfig& config, LPWSTR* argv, int argc, int i)
@@ -175,7 +283,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
                    int nCmdShow)
 {
 	_SetUpLogger();
-
+	_CreateUserDir();
 	//	Options
 	DV3DVConfig config;
 	ZeroMemory(&config, sizeof(DV3DVConfig));
