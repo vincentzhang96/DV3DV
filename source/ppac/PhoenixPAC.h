@@ -151,8 +151,8 @@ namespace PPAC
 	{
 		uint8 mbeKeySize;
 		uint8 mbeValSize;
-		uint8* mbeKey;
-		uint8* mbeVal;
+		std::string mbeKey;
+		std::string mbeVal;
 	} PPACMETABLOCKENTRY;
 
 	typedef struct PPACTRASHINDEX
