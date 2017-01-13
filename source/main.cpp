@@ -212,7 +212,7 @@ bool _LoadConfig(DV3DVConfig& config)
 
 bool _WriteConfig(DV3DVConfig& config)
 {
-	HANDLE cfgFile = CreateFileW(USER_DATA_DIR_FILEW(L"config/config.json"),
+	auto cfgFile = CreateFileW(USER_DATA_DIR_FILEW(L"config/config.json"),
 		GENERIC_WRITE,
 		0,
 		nullptr,
@@ -237,7 +237,7 @@ bool _WriteConfig(DV3DVConfig& config)
 	//	Truncate file
 	SetEndOfFile(cfgFile);
 	std::string jsonStr = cfgJson.dump(4);
-	const char* buf = jsonStr.c_str();
+	auto buf = jsonStr.c_str();
 	DWORD dwBytesWritten;
 	bool success = WriteFile(cfgFile,
 		buf,
@@ -532,7 +532,7 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	SetForegroundWindow(hWnd);
 	SetFocus(hWnd);
 	//	Center the window
-	MoveWindow(hWnd, 0, 0, winWidth, winHeight, true); //	TODO Center
+
 	//	Finished
 	LOG(INFO) << "Created window " << winWidth << "x" << winHeight << "x24"
 		<< " in " << (fullscreen ? "fullscreen" : "windowed") << " mode";
