@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "main.h"
 #include "OpenGLContext.h"
+#include "ppac/PhoenixPAC.h"
 
 INITIALIZE_EASYLOGGINGPP
 
@@ -239,13 +240,13 @@ bool _WriteConfig(DV3DVConfig& config)
 	std::string jsonStr = cfgJson.dump(4);
 	auto buf = jsonStr.c_str();
 	DWORD dwBytesWritten;
-	bool success = WriteFile(cfgFile,
+	auto success = WriteFile(cfgFile,
 		buf,
 		DWORD(strlen(buf)),
 		&dwBytesWritten,
 		nullptr
 	);
-	if (!success)
+	if (success == 0)
 	{
 		MessageBoxW(nullptr,
 			L"Failed to write user config at " USER_DATA_DIR_FILEW(L"config/config.json"),
@@ -448,7 +449,6 @@ bool CreateOGLWindow(LPCWSTR winTitle,
                      int winHeight,
                      bool fullscreenWindow)
 {
-	GLuint pixelFormat;
 	WNDCLASS wc;
 	DWORD dwExStyle;
 	DWORD dwStyle;
