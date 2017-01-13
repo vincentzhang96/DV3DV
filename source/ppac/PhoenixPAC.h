@@ -1,7 +1,5 @@
 #pragma once
-#include <cstdint>
-#include <cstddef>
-#include <vector>
+#include "../stdafx.h"
 
 namespace PPAC
 {
@@ -169,4 +167,52 @@ namespace PPAC
 		OFFSET teOffset;
 		uint32 teSize;
 	} PPACTRASHINDEXENTRY;
+
+	class OPENPACFILEHANDLE
+	{
+	public:
+		explicit OPENPACFILEHANDLE(HANDLE handle);
+		~OPENPACFILEHANDLE();
+		HANDLE _handle;
+	};
+
+	class cPPAC
+	{
+	private:
+		PPACHEADER _header;
+		PPACINDEX* _index;
+		PPACMETA* _meta;
+		PPACTRASHINDEX* _trash;
+		OPENPACFILEHANDLE _handle;
+
+	public:
+		cPPAC(HANDLE handle);
+		~cPPAC();
+
+	};
+
+	class cPPACData
+	{
+	private:
+		TPUID _tpuid;
+		uint32 _size;
+		std::vector<uint8> _data;
+	};
+
+	class cPPACManager
+	{
+	private:
+		
+	public:
+		cPPACManager();
+		~cPPACManager();
+
+		bool LoadPPAC(std::string pathToPPAC);
+
+		bool LoadDir(std::string pathToDir);
+
+		bool FileExists(const TPUID& tpuid);
+
+		std::unique_ptr<cPPACData> GetFileData(const TPUID& tpuid);
+	};
 }

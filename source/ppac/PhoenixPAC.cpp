@@ -1,4 +1,5 @@
 #include "PhoenixPAC.h"
+#include <handleapi.h>
 
 using namespace PPAC;
 
@@ -125,5 +126,15 @@ bool PPAC::operator>=(const TPUID& lhs, const TPUID& rhs)
 bool PPAC::operator<=(const TPUID& lhs, const TPUID& rhs)
 {
 	return lhs.tpuid <= rhs.tpuid;
+}
+
+OPENPACFILEHANDLE::OPENPACFILEHANDLE(HANDLE handle)
+{
+	_handle = handle;
+}
+
+OPENPACFILEHANDLE::~OPENPACFILEHANDLE()
+{
+	CloseHandle(_handle);
 }
 
