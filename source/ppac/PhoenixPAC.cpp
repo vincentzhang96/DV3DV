@@ -2,6 +2,21 @@
 
 using namespace PPAC;
 
+TPUID::TPUID()
+{
+	tpuid = 0;
+}
+
+TPUID::TPUID(uint64 tpu)
+{
+	tpuid = tpu;
+}
+
+TPUID::TPUID(const TPUID& tpu)
+{
+	tpuid = tpu.tpuid;
+}
+
 TPUID TPUID::operator+(const TPUID& rhs) const
 {
 	auto ret = *this;
@@ -111,3 +126,4 @@ bool PPAC::operator<=(const TPUID& lhs, const TPUID& rhs)
 {
 	return lhs.tpuid <= rhs.tpuid;
 }
+

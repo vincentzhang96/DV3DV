@@ -74,6 +74,10 @@ namespace PPAC
 			uint32 low_u;
 		};
 
+		TPUID();
+		TPUID(uint64 tpu);
+		TPUID(const TPUID& tpu);
+
 		TPUID operator+(const TPUID& rhs) const;
 		TPUID operator-(const TPUID& rhs) const;
 		TPUID operator^(const TPUID& rhs) const;
@@ -87,6 +91,10 @@ namespace PPAC
 		TPUID& operator^=(const TPUID& rhs);
 
 	} TPUID;
+	static_assert(sizeof(TPUID) == sizeof(uint64), "TPUID isn't the size of a uint64");
+	static_assert(offsetof(TPUID, low_u) == offsetof(TPUID, u), "low_u and u should have the same offset");
+	static_assert(offsetof(TPUID, high_tp) == offsetof(TPUID, t), "high_tp and t should have the same offset");
+	static_assert(offsetof(TPUID, t) == 0, "t offset should be 0");
 
 	inline bool operator==(const TPUID& lhs, const TPUID& rhs);
 	inline bool operator!=(const TPUID& lhs, const TPUID& rhs);
