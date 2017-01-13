@@ -180,9 +180,9 @@ namespace PPAC
 	{
 	private:
 		PPACHEADER _header;
-		PPACINDEX* _index;
-		PPACMETA* _meta;
-		PPACTRASHINDEX* _trash;
+		PPACINDEX _index;
+		PPACMETA _meta;
+		PPACTRASHINDEX _trash;
 		OPENPACFILEHANDLE _handle;
 
 	public:
