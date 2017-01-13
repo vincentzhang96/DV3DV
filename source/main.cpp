@@ -17,6 +17,8 @@ LPSTR userDataDir;
 bool active;
 bool fullscreen;
 
+using json = nlohmann::json;
+
 void OnWindowActive()
 {
 	auto wasActive = active;
@@ -184,24 +186,27 @@ bool _LoadConfig(DV3DVConfig& config)
 			return false;
 		}
 	}
-	HANDLE cfgFile = CreateFileW(USER_DATA_DIR_FILEW(L"config/config.json"),
-		GENERIC_READ,
-		0,
-		nullptr,
-		OPEN_ALWAYS,
-		FILE_ATTRIBUTE_NORMAL,
-		nullptr);
-	if (cfgFile == INVALID_HANDLE_VALUE)
+	//	Read it in
+	std::ifstream istream(USER_DATA_DIR_FILEW(L"config/config.json"));
+	json cfgJson;
+	istream >> cfgJson;
+	istream.close();
+	if (cfgJson.count("width") == 1)
 	{
-		MessageBoxW(nullptr,
-			L"Failed to open user config at " USER_DATA_DIR_FILEW(L"config/config.json"),
-			L"DV3DV Startup Error",
-			MB_OK | MB_ICONERROR);
-		return false;
+		config.winWidth = cfgJson["width"].get<int>();
 	}
-	//	TODO read in
-	
-	CloseHandle(cfgFile);
+	if (cfgJson.count("height") == 1)
+	{
+		config.winHeight = cfgJson["height"].get<int>();
+	}
+	if (cfgJson.count("fullscreen") == 1)
+	{
+		config.fullscreen = cfgJson["fullscreen"].get<bool>();
+	}
+	if (cfgJson.count("console") == 1)
+	{
+		config.console = cfgJson["console"].get<bool>();
+	}
 	return true;
 }
 
@@ -222,7 +227,7 @@ bool _WriteConfig(DV3DVConfig& config)
 			MB_OK | MB_ICONERROR);
 		return false;
 	}
-	nlohmann::json cfgJson = 
+	json cfgJson = 
 	{
 		{"width", config.winWidth},
 		{"height", config.winHeight},
