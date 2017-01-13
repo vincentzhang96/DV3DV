@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <cstddef>
+#include <vector>
 
 namespace PPAC
 {
@@ -63,11 +64,36 @@ namespace PPAC
 		struct
 		{
 			uint16 t;
-			uint16 g;
+			uint16 p;
 			uint32 u;
 		};
 		uint64 tpuid;
+		struct
+		{
+			uint32 high_tp;
+			uint32 low_u;
+		};
+
+		TPUID operator+(const TPUID& rhs) const;
+		TPUID operator-(const TPUID& rhs) const;
+		TPUID operator^(const TPUID& rhs) const;
+		TPUID operator|(const TPUID& rhs) const;
+		TPUID operator&(const TPUID& rhs) const;
+		TPUID operator~() const;
+		TPUID& operator+=(const TPUID& rhs);
+		TPUID& operator-=(const TPUID& rhs);
+		TPUID& operator&=(const TPUID& rhs);
+		TPUID& operator|=(const TPUID& rhs);
+		TPUID& operator^=(const TPUID& rhs);
+
 	} TPUID;
+
+	inline bool operator==(const TPUID& lhs, const TPUID& rhs);
+	inline bool operator!=(const TPUID& lhs, const TPUID& rhs);
+	inline bool operator<(const TPUID& lhs, const TPUID& rhs);
+	inline bool operator>(const TPUID& lhs, const TPUID& rhs);
+	inline bool operator>=(const TPUID& lhs, const TPUID& rhs);
+	inline bool operator<=(const TPUID& lhs, const TPUID& rhs);
 
 	typedef struct PPACHEADER
 	{
@@ -84,7 +110,7 @@ namespace PPAC
 	typedef struct PPACINDEX
 	{
 		uint32 iCount;
-		PPACINDEXENTRY* iEntries;
+		std::vector<PPACINDEXENTRY> iEntries;
 		GUARD iGuard;
 	} PPACINDEX;
 
@@ -103,7 +129,7 @@ namespace PPAC
 	{
 		uint32 mSize;
 		uint32 mCount;
-		PPACMETABLOCK* mBlocks;
+		std::vector<PPACMETABLOCK> mBlocks;
 		GUARD mGuard;
 	} PPACMETA;
 
@@ -112,7 +138,7 @@ namespace PPAC
 		TPUID mbTPUID;
 		uint16 mbCount;
 		uint16 mbSize;
-		PPACMETABLOCKENTRY* mbEntries;
+		std::vector<PPACMETABLOCKENTRY> mbEntries;
 	} PPACMETABLOCK;
 
 	typedef struct PPACMETABLOCKENTRY
@@ -126,7 +152,7 @@ namespace PPAC
 	typedef struct PPACTRASHINDEX
 	{
 		uint32 tCount;
-		PPACTRASHINDEXENTRY* tEntries;
+		std::vector<PPACTRASHINDEXENTRY> tEntries;
 		GUARD tGuard;
 	} PPACTRASHINDEX;
 
