@@ -1,5 +1,6 @@
 #pragma once
 #include "../stdafx.h"
+#include <mutex>
 
 namespace PPAC
 {
@@ -56,6 +57,10 @@ namespace PPAC
 	struct PPACMETABLOCKENTRY;
 	struct PPACTRASHINDEX;
 	struct PPACTRASHINDEXENTRY;
+	class OPENPACFILEHANDLE;
+	class cPPAC;
+	class cPPACData;
+	class cPPACManager;
 
 	typedef union TPUID
 	{
@@ -75,6 +80,7 @@ namespace PPAC
 		TPUID();
 		TPUID(uint64 tpu);
 		TPUID(const TPUID& tpu);
+		TPUID(uint16 type, uint16 purpose, uint32 unique);
 
 		TPUID operator+(const TPUID& rhs) const;
 		TPUID operator-(const TPUID& rhs) const;
@@ -94,12 +100,12 @@ namespace PPAC
 	static_assert(offsetof(TPUID, high_tp) == offsetof(TPUID, t), "high_tp and t should have the same offset");
 	static_assert(offsetof(TPUID, t) == 0, "t offset should be 0");
 
-	inline bool operator==(const TPUID& lhs, const TPUID& rhs);
-	inline bool operator!=(const TPUID& lhs, const TPUID& rhs);
-	inline bool operator<(const TPUID& lhs, const TPUID& rhs);
-	inline bool operator>(const TPUID& lhs, const TPUID& rhs);
-	inline bool operator>=(const TPUID& lhs, const TPUID& rhs);
-	inline bool operator<=(const TPUID& lhs, const TPUID& rhs);
+	bool operator==(const TPUID& lhs, const TPUID& rhs);
+	bool operator!=(const TPUID& lhs, const TPUID& rhs);
+	bool operator<(const TPUID& lhs, const TPUID& rhs);
+	bool operator>(const TPUID& lhs, const TPUID& rhs);
+	bool operator>=(const TPUID& lhs, const TPUID& rhs);
+	bool operator<=(const TPUID& lhs, const TPUID& rhs);
 
 	typedef struct PPACHEADER
 	{
@@ -113,10 +119,15 @@ namespace PPAC
 		OFFSET hTrashIndexOffset;
 	} PPACHEADER;
 
+	const int DISKSZ_PPACHEADER = sizeof(uint32) * 2 +
+		sizeof(uint16) * 2 +
+		sizeof(uint8) * 16 +
+		sizeof(OFFSET) * 3;
+
 	typedef struct PPACINDEX
 	{
 		uint32 iCount;
-		std::vector<PPACINDEXENTRY> iEntries;
+		std::map<TPUID, PPACINDEXENTRY> iEntries;
 		GUARD iGuard;
 	} PPACINDEX;
 
@@ -144,7 +155,7 @@ namespace PPAC
 		TPUID mbTPUID;
 		uint16 mbCount;
 		uint16 mbSize;
-		std::vector<PPACMETABLOCKENTRY> mbEntries;
+		std::map<std::string, std::string> mbEntries;
 	} PPACMETABLOCK;
 
 	typedef struct PPACMETABLOCKENTRY
@@ -170,8 +181,9 @@ namespace PPAC
 
 	class OPENPACFILEHANDLE
 	{
+		std::string _name;
 	public:
-		explicit OPENPACFILEHANDLE(HANDLE handle);
+		explicit OPENPACFILEHANDLE(HANDLE handle, std::string name);
 		~OPENPACFILEHANDLE();
 		HANDLE _handle;
 	};
@@ -183,12 +195,18 @@ namespace PPAC
 		PPACINDEX _index;
 		PPACMETA _meta;
 		PPACTRASHINDEX _trash;
-		OPENPACFILEHANDLE _handle;
+		std::unique_ptr<OPENPACFILEHANDLE> _handle;
+		std::mutex _readMutex;
 
 	public:
-		cPPAC(HANDLE handle);
+		explicit cPPAC(std::string file);
 		~cPPAC();
 
+		std::unique_ptr<cPPACData> GetFileData(const TPUID& tpuid);
+
+		std::vector<PPACINDEXENTRY> GetEntries(const TPUID& mask = 0xFFFFFFFFFFFFFFFFL);
+
+		std::map<std::string, std::string> GetMetadata(const TPUID& tpuid);
 	};
 
 	class cPPACData
