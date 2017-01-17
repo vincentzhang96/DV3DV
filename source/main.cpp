@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "main.h"
 #include "OpenGLContext.h"
+
 #include "ppac/PhoenixPAC.h"
 
 INITIALIZE_EASYLOGGINGPP
@@ -333,6 +334,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	LOG(INFO) << "Starting...";
 	//	Init asset managers
 	//	TODO Init asset managers
+	//	TEST
+	PPAC::cPPAC pac(L"init.ppac");
+
 	//	Create the window
 	if (!CreateOGLWindow(L"DV3DV", config.winWidth, config.winHeight, config.fullscreen))
 	{
