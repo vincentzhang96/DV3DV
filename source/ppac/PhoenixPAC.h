@@ -9,7 +9,7 @@ namespace PPAC
 	typedef uint32_t uint32;
 	typedef uint64_t uint64;
 	typedef uint32_t GUARD;
-#ifdef PPAC_WIDE
+#ifdef PPAC_OPT_LONG_OFFSET
 	typedef uint64 OFFSET;
 #else
 	typedef uint32 OFFSET;
@@ -29,7 +29,7 @@ namespace PPAC
 
 #define PPACF_USE_LONG_OFFSETS 0x00000001
 #define PPACF_JAVA_ARRAY_COMPAT 0x00000002
-#define PPACF_CHK_FLAG(flags, flag) ((flags & flags) != 0)
+#define PPACF_CHK_FLAG(flags, flag) ((flags & flag) != 0)
 
 //	PPAC TYPE IDS
 //	BASIC
