@@ -15,7 +15,10 @@ namespace PPAC
 	typedef uint32 OFFSET;
 #endif
 
+#define INIT_PPAC_LOGGER el::Logger* ppacLogger = el::Loggers::getLogger("PPAC");
+
 #define PPAC_HEAD_MAGIC 0x50504143
+#define PPAC_HEAD_MAGICSWP 0x43415050
 #define PPAC_INDEX_GUARD 0x494E4458
 #define PPAC_META_GUARD 0x4D455441
 #define PPAC_TRASH_GUARD 0x54525348
@@ -181,9 +184,9 @@ namespace PPAC
 
 	class OPENPACFILEHANDLE
 	{
-		std::string _name;
+		LPCWSTR _name;
 	public:
-		explicit OPENPACFILEHANDLE(HANDLE handle, std::string name);
+		explicit OPENPACFILEHANDLE(HANDLE handle, LPCWSTR name);
 		~OPENPACFILEHANDLE();
 		HANDLE _handle;
 	};
@@ -199,8 +202,8 @@ namespace PPAC
 		std::mutex _readMutex;
 
 	public:
-		explicit cPPAC(std::string file);
-		~cPPAC();
+		explicit cPPAC(LPCWSTR file);
+		~cPPAC() = default;
 
 		std::unique_ptr<cPPACData> GetFileData(const TPUID& tpuid);
 

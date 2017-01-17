@@ -135,7 +135,7 @@ bool PPAC::operator<=(const TPUID& lhs, const TPUID& rhs)
 	return lhs.tpuid <= rhs.tpuid;
 }
 
-OPENPACFILEHANDLE::OPENPACFILEHANDLE(HANDLE handle, std::string name)
+OPENPACFILEHANDLE::OPENPACFILEHANDLE(HANDLE handle, LPCWSTR name)
 {
 	_handle = handle;
 	_name = name;
@@ -147,44 +147,146 @@ OPENPACFILEHANDLE::~OPENPACFILEHANDLE()
 	std::cout << "Closing handle " << _name;
 }
 
-std::wstring s2ws(const std::string& s)
+//std::wstring s2ws(const std::string& s)
+//{
+//	int len;
+//	int slength = int(s.length()) + 1;
+//	len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
+//	wchar_t* buf = new wchar_t[len];
+//	MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
+//	std::wstring r(buf);
+//	delete[] buf;
+//	return r;
+//}
+
+int _memcpyIncr(void* dest, const void* src, const size_t sz)
 {
-	int len;
-	int slength = int(s.length()) + 1;
-	len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
-	wchar_t* buf = new wchar_t[len];
-	MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
-	std::wstring r(buf);
-	delete[] buf;
-	return r;
+	memcpy(dest, src, sz);
+	return sz;
 }
 
-cPPAC::cPPAC(std::string file)
+void _swp16(uint16* i)
 {
-	LPCWSTR lpcFile = s2ws(file).c_str();
-	HANDLE hFile = CreateFileW(lpcFile,
-		GENERIC_WRITE,
-		0,
+	*i = (*i << 8) | (*i >> 8);
+}
+
+void _swp32(uint32* i)
+{
+	*i = ((*i << 8) & 0xFF00FF00) | ((*i >> 8) & 0xFF00FF);
+	*i = (*i << 16) | (*i >> 16);
+}
+
+void _swp64(uint64* i)
+{
+	*i = ((*i << 8) & 0xFF00FF00FF00FF00ULL) | ((*i >> 8) & 0x00FF00FF00FF00FFULL);
+	*i = ((*i << 16) & 0xFFFF0000FFFF0000ULL) | ((*i >> 16) & 0x0000FFFF0000FFFFULL);
+	*i = (*i << 32) | (*i >> 32);
+}
+
+int _memcpyIncrSwp(void* dest, const void* src, const size_t sz)
+{
+	auto ret = _memcpyIncr(dest, src, sz);
+	if (sz == 2)
+	{
+		uint16* asUint16 = static_cast<uint16*>(dest);
+		_swp16(asUint16);
+	}
+	else if (sz == 4)
+	{
+		uint32* asUint32 = static_cast<uint32*>(dest);
+		_swp32(asUint32);
+	}
+	else if (sz == 8)
+	{
+		uint64* asUint64 = static_cast<uint64*>(dest);
+		_swp64(asUint64);
+	}
+	return ret;
+}
+
+#define READ_FIELD_INCR(field, buffer) buffer += _memcpyIncr(&field, buffer, sizeof(field))
+#define READ_FIELD_INCRSWP(field, buffer) buffer += _memcpyIncrSwp(&field, buffer, sizeof(field))
+#define READ_FIELD_INCROPTSWP(field, buffer, swap) buffer += swap ? _memcpyIncrSwp(&field, buffer, sizeof(field)) : _memcpyIncr(&field, buffer, sizeof(field))
+
+cPPAC::cPPAC(LPCWSTR file)
+{
+	CLOG(DEBUG, "PPAC") << "Reading file " << file;
+	HANDLE hFile = CreateFileW(file,
+		GENERIC_READ,
+		FILE_SHARE_READ,
 		nullptr,
 		OPEN_ALWAYS,
 		FILE_ATTRIBUTE_NORMAL,
 		nullptr);
 	if (hFile == INVALID_HANDLE_VALUE)
 	{
+		CLOG(WARNING, "PPAC") << "Failed to open handle to file " << file;
 		throw "Unable to open file";
 	}
 	_handle = std::make_unique<OPENPACFILEHANDLE>(hFile, file);
+
+	bool needSwp = false;
+	//	READ HEADER
 	std::unique_ptr<char[]> buffer(new char[DISKSZ_PPACHEADER]);
 	DWORD dwBytesRead;
-	BOOL bFlag = ReadFile(_handle.get(), buffer.get(), DISKSZ_PPACHEADER, &dwBytesRead, nullptr);
+	BOOL bFlag = ReadFile(_handle.get()->_handle, buffer.get(), DISKSZ_PPACHEADER, &dwBytesRead, nullptr);
 	if (bFlag == FALSE)
 	{
+		CLOG(WARNING, "PPAC") << "Failed to read file " << file << " " << GetLastError();
 		throw "Unable to read file";
 	}
 	if (dwBytesRead != DISKSZ_PPACHEADER)
 	{
+		CLOG(WARNING, "PPAC") << "Incomplete read of file " << file;
 		throw "Incomplete read";
 	}
-
+	char* bufPtr = buffer.get();
+	//	Read the magic word and decide if we need to swap bytes (LE vs BE)
+	uint32 magic;
+	READ_FIELD_INCR(magic, bufPtr);
+	if (magic == PPAC_HEAD_MAGICSWP)
+	{
+		needSwp = true;
+		_swp32(&magic);
+	}
+	else if (magic != PPAC_HEAD_MAGIC)
+	{
+		CLOG(WARNING, "PPAC") << "Invalid PPAC file: bad magic";
+		throw "Bad magic";
+	}
+	_header.hMagic = magic;
+	READ_FIELD_INCROPTSWP(_header.hMajorVer, bufPtr, needSwp);
+	READ_FIELD_INCROPTSWP(_header.hMinorVer, bufPtr, needSwp);
+	if (_header.hMajorVer != 4)
+	{
+		CLOG(WARNING, "PPAC") << "Unsupported PPAC file version " << _header.hMajorVer << "." << _header.hMinorVer;
+		throw "Unsupported PPAC major version";
+	}
+	if (_header.hMinorVer != 0)
+	{
+		CLOG(WARNING, "PPAC") << "Unsupported PPAC file version " << _header.hMajorVer << "." << _header.hMinorVer;
+		throw "Unsupported PPAC minor version";
+	}
+	CLOG(INFO, "PPAC") << _header.hMagic << " " << _header.hMajorVer << "." << _header.hMinorVer;
 }
+
+std::unique_ptr<cPPACData> cPPAC::GetFileData(const TPUID& tpuid)
+{
+	//	TODO
+	return nullptr;
+}
+
+std::vector<PPACINDEXENTRY> cPPAC::GetEntries(const TPUID& mask)
+{
+	//	TODO
+	return std::vector<PPACINDEXENTRY>(0);
+}
+
+std::map<std::string, std::string> cPPAC::GetMetadata(const TPUID& tpuid)
+{
+	//	TODO
+	return std::map<std::string, std::string>();
+}
+
+
 

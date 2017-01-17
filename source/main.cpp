@@ -4,6 +4,7 @@
 #include "ppac/PhoenixPAC.h"
 
 INITIALIZE_EASYLOGGINGPP
+INIT_PPAC_LOGGER
 
 OpenGLContext* oglContext = nullptr;
 HWND hWnd = nullptr;
