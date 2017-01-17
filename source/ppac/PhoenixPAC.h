@@ -142,8 +142,16 @@ namespace PPAC
 		uint32 ieMemorySize;
 		uint8 ieCompressionType;
 		uint8 ieReserved[3];
-		uint8 ieSHA256;
+		uint8 ieSHA256[32];
 	} PPACINDEXENTRY;
+
+	const size_t DISKSZ_PPACINDEXENTRY = sizeof(uint16) * 2 +
+		sizeof(uint32) +
+		sizeof(OFFSET) +
+		sizeof(uint32) * 2 +
+		sizeof(uint8) +
+		sizeof(uint8) * 3 +
+		sizeof(uint8) * 32;
 
 	typedef struct PPACMETA
 	{
@@ -200,6 +208,10 @@ namespace PPAC
 		PPACTRASHINDEX _trash;
 		std::unique_ptr<OPENPACFILEHANDLE> _handle;
 		std::mutex _readMutex;
+
+		bool _ReadHeader(const LPCWSTR file);
+		void _ReadIndex(const bool needSwp, const LPCWSTR file);
+		void _ReadMetadata(const bool needSwp, const LPCWSTR file);
 
 	public:
 		explicit cPPAC(LPCWSTR file);

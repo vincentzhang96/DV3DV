@@ -208,25 +208,9 @@ int _memcpyIncrSwp(void* dest, const void* src, const size_t sz)
 #define READ_FIELD_INCRSWP(field, buffer) buffer += _memcpyIncrSwp(&field, buffer, sizeof(field))
 #define READ_FIELD_INCROPTSWP(field, buffer, swap) buffer += swap ? _memcpyIncrSwp(&field, buffer, sizeof(field)) : _memcpyIncr(&field, buffer, sizeof(field))
 
-cPPAC::cPPAC(LPCWSTR file)
+bool cPPAC::_ReadHeader(const LPCWSTR file)
 {
-	CLOG(DEBUG, "PPAC") << "Reading file " << file;
-	HANDLE hFile = CreateFileW(file,
-		GENERIC_READ,
-		FILE_SHARE_READ,
-		nullptr,
-		OPEN_ALWAYS,
-		FILE_ATTRIBUTE_NORMAL,
-		nullptr);
-	if (hFile == INVALID_HANDLE_VALUE)
-	{
-		CLOG(WARNING, "PPAC") << "Failed to open handle to file " << file;
-		throw "Unable to open file";
-	}
-	_handle = std::make_unique<OPENPACFILEHANDLE>(hFile, file);
-
 	bool needSwp = false;
-	//	READ HEADER
 	std::unique_ptr<char[]> buffer(new char[DISKSZ_PPACHEADER]);
 	DWORD dwBytesRead;
 	BOOL bFlag = ReadFile(_handle.get()->_handle, buffer.get(), DISKSZ_PPACHEADER, &dwBytesRead, nullptr);
@@ -307,9 +291,79 @@ cPPAC::cPPAC(LPCWSTR file)
 		_header.hTrashIndexOffset = hTrashIndexOffset;
 #endif
 	}
+}
 
+void cPPAC::_ReadIndex(const bool needSwp, const LPCWSTR file)
+{
+	//	Move to index
+#ifndef PPAC_OPT_LONG_OFFSET
+	LONG lDistanceToMove = _header.hIndexOffset;
+	LONG lDistanceToMoveHigh = 0L;
+#else
+	LONG lDistanceToMove = _header.hIndexOffset & 0xFFFFFFFFL;
+	LONG lDistanceToMoveHigh = (_header.hIndexOffset >> 32) 0xFFFFFFFFL;
+#endif
+
+	//	Read index size
+	DWORD dwBytesRead;
+	BOOL bFlag = ReadFile(_handle.get()->_handle, &_index.iCount, sizeof(_index.iCount), &dwBytesRead, nullptr);
+	if (bFlag == FALSE)
+	{
+		CLOG(WARNING, "PPAC") << "Failed to read file " << file << " " << GetLastError();
+		throw "Unable to read file";
+	}
+	if (dwBytesRead != sizeof(_index.iCount))
+	{
+		CLOG(WARNING, "PPAC") << "Incomplete read of file " << file;
+		throw "Incomplete read";
+	}
+	_swp32(&_index.iCount);
+	size_t indexBodyLen = DISKSZ_PPACINDEXENTRY * _index.iCount;
+	CLOG(DEBUG, "PPAC") << "Index with " << _index.iCount << " sz " << indexBodyLen;
+	//	Read in the index body
+	std::unique_ptr<char[]> buffer(new char[indexBodyLen]);
+	bFlag = ReadFile(_handle.get()->_handle, buffer.get(), indexBodyLen, &dwBytesRead, nullptr);
+	if (bFlag == FALSE)
+	{
+		CLOG(WARNING, "PPAC") << "Failed to read file " << file << " " << GetLastError();
+		throw "Unable to read file";
+	}
+	if (dwBytesRead != indexBodyLen)
+	{
+		CLOG(WARNING, "PPAC") << "Incomplete read of file " << file;
+		throw "Incomplete read";
+	}
+//	_index.iEntries.
+	for (auto i = 0; i < _index.iCount; ++i)
+	{
+		
+	}
+
+	//	TODO
+}
+
+cPPAC::cPPAC(LPCWSTR file)
+{
+	CLOG(DEBUG, "PPAC") << "Reading file " << file;
+	HANDLE hFile = CreateFileW(file,
+		GENERIC_READ,
+		FILE_SHARE_READ,
+		nullptr,
+		OPEN_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		nullptr);
+	if (hFile == INVALID_HANDLE_VALUE)
+	{
+		CLOG(WARNING, "PPAC") << "Failed to open handle to file " << file;
+		throw "Unable to open file";
+	}
+	_handle = std::make_unique<OPENPACFILEHANDLE>(hFile, file);
+
+	bool needSwp;
+	//	READ HEADER
+	needSwp = _ReadHeader(file);
 	//	READ INDEX
-
+	_ReadIndex(needSwp, file);
 }
 
 std::unique_ptr<cPPACData> cPPAC::GetFileData(const TPUID& tpuid)
