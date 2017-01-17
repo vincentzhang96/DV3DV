@@ -267,7 +267,49 @@ cPPAC::cPPAC(LPCWSTR file)
 		CLOG(WARNING, "PPAC") << "Unsupported PPAC file version " << _header.hMajorVer << "." << _header.hMinorVer;
 		throw "Unsupported PPAC minor version";
 	}
-	CLOG(INFO, "PPAC") << _header.hMagic << " " << _header.hMajorVer << "." << _header.hMinorVer;
+	READ_FIELD_INCR(_header.hReserved, bufPtr);
+	READ_FIELD_INCROPTSWP(_header.hFlags, bufPtr, needSwp);
+	if (PPACF_CHK_FLAG(PPACF_USE_LONG_OFFSETS, _header.hFlags))
+	{
+		//	Long offsets
+#ifndef PPAC_OPT_LONG_OFFSET
+		//	If not compiled with long offsets, reject
+		CLOG(WARNING, "PPAC") << "Long offsets are not supported";
+		throw "Unsupported flag PPACF_USE_LONG_OFFSETS";
+#else
+		static_assert(sizeof(_header.hIndexOffset) == sizeof(OFFSET), "Field size doesn't equal offset size");
+		//	Using long offsets
+		READ_FIELD_INCROPTSWP(_header.hIndexOffset, bufPtr, needSwp);
+		READ_FIELD_INCROPTSWP(_header.hMetadataOffset, bufPtr, needSwp);
+		READ_FIELD_INCROPTSWP(_header.hTrashIndexOffset, bufPtr, needSwp);
+#endif
+	}
+	else
+	{
+		//	Narrow offsets
+#ifndef PPAC_OPT_LONG_OFFSET
+		static_assert(sizeof(_header.hIndexOffset) == sizeof(OFFSET), "Field size doesn't equal offset size");
+		//	If not compiled with long offsets, no conversions necessary
+		READ_FIELD_INCROPTSWP(_header.hIndexOffset, bufPtr, needSwp);
+		READ_FIELD_INCROPTSWP(_header.hMetadataOffset, bufPtr, needSwp);
+		READ_FIELD_INCROPTSWP(_header.hTrashIndexOffset, bufPtr, needSwp);
+#else
+		//	Need to upconvert
+		static_assert(sizeof(_header.hIndexOffset) == sizeof(OFFSET), "Field size doesn't equal offset size");
+		uint32 hIndexOffset;
+		uint32 hMetadataOffset;
+		uint32 hTrashIndexOffset;
+		READ_FIELD_INCROPTSWP(hIndexOffset, bufPtr, needSwp);
+		READ_FIELD_INCROPTSWP(hMetadataOffset, bufPtr, needSwp);
+		READ_FIELD_INCROPTSWP(hTrashIndexOffset, bufPtr, needSwp);
+		_header.hIndexOffset = hIndexOffset;
+		_header.hMetadataOffset = hMetadataOffset;
+		_header.hTrashIndexOffset = hTrashIndexOffset;
+#endif
+	}
+
+	//	READ INDEX
+
 }
 
 std::unique_ptr<cPPACData> cPPAC::GetFileData(const TPUID& tpuid)
