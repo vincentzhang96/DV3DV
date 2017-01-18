@@ -51,6 +51,8 @@ namespace PPAC
 //	APPLICATION SPECIFIC
 
 
+#define PPAC_COMPRESSION_SUPPORTED(comp) (comp == 0 || comp == 1)
+
 	//	Forward declarations
 	union TPUID;
 	struct PPACHEADER;

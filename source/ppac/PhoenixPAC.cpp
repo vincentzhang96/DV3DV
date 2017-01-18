@@ -216,7 +216,7 @@ int _memcpyIncrSwp(void* dest, const void* src, const size_t sz)
 bool cPPAC::_ReadHeader(const LPCWSTR file)
 {
 	bool needSwp = false;
-	std::unique_ptr<char[]> buffer(new char[DISKSZ_PPACHEADER]);
+	std::unique_ptr<uint8[]> buffer(new uint8[DISKSZ_PPACHEADER]);
 	DWORD dwBytesRead;
 	BOOL bFlag = ReadFile(_handle.get()->_handle, buffer.get(), DISKSZ_PPACHEADER, &dwBytesRead, nullptr);
 	if (bFlag == FALSE)
@@ -229,7 +229,7 @@ bool cPPAC::_ReadHeader(const LPCWSTR file)
 		CLOG(WARNING, "PPAC") << "Incomplete read of file " << file;
 		throw "Incomplete read";
 	}
-	char* bufPtr = buffer.get();
+	auto bufPtr = buffer.get();
 	//	Read the magic word and decide if we need to swap bytes (LE vs BE)
 	uint32 magic;
 	READ_FIELD_INCR(magic, bufPtr);
@@ -336,7 +336,7 @@ void cPPAC::_ReadIndex(const bool needSwp, const LPCWSTR file)
 	CLOG(DEBUG, "PPAC") << "Index with " << _index.iCount << " sz " << indexBodyLen;
 
 	//	Read in the index body
-	std::unique_ptr<char[]> buffer(new char[indexBodyLen]);
+	std::unique_ptr<uint8[]> buffer(new uint8[indexBodyLen]);
 	bFlag = ReadFile(_handle.get()->_handle, buffer.get(), indexBodyLen, &dwBytesRead, nullptr);
 	if (bFlag == FALSE)
 	{
@@ -348,7 +348,7 @@ void cPPAC::_ReadIndex(const bool needSwp, const LPCWSTR file)
 		CLOG(WARNING, "PPAC") << "Incomplete read of file " << file;
 		throw "Incomplete read";
 	}
-	char* bufPtr = buffer.get();
+	auto bufPtr = buffer.get();
 	for (auto i = 0U; i < _index.iCount; ++i)
 	{
 		PPACINDEXENTRY entry;
@@ -419,6 +419,49 @@ cPPAC::cPPAC(LPCWSTR file)
 
 std::unique_ptr<cPPACData> cPPAC::GetFileData(const TPUID& tpuid)
 {
+	auto iter = _index.iEntries.find(tpuid);
+	if (iter == _index.iEntries.end())
+	{
+		//	Not found
+		return std::unique_ptr<cPPACData>(nullptr);
+	}
+	PPACINDEXENTRY entry = iter->second;
+	int compType = entry.ieCompressionType;
+	if (!PPAC_COMPRESSION_SUPPORTED(compType))
+	{
+		CLOG(WARNING, "PPAC") << "Unsupported compression type " << compType;
+
+	}
+	//	Move to entry
+#ifndef PPAC_OPT_LONG_OFFSET
+	LONG lDistanceToMove = entry.ieDiskOffset;
+	LONG lDistanceToMoveHigh = 0L;
+#else
+	LONG lDistanceToMove = entry.ieDiskOffset & 0xFFFFFFFFL;
+	LONG lDistanceToMoveHigh = (entry.ieDiskOffset >> 32) 0xFFFFFFFFL;
+#endif
+	if (SetFilePointer(_handle.get()->_handle, lDistanceToMove, &lDistanceToMoveHigh, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+	{
+		CLOG(WARNING, "PPAC") << "Failed to read subfile SetFilePointer " << GetLastError();
+		return std::unique_ptr<cPPACData>(nullptr);
+	}
+	std::unique_ptr<uint8[]> buffer(new uint8[entry.ieDiskSize]);
+	DWORD dwBytesRead;
+	BOOL bFlag = ReadFile(_handle.get()->_handle, buffer.get(), entry.ieDiskSize, &dwBytesRead, nullptr);
+	if (bFlag == FALSE)
+	{
+		CLOG(WARNING, "PPAC") << "Failed to read subfile" << GetLastError();
+		throw "Unable to read file";
+	}
+	if (dwBytesRead != entry.ieDiskSize)
+	{
+		CLOG(WARNING, "PPAC") << "Incomplete read of subfile";
+		throw "Incomplete read";
+	}
+	auto bufPtr = buffer.get();
+	//	Decompress if necessary
+
+
 	//	TODO
 	return nullptr;
 }
