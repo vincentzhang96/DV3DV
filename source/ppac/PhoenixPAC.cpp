@@ -291,6 +291,7 @@ bool cPPAC::_ReadHeader(const LPCWSTR file)
 		_header.hTrashIndexOffset = hTrashIndexOffset;
 #endif
 	}
+	return needSwp;
 }
 
 void cPPAC::_ReadIndex(const bool needSwp, const LPCWSTR file)
@@ -303,6 +304,11 @@ void cPPAC::_ReadIndex(const bool needSwp, const LPCWSTR file)
 	LONG lDistanceToMove = _header.hIndexOffset & 0xFFFFFFFFL;
 	LONG lDistanceToMoveHigh = (_header.hIndexOffset >> 32) 0xFFFFFFFFL;
 #endif
+	if (SetFilePointer(_handle.get()->_handle, lDistanceToMove, &lDistanceToMoveHigh, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+	{
+		CLOG(WARNING, "PPAC") << "Failed to read file " << file << " SetFilePointer " << GetLastError();
+		throw "Unable to read file";
+	}
 
 	//	Read index size
 	DWORD dwBytesRead;
@@ -317,9 +323,13 @@ void cPPAC::_ReadIndex(const bool needSwp, const LPCWSTR file)
 		CLOG(WARNING, "PPAC") << "Incomplete read of file " << file;
 		throw "Incomplete read";
 	}
-	_swp32(&_index.iCount);
+	if (needSwp)
+	{
+		_swp32(&_index.iCount);
+	}
 	size_t indexBodyLen = DISKSZ_PPACINDEXENTRY * _index.iCount;
 	CLOG(DEBUG, "PPAC") << "Index with " << _index.iCount << " sz " << indexBodyLen;
+
 	//	Read in the index body
 	std::unique_ptr<char[]> buffer(new char[indexBodyLen]);
 	bFlag = ReadFile(_handle.get()->_handle, buffer.get(), indexBodyLen, &dwBytesRead, nullptr);
@@ -333,13 +343,42 @@ void cPPAC::_ReadIndex(const bool needSwp, const LPCWSTR file)
 		CLOG(WARNING, "PPAC") << "Incomplete read of file " << file;
 		throw "Incomplete read";
 	}
-//	_index.iEntries.
+	char* bufPtr = buffer.get();
 	for (auto i = 0; i < _index.iCount; ++i)
 	{
-		
+		PPACINDEXENTRY entry;
+		READ_FIELD_INCROPTSWP(entry.ieTPUID.t, bufPtr, needSwp);
+		READ_FIELD_INCROPTSWP(entry.ieTPUID.p, bufPtr, needSwp);
+		READ_FIELD_INCROPTSWP(entry.ieTPUID.u, bufPtr, needSwp);
+		READ_FIELD_INCROPTSWP(entry.ieDiskOffset, bufPtr, needSwp);
+		READ_FIELD_INCROPTSWP(entry.ieDiskSize, bufPtr, needSwp);
+		READ_FIELD_INCROPTSWP(entry.ieMemorySize, bufPtr, needSwp);
+		READ_FIELD_INCROPTSWP(entry.ieCompressionType, bufPtr, needSwp);
+		READ_FIELD_INCR(entry.ieReserved, bufPtr);
+		READ_FIELD_INCR(entry.ieSHA256, bufPtr);
+		_index.iEntries.insert_or_assign(entry.ieTPUID, entry);
 	}
 
-	//	TODO
+	//	Read guard bytes
+	bFlag = ReadFile(_handle.get()->_handle, &_index.iGuard, sizeof(_index.iGuard), &dwBytesRead, nullptr);
+	if (bFlag == FALSE)
+	{
+		CLOG(WARNING, "PPAC") << "Failed to read file " << file << " " << GetLastError();
+		throw "Unable to read file";
+	}
+	if (dwBytesRead != sizeof(_index.iGuard))
+	{
+		CLOG(WARNING, "PPAC") << "Incomplete read of file " << file;
+		throw "Incomplete read";
+	}
+	if (needSwp)
+	{
+		_swp32(&_index.iGuard);
+	}
+	if (!PPAC_CHK_INDEX_GUARD(_index))
+	{
+		CLOG(WARNING, "PPAC") << "Index guard bytes are incorrect, this file may be corrupt, but continuing";
+	}
 }
 
 cPPAC::cPPAC(LPCWSTR file)
