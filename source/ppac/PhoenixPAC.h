@@ -1,6 +1,7 @@
 #pragma once
 #include "../stdafx.h"
 #include <mutex>
+#include <unordered_map>
 
 namespace PPAC
 {
@@ -96,12 +97,7 @@ namespace PPAC
 		TPUID& operator&=(const TPUID& rhs);
 		TPUID& operator|=(const TPUID& rhs);
 		TPUID& operator^=(const TPUID& rhs);
-
 	} TPUID;
-	static_assert(sizeof(TPUID) == sizeof(uint64), "TPUID isn't the size of a uint64");
-	static_assert(offsetof(TPUID, low_u) == offsetof(TPUID, u), "low_u and u should have the same offset");
-	static_assert(offsetof(TPUID, high_tp) == offsetof(TPUID, t), "high_tp and t should have the same offset");
-	static_assert(offsetof(TPUID, t) == 0, "t offset should be 0");
 
 	bool operator==(const TPUID& lhs, const TPUID& rhs);
 	bool operator!=(const TPUID& lhs, const TPUID& rhs);
@@ -109,6 +105,19 @@ namespace PPAC
 	bool operator>(const TPUID& lhs, const TPUID& rhs);
 	bool operator>=(const TPUID& lhs, const TPUID& rhs);
 	bool operator<=(const TPUID& lhs, const TPUID& rhs);
+
+	struct PPACTPUIDHASH
+	{
+		size_t operator()(const TPUID& tpuid) const
+		{
+			return std::hash<uint64_t>()(tpuid.tpuid);
+		}
+	};
+
+	static_assert(sizeof(TPUID) == sizeof(uint64), "TPUID isn't the size of a uint64");
+	static_assert(offsetof(TPUID, low_u) == offsetof(TPUID, u), "low_u and u should have the same offset");
+	static_assert(offsetof(TPUID, high_tp) == offsetof(TPUID, t), "high_tp and t should have the same offset");
+	static_assert(offsetof(TPUID, t) == 0, "t offset should be 0");
 
 	typedef struct PPACHEADER
 	{
@@ -129,8 +138,9 @@ namespace PPAC
 
 	typedef struct PPACINDEX
 	{
+		typedef std::unordered_map<TPUID, PPACINDEXENTRY, PPACTPUIDHASH> PPACINDEXENTRIES;
 		uint32 iCount;
-		std::map<TPUID, PPACINDEXENTRY> iEntries;
+		PPACINDEXENTRIES iEntries;
 		GUARD iGuard;
 	} PPACINDEX;
 
@@ -163,10 +173,11 @@ namespace PPAC
 
 	typedef struct PPACMETABLOCK
 	{
+		typedef std::unordered_map<std::string, std::string> PPACMETABLOCKENTRIES;
 		TPUID mbTPUID;
 		uint16 mbCount;
 		uint16 mbSize;
-		std::map<std::string, std::string> mbEntries;
+		PPACMETABLOCKENTRIES mbEntries;
 	} PPACMETABLOCK;
 
 	typedef struct PPACMETABLOCKENTRY
@@ -175,6 +186,8 @@ namespace PPAC
 		uint8 mbeValSize;
 		std::string mbeKey;
 		std::string mbeVal;
+
+		void AddToMap(PPACMETABLOCK::PPACMETABLOCKENTRIES& map);
 	} PPACMETABLOCKENTRY;
 
 	typedef struct PPACTRASHINDEX
@@ -219,9 +232,11 @@ namespace PPAC
 
 		std::unique_ptr<cPPACData> GetFileData(const TPUID& tpuid);
 
-		std::vector<PPACINDEXENTRY> GetEntries(const TPUID& mask = 0xFFFFFFFFFFFFFFFFL);
+		std::vector<PPACINDEXENTRY> GetEntries(const TPUID& filter = 0UL, const TPUID& mask = 0UL);
 
-		std::map<std::string, std::string> GetMetadata(const TPUID& tpuid);
+		const PPACINDEX::PPACINDEXENTRIES & GetEntryMap() const;
+
+		PPACMETABLOCK::PPACMETABLOCKENTRIES GetMetadata(const TPUID& tpuid);
 	};
 
 	class cPPACData

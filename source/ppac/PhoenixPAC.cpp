@@ -135,6 +135,11 @@ bool PPAC::operator<=(const TPUID& lhs, const TPUID& rhs)
 	return lhs.tpuid <= rhs.tpuid;
 }
 
+void PPACMETABLOCKENTRY::AddToMap(PPACMETABLOCK::PPACMETABLOCKENTRIES& map)
+{
+	map.insert_or_assign(mbeKey, mbeVal);
+}
+
 OPENPACFILEHANDLE::OPENPACFILEHANDLE(HANDLE handle, LPCWSTR name)
 {
 	_handle = handle;
@@ -344,7 +349,7 @@ void cPPAC::_ReadIndex(const bool needSwp, const LPCWSTR file)
 		throw "Incomplete read";
 	}
 	char* bufPtr = buffer.get();
-	for (auto i = 0; i < _index.iCount; ++i)
+	for (auto i = 0U; i < _index.iCount; ++i)
 	{
 		PPACINDEXENTRY entry;
 		READ_FIELD_INCROPTSWP(entry.ieTPUID.t, bufPtr, needSwp);
@@ -381,6 +386,13 @@ void cPPAC::_ReadIndex(const bool needSwp, const LPCWSTR file)
 	}
 }
 
+void cPPAC::_ReadMetadata(const bool needSwp, const LPCWSTR file)
+{
+	//	TODO implement later, for now pretend no meta
+	_meta.mCount = 0;
+	_meta.mBlocks.clear();
+}
+
 cPPAC::cPPAC(LPCWSTR file)
 {
 	CLOG(DEBUG, "PPAC") << "Reading file " << file;
@@ -411,16 +423,51 @@ std::unique_ptr<cPPACData> cPPAC::GetFileData(const TPUID& tpuid)
 	return nullptr;
 }
 
-std::vector<PPACINDEXENTRY> cPPAC::GetEntries(const TPUID& mask)
+std::vector<PPACINDEXENTRY> cPPAC::GetEntries(const TPUID& filter, const TPUID& mask)
 {
-	//	TODO
-	return std::vector<PPACINDEXENTRY>(0);
+	std::vector<PPACINDEXENTRY> ret;
+	//	Fast path, we want all the entries
+	if (mask == 0)
+	{
+		ret.reserve(_index.iEntries.size());
+		for (auto kv : _index.iEntries)
+		{
+			ret.push_back(kv.second);
+		}
+	}
+	//	Fast path, we care about all the bits of filter -> match one
+	else if (mask == 0xFFFFFFFFFFFFFFFFL)
+	{
+		auto iter = _index.iEntries.find(filter);
+		if (iter != _index.iEntries.end())
+		{
+			ret.push_back(iter->second);
+		}
+	}
+	//	Must filter
+	else
+	{
+		ret.reserve(_index.iEntries.size());
+		for (auto kv : _index.iEntries)
+		{
+			if ((kv.first & mask) == filter)
+			{
+				ret.push_back(kv.second);
+			}
+		}
+	}
+	return ret;
 }
 
-std::map<std::string, std::string> cPPAC::GetMetadata(const TPUID& tpuid)
+const PPACINDEX::PPACINDEXENTRIES & cPPAC::GetEntryMap() const
+{
+	return _index.iEntries;
+}
+
+PPACMETABLOCK::PPACMETABLOCKENTRIES cPPAC::GetMetadata(const TPUID& tpuid)
 {
 	//	TODO
-	return std::map<std::string, std::string>();
+	return PPACMETABLOCK::PPACMETABLOCKENTRIES();
 }
 
 
