@@ -458,12 +458,46 @@ std::unique_ptr<cPPACData> cPPAC::GetFileData(const TPUID& tpuid)
 		throw "Incomplete read";
 	}
 	auto bufPtr = buffer.get();
-	std::unique_ptr<cPPACData> ret = std::make_unique<cPPACData>(entry.ieTPUID, entry.ieMemorySize);
+	auto ret = std::make_unique<cPPACData>(entry.ieTPUID, entry.ieMemorySize);
+	auto vec = &ret.get()->_data;
 	//	Decompress if necessary
 	if (compType != 0)
 	{
-		
-		
+		if (compType == 1)
+		{
+			z_stream zInfo = { nullptr };
+			zInfo.total_in = entry.ieDiskSize;
+			zInfo.avail_in = entry.ieDiskSize;
+			zInfo.total_out = entry.ieMemorySize;
+			zInfo.avail_out = entry.ieMemorySize;
+			zInfo.next_in = bufPtr;
+			zInfo.next_out = vec->data();
+			int zError;
+			int zRet = -1;
+			zError = inflateInit(&zInfo);
+			if (zError == Z_OK)
+			{
+				zError = inflate(&zInfo, Z_FINISH);
+				if (zError == Z_STREAM_END)
+				{
+					zRet = zInfo.total_out;
+				}
+			}
+			else
+			{
+				CLOG(WARNING, "PPAC") << "Error while decompressing: " << zError;
+			}
+			inflateEnd(&zInfo);
+			if (zRet != entry.ieMemorySize)
+			{
+				CLOG(WARNING, "PPAC") << "Decompression amount doesn't match index size: "
+					<< entry.ieMemorySize << ", got " << zRet;
+			}
+		}
+		else
+		{
+			throw "Unsupported compression";
+		}
 	}
 	else
 	{
@@ -473,7 +507,6 @@ std::unique_ptr<cPPACData> cPPAC::GetFileData(const TPUID& tpuid)
 			throw "Mismatched disk and memory size";
 		}
 		//	Copy the data to the vector
-		std::vector<uint8>* vec = &ret.get()->_data;
 		vec->insert(vec->begin(), bufPtr, bufPtr + sizeof(uint8) * entry.ieDiskSize);
 	}
 	return ret;
