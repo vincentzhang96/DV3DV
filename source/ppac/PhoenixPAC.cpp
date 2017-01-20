@@ -516,7 +516,7 @@ std::vector<PPACINDEXENTRY> cPPAC::GetEntries(const TPUID& filter, const TPUID& 
 {
 	std::vector<PPACINDEXENTRY> ret;
 	//	Fast path, we want all the entries
-	if (mask == 0)
+	if (mask == 0 && filter == 0)
 	{
 		ret.reserve(_index.iEntries.size());
 		for (auto kv : _index.iEntries)
@@ -532,6 +532,11 @@ std::vector<PPACINDEXENTRY> cPPAC::GetEntries(const TPUID& filter, const TPUID& 
 		{
 			ret.push_back(iter->second);
 		}
+	}
+	//	Fast path, no results
+	else if (mask == 0)
+	{
+		// do nothing
 	}
 	//	Must filter
 	else
