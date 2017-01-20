@@ -1,5 +1,4 @@
 #include "PhoenixPAC.h"
-#include <handleapi.h>
 
 using namespace PPAC;
 
@@ -430,7 +429,7 @@ std::unique_ptr<cPPACData> cPPAC::GetFileData(const TPUID& tpuid)
 	if (!PPAC_COMPRESSION_SUPPORTED(compType))
 	{
 		CLOG(WARNING, "PPAC") << "Unsupported compression type " << compType;
-
+		return std::unique_ptr<cPPACData>(nullptr);
 	}
 	//	Move to entry
 #ifndef PPAC_OPT_LONG_OFFSET
@@ -459,11 +458,25 @@ std::unique_ptr<cPPACData> cPPAC::GetFileData(const TPUID& tpuid)
 		throw "Incomplete read";
 	}
 	auto bufPtr = buffer.get();
+	std::unique_ptr<cPPACData> ret = std::make_unique<cPPACData>(entry.ieTPUID, entry.ieMemorySize);
 	//	Decompress if necessary
-
-
-	//	TODO
-	return nullptr;
+	if (compType != 0)
+	{
+		
+		
+	}
+	else
+	{
+		if (entry.ieDiskSize != entry.ieMemorySize)
+		{
+			CLOG(WARNING, "PPAC") << "Uncompressed file has different disk and memory sizes";
+			throw "Mismatched disk and memory size";
+		}
+		//	Copy the data to the vector
+		std::vector<uint8>* vec = &ret.get()->_data;
+		vec->insert(vec->begin(), bufPtr, bufPtr + sizeof(uint8) * entry.ieDiskSize);
+	}
+	return ret;
 }
 
 std::vector<PPACINDEXENTRY> cPPAC::GetEntries(const TPUID& filter, const TPUID& mask)
@@ -511,6 +524,17 @@ PPACMETABLOCK::PPACMETABLOCKENTRIES cPPAC::GetMetadata(const TPUID& tpuid)
 {
 	//	TODO
 	return PPACMETABLOCK::PPACMETABLOCKENTRIES();
+}
+
+cPPACData::cPPACData(TPUID tpuid, uint32 size)
+{
+	_tpuid = tpuid;
+	_size = size;
+	_data.reserve(size);
+}
+
+cPPACData::~cPPACData()
+{
 }
 
 

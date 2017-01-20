@@ -243,7 +243,9 @@ namespace PPAC
 
 	class cPPACData
 	{
-	private:
+	public:
+		cPPACData(TPUID tpuid, uint32 size);
+		~cPPACData();
 		TPUID _tpuid;
 		uint32 _size;
 		std::vector<uint8> _data;

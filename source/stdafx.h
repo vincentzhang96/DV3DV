@@ -18,6 +18,7 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <handleapi.h>
 
 #include "lib/GL/glew.h"
 #include "lib/GL/wglew.h"
@@ -28,3 +29,5 @@
 #include "lib/json.hpp"
 
 #define DV_CLASS_NAME L"DV3DV"
+
+#include "lib/zlib.h"
