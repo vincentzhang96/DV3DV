@@ -459,7 +459,7 @@ std::unique_ptr<cPPACData> cPPAC::GetFileData(const TPUID& tpuid)
 	}
 	auto bufPtr = buffer.get();
 	auto ret = std::make_unique<cPPACData>(entry.ieTPUID, entry.ieMemorySize);
-	auto vec = &ret.get()->_data;
+	auto retVec = &ret.get()->_data;
 	//	Decompress if necessary
 	if (compType != 0)
 	{
@@ -471,7 +471,7 @@ std::unique_ptr<cPPACData> cPPAC::GetFileData(const TPUID& tpuid)
 			zInfo.total_out = entry.ieMemorySize;
 			zInfo.avail_out = entry.ieMemorySize;
 			zInfo.next_in = bufPtr;
-			zInfo.next_out = vec->data();
+			zInfo.next_out = retVec->data();
 			int zError;
 			int zRet = -1;
 			zError = inflateInit(&zInfo);
@@ -507,7 +507,7 @@ std::unique_ptr<cPPACData> cPPAC::GetFileData(const TPUID& tpuid)
 			throw "Mismatched disk and memory size";
 		}
 		//	Copy the data to the vector
-		vec->insert(vec->begin(), bufPtr, bufPtr + sizeof(uint8) * entry.ieDiskSize);
+		retVec->insert(retVec->begin(), bufPtr, bufPtr + sizeof(uint8) * entry.ieDiskSize);
 	}
 	return ret;
 }
