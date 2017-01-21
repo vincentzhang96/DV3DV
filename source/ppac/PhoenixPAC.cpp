@@ -575,5 +575,135 @@ cPPACData::~cPPACData()
 {
 }
 
+cPPACManager::cPPACManager()
+{
+	_loadedPPACs = packed_freelist<cPPAC>(1000);
+}
 
+cPPACManager::~cPPACManager()
+{
+}
 
+PPACHANDLE cPPACManager::LoadPPAC(std::wstring pathToPPAC)
+{
+	try
+	{
+		//	Construct the PPAC in place in the packed freelist
+		PPACHANDLE hPPAC = _loadedPPACs.emplace(pathToPPAC.c_str());
+		if (hPPAC == PPACHANDLE_INVALID)
+		{
+			return PPACHANDLE_INVALID;
+		}
+		//	Index all the entries
+		auto entries = _loadedPPACs[hPPAC].GetEntries();
+		for (auto entry : entries)
+		{
+			_tpuidToPPACMap.insert_or_assign(entry.ieTPUID, hPPAC);
+		}
+		CLOG(DEBUG, "PPAC") << "Indexed " << entries.size() << " subfiles";
+		return hPPAC;
+	}
+	catch(const std::string msg)
+	{
+		CLOG(WARNING, "PPAC") << "Failed to load " << pathToPPAC << ": " << msg << " (file skipped)";
+		return PPACHANDLE_INVALID;
+	}
+	catch(...)
+	{
+		CLOG(WARNING, "PPAC") << "Failed to load " << pathToPPAC << ": unknown (file skipped)";
+		return PPACHANDLE_INVALID;
+	}
+}
+
+bool _endsWith(std::wstring const &a, std::wstring const &suffix)
+{
+	if (a.length() >= suffix.length())
+	{
+		return (a.compare(a.length() - suffix.length(), suffix.length(), suffix)) == 0;
+	}
+	return false;
+}
+
+bool cPPACManager::LoadDir(std::wstring pathToDir)
+{
+	WIN32_FIND_DATAW fdData;
+	HANDLE hFind = INVALID_HANDLE_VALUE;
+	DWORD dwError = 0;
+	size_t szPathLength;
+	StringCchLengthW(pathToDir.c_str(), MAX_PATH, &szPathLength);
+	if (szPathLength > MAX_PATH - 3)
+	{
+		CLOG(WARNING, "PPAC") << "Ignoring directory " << pathToDir << " since its too deep";
+		return false;
+	}
+	//	Append \* to the path since we want to recursively look through all files in the dir
+	std::wstring extDir = pathToDir + L"\\*";
+	hFind = FindFirstFileW(extDir.c_str(), &fdData);
+	if (hFind == INVALID_HANDLE_VALUE)
+	{
+		CLOG(WARNING, "PPAC") << "Unable to get first file in directory " << pathToDir;
+		return false;
+	}
+	do
+	{
+		//	Ignore "." and ".."
+		if (wcscmp(fdData.cFileName, L".") == 0 ||
+			wcscmp(fdData.cFileName, L"..") == 0)
+		{
+			//	Skip
+		}
+		else if (fdData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+		{
+			//	Recursive call
+			bool result = LoadDir(fdData.cFileName);
+			if (!result)
+			{
+				CLOG(WARNING, "PPAC") << "Failed to load subdirectory " << fdData.cFileName;
+			}
+		}
+		else if (_endsWith(fdData.cFileName, L".ppac"))
+		{
+			//	Load
+			PPACHANDLE handle = LoadPPAC(pathToDir + L"\\" + fdData.cFileName);
+			if (handle == PPACHANDLE_INVALID)
+			{
+				CLOG(WARNING, "PPAC") << "Failed to read PPAC " << fdData.cFileName;
+			}
+			else
+			{
+				CLOG(DEBUG, "PPAC") << "Loaded PPAC " << (pathToDir + L"\\" + fdData.cFileName);
+			}
+		}
+	} while (FindNextFileW(hFind, &fdData) != FALSE);
+	dwError = GetLastError();
+	FindClose(hFind);
+	if (dwError != ERROR_NO_MORE_FILES)
+	{
+		CLOG(WARNING, "PPAC") << "Failed to load directory " << pathToDir << ": " << dwError;
+		return false;
+	}
+	return true;
+}
+
+bool cPPACManager::FileExists(const TPUID& tpuid)
+{
+	return _tpuidToPPACMap.find(tpuid) != _tpuidToPPACMap.end();
+}
+
+std::unique_ptr<cPPACData> cPPACManager::GetFileData(const TPUID& tpuid)
+{
+	//	Find the PPAC that the entry belongs to
+	auto iter = _tpuidToPPACMap.find(tpuid);
+	if (iter != _tpuidToPPACMap.end())
+	{
+		//	Grab the handle
+		PPACHANDLE hPPAC = iter->second;
+		if (hPPAC != PPACHANDLE_INVALID)
+		{
+			//	Get the data
+			return _loadedPPACs[hPPAC].GetFileData(tpuid);
+		}
+	}
+	//	Failed
+	return std::unique_ptr<cPPACData>(nullptr);
+}

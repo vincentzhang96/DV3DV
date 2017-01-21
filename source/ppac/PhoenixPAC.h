@@ -16,6 +16,9 @@ namespace PPAC
 	typedef uint32 OFFSET;
 #endif
 
+	typedef uint32 PPACHANDLE;
+#define PPACHANDLE_INVALID 0
+
 #define INIT_PPAC_LOGGER el::Logger* ppacLogger = el::Loggers::getLogger("PPAC");
 
 #define PPAC_HEAD_MAGIC 0x50504143
@@ -254,14 +257,17 @@ namespace PPAC
 	class cPPACManager
 	{
 	private:
-		
+		typedef std::unordered_map<TPUID, uint32, PPACTPUIDHASH> TPUIDHandleMap;
+
+		packed_freelist<cPPAC> _loadedPPACs;
+		TPUIDHandleMap _tpuidToPPACMap;
 	public:
 		cPPACManager();
 		~cPPACManager();
 
-		bool LoadPPAC(std::string pathToPPAC);
+		PPACHANDLE LoadPPAC(std::wstring pathToPPAC);
 
-		bool LoadDir(std::string pathToDir);
+		bool LoadDir(std::wstring pathToDir);
 
 		bool FileExists(const TPUID& tpuid);
 
