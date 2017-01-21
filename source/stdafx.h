@@ -31,3 +31,5 @@
 #define DV_CLASS_NAME L"DV3DV"
 
 #include "lib/zlib.h"
+
+#include "lib/packed_freelist.h"
