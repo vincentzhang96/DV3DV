@@ -22,6 +22,10 @@ bool fullscreen;
 
 using json = nlohmann::json;
 
+using PPACMANAGER = PPAC::cPPACManager;
+
+PPACMANAGER mPPACManager;
+
 void OnWindowActive()
 {
 	auto wasActive = active;
@@ -334,8 +338,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	LOG(INFO) << "Starting...";
 	//	Init asset managers
 	//	TODO Init asset managers
-	//	TEST
-	PPAC::cPPAC pac(L"init.ppac");
+
+	//	PPAC manager, load init first
+	mPPACManager.LoadPPAC(L"init.ppac");
 
 	//	Create the window
 	if (!CreateOGLWindow(L"DV3DV", config.winWidth, config.winHeight, config.fullscreen))
