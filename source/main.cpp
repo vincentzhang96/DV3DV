@@ -22,7 +22,7 @@ bool fullscreen;
 
 using json = nlohmann::json;
 
-using PPACMANAGER = PPAC::cPPACManager;
+using PPACMANAGER = ppac::cPPACManager;
 
 PPACMANAGER mPPACManager;
 

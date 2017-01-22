@@ -1,6 +1,6 @@
 #include "PhoenixPAC.h"
 
-using namespace PPAC;
+using namespace ppac;
 
 TPUID::TPUID()
 {
@@ -104,32 +104,32 @@ TPUID& TPUID::operator^=(const TPUID& rhs)
 	return *this;
 }
 
-bool PPAC::operator==(const TPUID& lhs, const TPUID& rhs)
+bool ppac::operator==(const TPUID& lhs, const TPUID& rhs)
 {
 	return lhs.tpuid == rhs.tpuid;
 }
 
-bool PPAC::operator!=(const TPUID& lhs, const TPUID& rhs)
+bool ppac::operator!=(const TPUID& lhs, const TPUID& rhs)
 {
 	return !(lhs == rhs);
 }
 
-bool PPAC::operator<(const TPUID& lhs, const TPUID& rhs)
+bool ppac::operator<(const TPUID& lhs, const TPUID& rhs)
 {
 	return lhs.tpuid < rhs.tpuid;
 }
 
-bool PPAC::operator>(const TPUID& lhs, const TPUID& rhs)
+bool ppac::operator>(const TPUID& lhs, const TPUID& rhs)
 {
 	return lhs.tpuid > rhs.tpuid;
 }
 
-bool PPAC::operator>=(const TPUID& lhs, const TPUID& rhs)
+bool ppac::operator>=(const TPUID& lhs, const TPUID& rhs)
 {
 	return lhs.tpuid >= rhs.tpuid;
 }
 
-bool PPAC::operator<=(const TPUID& lhs, const TPUID& rhs)
+bool ppac::operator<=(const TPUID& lhs, const TPUID& rhs)
 {
 	return lhs.tpuid <= rhs.tpuid;
 }

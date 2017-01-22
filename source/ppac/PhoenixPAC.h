@@ -3,7 +3,7 @@
 #include <mutex>
 #include <unordered_map>
 
-namespace PPAC
+namespace ppac
 {
 	typedef uint8_t uint8;
 	typedef uint16_t uint16;
