@@ -3,9 +3,11 @@
 #include "OpenGLContext.h"
 
 #include "ppac/PhoenixPAC.h"
+#include "dn/pak/DnPak.h"
 
 INITIALIZE_EASYLOGGINGPP
 INIT_PPAC_LOGGER
+INIT_DNPAK_LOGGER
 
 OpenGLContext* oglContext = nullptr;
 HWND hWnd = nullptr;
