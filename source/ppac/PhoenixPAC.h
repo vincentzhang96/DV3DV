@@ -210,11 +210,11 @@ namespace ppac
 
 	class OPENPACFILEHANDLE
 	{
-		LPCWSTR _name;
 	public:
 		explicit OPENPACFILEHANDLE(HANDLE handle, LPCWSTR name);
 		~OPENPACFILEHANDLE();
 		HANDLE _handle;
+		LPCWSTR _name;
 	};
 
 	class cPPAC
