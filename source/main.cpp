@@ -464,6 +464,7 @@ void _LoadIcon(WNDCLASSEX& wc)
 	auto iconData = mPPACManager.get()->GetFileData(TPUID_ICON);
 	if (iconData)
 	{
+		HWND hConsoleWindow = GetConsoleWindow();
 		int largeIconXSz = GetSystemMetrics(SM_CXICON);
 		int largeIconYSz = GetSystemMetrics(SM_CYICON);
 		int smallIconXSz = GetSystemMetrics(SM_CXSMICON);
@@ -482,6 +483,10 @@ void _LoadIcon(WNDCLASSEX& wc)
 		{
 			hLgIcon = CreateIconFromResourceEx(buf + lgOffset, 0, true, 0x30000, largeIconXSz, largeIconYSz, LR_DEFAULTCOLOR);
 			wc.hIcon = hLgIcon;
+			if (hConsoleWindow)
+			{
+				SendMessageW(hConsoleWindow, WM_SETICON, ICON_BIG, LPARAM(hLgIcon));
+			}
 		}
 		else
 		{
@@ -493,6 +498,10 @@ void _LoadIcon(WNDCLASSEX& wc)
 		{
 			hSmIcon = CreateIconFromResourceEx(buf + smOffset, 0, true, 0x30000, smallIconXSz, smallIconYSz, LR_DEFAULTCOLOR);
 			wc.hIconSm = hSmIcon;
+			if (hConsoleWindow)
+			{
+				SendMessageW(hConsoleWindow, WM_SETICON, ICON_SMALL, LPARAM(hLgIcon));
+			}
 		}
 		else
 		{
