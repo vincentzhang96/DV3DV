@@ -606,6 +606,13 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	SetFocus(hWnd);
 	//	Center the window
 
+	//	Rename console if present
+	HWND hConWin = GetConsoleWindow();
+	if (hConWin)
+	{
+		SetWindowText(hConWin, L"DV3DV Console");
+	}
+
 	//	Finished
 	LOG(INFO) << "Created window " << winWidth << "x" << winHeight << "x24"
 		<< " in " << (fullscreen ? "fullscreen" : "windowed") << " mode";
