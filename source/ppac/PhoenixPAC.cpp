@@ -139,7 +139,7 @@ void PPACMETABLOCKENTRY::AddToMap(PPACMETABLOCK::PPACMETABLOCKENTRIES& map)
 	map.insert_or_assign(mbeKey, mbeVal);
 }
 
-OPENPACFILEHANDLE::OPENPACFILEHANDLE(HANDLE handle, LPCWSTR name)
+OPENPACFILEHANDLE::OPENPACFILEHANDLE(HANDLE handle, std::wstring name)
 {
 	_handle = handle;
 	_name = name;
@@ -147,8 +147,8 @@ OPENPACFILEHANDLE::OPENPACFILEHANDLE(HANDLE handle, LPCWSTR name)
 
 OPENPACFILEHANDLE::~OPENPACFILEHANDLE()
 {
-	CloseHandle(_handle);
 	CLOG(DEBUG, "PPAC") << "Closing handle " << _name;
+	CloseHandle(_handle);
 }
 
 //std::wstring s2ws(const std::string& s)
@@ -212,7 +212,7 @@ int _memcpyIncrSwp(void* dest, const void* src, const size_t sz)
 #define READ_FIELD_INCRSWP(field, buffer) buffer += _memcpyIncrSwp(&field, buffer, sizeof(field))
 #define READ_FIELD_INCROPTSWP(field, buffer, swap) buffer += swap ? _memcpyIncrSwp(&field, buffer, sizeof(field)) : _memcpyIncr(&field, buffer, sizeof(field))
 
-bool cPPAC::_ReadHeader(const LPCWSTR file)
+bool cPPAC::_ReadHeader(const std::wstring file)
 {
 	bool needSwp = false;
 	std::unique_ptr<uint8[]> buffer(new uint8[DISKSZ_PPACHEADER]);
@@ -298,7 +298,7 @@ bool cPPAC::_ReadHeader(const LPCWSTR file)
 	return needSwp;
 }
 
-void cPPAC::_ReadIndex(const bool needSwp, const LPCWSTR file)
+void cPPAC::_ReadIndex(const bool needSwp, const std::wstring file)
 {
 	//	Move to index
 #ifndef PPAC_OPT_LONG_OFFSET
@@ -332,7 +332,6 @@ void cPPAC::_ReadIndex(const bool needSwp, const LPCWSTR file)
 		_swp32(&_index.iCount);
 	}
 	size_t indexBodyLen = DISKSZ_PPACINDEXENTRY * _index.iCount;
-	CLOG(DEBUG, "PPAC") << "Index with " << _index.iCount << " sz " << indexBodyLen;
 
 	//	Read in the index body
 	std::unique_ptr<uint8[]> buffer(new uint8[indexBodyLen]);
@@ -385,17 +384,17 @@ void cPPAC::_ReadIndex(const bool needSwp, const LPCWSTR file)
 	}
 }
 
-void cPPAC::_ReadMetadata(const bool needSwp, const LPCWSTR file)
+void cPPAC::_ReadMetadata(const bool needSwp, const std::wstring file)
 {
 	//	TODO implement later, for now pretend no meta
 	_meta.mCount = 0;
 	_meta.mBlocks.clear();
 }
 
-cPPAC::cPPAC(LPCWSTR file)
+cPPAC::cPPAC(std::wstring file)
 {
 	CLOG(DEBUG, "PPAC") << "Reading file " << file;
-	HANDLE hFile = CreateFileW(file,
+	HANDLE hFile = CreateFileW(file.c_str(),
 		GENERIC_READ,
 		FILE_SHARE_READ,
 		nullptr,

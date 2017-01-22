@@ -211,10 +211,10 @@ namespace ppac
 	class OPENPACFILEHANDLE
 	{
 	public:
-		explicit OPENPACFILEHANDLE(HANDLE handle, LPCWSTR name);
+		explicit OPENPACFILEHANDLE(HANDLE handle, std::wstring name);
 		~OPENPACFILEHANDLE();
 		HANDLE _handle;
-		LPCWSTR _name;
+		std::wstring _name;
 	};
 
 	class cPPAC
@@ -227,12 +227,12 @@ namespace ppac
 		std::unique_ptr<OPENPACFILEHANDLE> _handle;
 		std::mutex _readMutex;
 
-		bool _ReadHeader(const LPCWSTR file);
-		void _ReadIndex(const bool needSwp, const LPCWSTR file);
-		void _ReadMetadata(const bool needSwp, const LPCWSTR file);
+		bool _ReadHeader(const std::wstring file);
+		void _ReadIndex(const bool needSwp, const std::wstring file);
+		void _ReadMetadata(const bool needSwp, const std::wstring file);
 
 	public:
-		explicit cPPAC(LPCWSTR file);
+		explicit cPPAC(std::wstring file);
 		~cPPAC() = default;
 
 		std::unique_ptr<cPPACData> GetFileData(const TPUID& tpuid);
