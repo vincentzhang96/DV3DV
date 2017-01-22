@@ -148,7 +148,7 @@ OPENPACFILEHANDLE::OPENPACFILEHANDLE(HANDLE handle, LPCWSTR name)
 OPENPACFILEHANDLE::~OPENPACFILEHANDLE()
 {
 	CloseHandle(_handle);
-	std::cout << "Closing handle " << _name;
+	CLOG(DEBUG, "PPAC") << "Closing handle " << _name;
 }
 
 //std::wstring s2ws(const std::string& s)

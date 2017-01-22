@@ -24,7 +24,7 @@ using json = nlohmann::json;
 
 using PPACMANAGER = ppac::cPPACManager;
 
-PPACMANAGER mPPACManager;
+std::unique_ptr<PPACMANAGER> mPPACManager;
 
 #define TPUID_ICON { 0x0205, 0x0000, 0x00000001 }
 
@@ -339,10 +339,11 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	//	Go for full startup
 	LOG(INFO) << "Starting...";
 	//	Init asset managers
+	mPPACManager = std::make_unique<ppac::cPPACManager>();
 	//	TODO Init asset managers
 
 	//	PPAC manager, load init first
-	mPPACManager.LoadPPAC(L"init.ppac");
+	mPPACManager.get()->LoadPPAC(L"init.ppac");
 
 	//	Create the window
 	if (!CreateOGLWindow(L"DV3DV", config.winWidth, config.winHeight, config.fullscreen))
@@ -360,6 +361,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	}
 	//	Destroy window
 	KillOGLWindow();
+	//	Shut down managers
+	mPPACManager.reset();
 	return msg.wParam;
 }
 
@@ -458,7 +461,7 @@ void _TrySetupFullscreen(int winWidth, int winHeight, DWORD& dwExStyle, DWORD& d
 
 void _LoadIcon(WNDCLASSEX& wc)
 {
-	auto iconData = mPPACManager.GetFileData(TPUID_ICON);
+	auto iconData = mPPACManager.get()->GetFileData(TPUID_ICON);
 	if (iconData)
 	{
 		int largeIconXSz = GetSystemMetrics(SM_CXICON);
