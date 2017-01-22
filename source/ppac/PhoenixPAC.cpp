@@ -147,7 +147,7 @@ OPENPACFILEHANDLE::OPENPACFILEHANDLE(HANDLE handle, std::wstring name)
 
 OPENPACFILEHANDLE::~OPENPACFILEHANDLE()
 {
-	CLOG(DEBUG, "PPAC") << "Closing handle " << _name;
+	CLOG(TRACE, "PPAC") << "Closing handle " << _name;
 	CloseHandle(_handle);
 }
 
@@ -601,7 +601,7 @@ PPACHANDLE cPPACManager::LoadPPAC(std::wstring pathToPPAC)
 		{
 			_tpuidToPPACMap.insert_or_assign(entry.ieTPUID, hPPAC);
 		}
-		CLOG(DEBUG, "PPAC") << "Indexed " << entries.size() << " subfiles";
+		CLOG(TRACE, "PPAC") << "Indexed " << entries.size() << " subfiles";
 		return hPPAC;
 	}
 	catch(const std::string msg)

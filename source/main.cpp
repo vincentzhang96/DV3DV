@@ -34,7 +34,7 @@ void OnWindowActive()
 	active = true;
 	if (active != wasActive)
 	{
-		LOG(DEBUG) << "Window unminimized";
+		LOG(TRACE) << "Window unminimized";
 		//	TODO Notify
 	}
 }
@@ -45,7 +45,7 @@ void OnWindowInactive()
 	active = false;
 	if (active != wasActive)
 	{
-		LOG(DEBUG) << "Window minimized";
+		LOG(TRACE) << "Window minimized";
 		//	TODO Notify
 	}
 }
@@ -337,6 +337,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		}
 	}
 	//	Go for full startup
+	LOG(INFO) << "Divinitor 3D Viewer v0.1.0";
+	LOG(INFO) << "Built " << __TIMESTAMP__;
 	LOG(INFO) << "Starting...";
 	//	Init asset managers
 	mPPACManager = std::make_unique<ppac::cPPACManager>();
@@ -363,6 +365,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	KillOGLWindow();
 	//	Shut down managers
 	mPPACManager.reset();
+
+	LOG(INFO) << "Shutdown complete";
+	Sleep(1000);
 	return msg.wParam;
 }
 
@@ -610,7 +615,7 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	HWND hConWin = GetConsoleWindow();
 	if (hConWin)
 	{
-		SetWindowText(hConWin, L"DV3DV Console");
+		SetWindowText(hConWin, L"DV3DV Debug Console");
 	}
 
 	//	Finished
