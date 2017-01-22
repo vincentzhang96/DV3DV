@@ -418,6 +418,8 @@ cPPAC::cPPAC(LPCWSTR file)
 
 std::unique_ptr<cPPACData> cPPAC::GetFileData(const TPUID& tpuid)
 {
+	//	Only one thread may read at a time since we share the file handle
+	std::lock_guard<std::mutex> lock(_readMutex);
 	auto iter = _index.iEntries.find(tpuid);
 	if (iter == _index.iEntries.end())
 	{
