@@ -58,4 +58,6 @@ bool _WriteConfig(DV3DVConfig& config);
 
 void _ParseCommandLineFlag(DV3DVConfig& config, LPWSTR* argv, int argc, int i);
 
+void _LoadIcon(WNDCLASSEX& wc);
+
 #endif

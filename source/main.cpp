@@ -26,6 +26,8 @@ using PPACMANAGER = PPAC::cPPACManager;
 
 PPACMANAGER mPPACManager;
 
+#define TPUID_ICON { 0x0205, 0x0000, 0x00000001 }
+
 void OnWindowActive()
 {
 	auto wasActive = active;
@@ -454,12 +456,59 @@ void _TrySetupFullscreen(int winWidth, int winHeight, DWORD& dwExStyle, DWORD& d
 	}
 }
 
+void _LoadIcon(WNDCLASSEX& wc)
+{
+	auto iconData = mPPACManager.GetFileData(TPUID_ICON);
+	if (iconData)
+	{
+		int largeIconXSz = GetSystemMetrics(SM_CXICON);
+		int largeIconYSz = GetSystemMetrics(SM_CYICON);
+		int smallIconXSz = GetSystemMetrics(SM_CXSMICON);
+		int smallIconYSz = GetSystemMetrics(SM_CYSMICON);
+		auto iconPpacData = iconData.get();
+		uint8_t* buf = iconPpacData->_data.data();
+		//	Fix icon for memory rep
+		uint16_t count = *reinterpret_cast<uint16_t*>(&buf[4]);
+		for (auto i = 1; i < count; ++i)
+		{
+			memcpy(buf + 6 + (i * 0xE), buf + 6 + (i * 0x10), 0xE);
+		}
+		HICON hLgIcon = nullptr;
+		int lgOffset = LookupIconIdFromDirectoryEx(buf, true, largeIconXSz, largeIconYSz, LR_DEFAULTCOLOR);
+		if (lgOffset != 0)
+		{
+			hLgIcon = CreateIconFromResourceEx(buf + lgOffset, 0, true, 0x30000, largeIconXSz, largeIconYSz, LR_DEFAULTCOLOR);
+			wc.hIcon = hLgIcon;
+		}
+		else
+		{
+			wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+		}
+		HICON hSmIcon = nullptr;
+		int smOffset = LookupIconIdFromDirectoryEx(buf, true, smallIconXSz, smallIconYSz, LR_DEFAULTCOLOR);
+		if (smOffset != 0)
+		{
+			hSmIcon = CreateIconFromResourceEx(buf + smOffset, 0, true, 0x30000, smallIconXSz, smallIconYSz, LR_DEFAULTCOLOR);
+			wc.hIconSm = hSmIcon;
+		}
+		else
+		{
+			wc.hIconSm = LoadIconW(nullptr, IDI_APPLICATION);
+		}
+	}
+	else
+	{
+		wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+		wc.hIconSm = LoadIconW(nullptr, IDI_APPLICATION);
+	}
+}
+
 bool CreateOGLWindow(LPCWSTR winTitle,
                      int winWidth,
                      int winHeight,
                      bool fullscreenWindow)
 {
-	WNDCLASS wc;
+	WNDCLASSEX wc;
 	DWORD dwExStyle;
 	DWORD dwStyle;
 	RECT windowRect;
@@ -477,18 +526,20 @@ bool CreateOGLWindow(LPCWSTR winTitle,
 	fullscreen = fullscreenWindow;
 
 	hInstance = GetModuleHandle(nullptr);
+	//	Load icon
+	_LoadIcon(wc);
+	wc.cbSize = sizeof(WNDCLASSEX);
 	wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 	wc.lpfnWndProc = WNDPROC(WndProc);
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
 	wc.hInstance = hInstance;
-	wc.hIcon = LoadIconW(nullptr, IDI_WINLOGO); //	TODO load icon
 	wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
 	wc.hbrBackground = nullptr;
 	wc.lpszMenuName = nullptr;
 	wc.lpszClassName = DV_CLASS_NAME;
 
-	if (!RegisterClass(&wc))
+	if (!RegisterClassEx(&wc))
 	{
 		LOG(ERROR) << "Window registration failed";
 		MessageBoxW(nullptr,
