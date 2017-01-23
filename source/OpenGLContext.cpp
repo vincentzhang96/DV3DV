@@ -80,9 +80,18 @@ bool OpenGLContext::CreateContext(HWND hWnd)
 		LOG(ERROR) << "Failed to init GLEW: " << glewGetErrorString(err);
 		return false;
 	}
+	//	Get the highest available OpenGL version
+	glGetIntegerv(GL_MAJOR_VERSION, &_glMajorVer);
+	glGetIntegerv(GL_MINOR_VERSION, &_glMinorVer);
+	//	Minimum requirement is OpenGL v4.3
+	if (_glMajorVer < 4 || (_glMajorVer == 4 && _glMinorVer < 3))
+	{
+		LOG(ERROR) << "Unsupported OpenGL version " << _glMajorVer << "." << _glMinorVer;
+		return false;
+	}
 	GLint attribs[] = {
-		WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
-		WGL_CONTEXT_MINOR_VERSION_ARB, 5,
+		WGL_CONTEXT_MAJOR_VERSION_ARB, _glMajorVer,
+		WGL_CONTEXT_MINOR_VERSION_ARB, _glMinorVer,
 		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
 		0
 	};
@@ -97,8 +106,6 @@ bool OpenGLContext::CreateContext(HWND hWnd)
 	{
 		_hRC = tempContext;
 	}
-	glGetIntegerv(GL_MAJOR_VERSION, &_glMajorVer);
-	glGetIntegerv(GL_MINOR_VERSION, &_glMinorVer);
 	return true;
 }
 
