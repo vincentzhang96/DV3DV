@@ -87,7 +87,9 @@ namespace dn
 
 		std::unique_ptr<cPakData> GetFileData(const std::string fileName);
 
-		std::vector<PakFileTableEntry> GetEntries();
+		std::vector<PakFileTableEntry> GetFiles();
+
+		PakFileTable GetFileTable();
 	};
 
 	int _memcpyIncr(void* dest, const void* src, const size_t sz);

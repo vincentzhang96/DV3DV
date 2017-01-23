@@ -96,28 +96,30 @@ void cPak::_ReadIndex(const std::wstring file)
 	}
 	auto bufPtr = buffer.get();
 	char strBuf[256];
+	CLOG(INFO, DNPAKLOGGER) << "Num entries: " << _header.hFileCount;
 	for (auto i = 0U; i < _header.hFileCount; ++i)
 	{
-		auto strt = bufPtr;
+		auto start = bufPtr;
+		PakFileTableEntry entry;
 		bufPtr += dn::_memcpyIncr(strBuf, bufPtr, 256);
 		std::string path(strBuf);
 		std::transform(path.begin(), path.end(), path.begin(), ::tolower);
-		auto ret = _fileTable.emplace(path, nullptr);
-		if (ret.second)
+		entry.eFilePath = std::string(path);
+		READ_FIELD_INCR(entry.eDiskSize, bufPtr);
+		READ_FIELD_INCR(entry.eDecompressedSize, bufPtr);
+		READ_FIELD_INCR(entry.eCompressedSize, bufPtr);
+		READ_FIELD_INCR(entry.eDataOffset, bufPtr);
+		READ_FIELD_INCR(entry.eUnknownA, bufPtr);
+		READ_FIELD_INCR(entry.eReserved, bufPtr);
+		//	Skip files that have been zeroed by the patcher
+		if (entry.eDecompressedSize != 0)
 		{
-			auto entryIter = ret.first;
-			auto entry = entryIter->second;
-			entry.eFilePath = entryIter->first;
-			READ_FIELD_INCR(entry.eDiskSize, bufPtr);
-			READ_FIELD_INCR(entry.eDecompressedSize, bufPtr);
-			READ_FIELD_INCR(entry.eCompressedSize, bufPtr);
-			READ_FIELD_INCR(entry.eDataOffset, bufPtr);
-			READ_FIELD_INCR(entry.eUnknownA, bufPtr);
-			READ_FIELD_INCR(entry.eReserved, bufPtr);
-		}
-		else
-		{
-			bufPtr += szPakFileTableEntry - 256;
+			std::pair<std::string, PakFileTableEntry> pair(path, entry);
+			auto ret = _fileTable.insert(pair);
+			if (!ret.second)
+			{
+				CLOG(INFO, DNPAKLOGGER) << path << " skipped, duplicate entry";
+			}
 		}
 	}
 }
@@ -147,10 +149,80 @@ cPak::cPak(LPCWSTR file)
 
 std::unique_ptr<cPakData> cPak::GetFileData(const std::string fileName)
 {
-	return std::unique_ptr<cPakData>(nullptr);
+	//	Only one thread may read at a time since we share the file handle
+	std::lock_guard<std::mutex> lock(_readMutex);
+	auto iter = _fileTable.find(fileName);
+	if (iter == _fileTable.end())
+	{
+		//	Not found
+		return std::unique_ptr<cPakData>(nullptr);
+	}
+	PakFileTableEntry entry = iter->second;
+	LONG lDistanceToMove = entry.eDataOffset;
+	LONG lDistanceToMoveHigh = 0L;
+	if (SetFilePointer(_handle.get()->_handle, lDistanceToMove, &lDistanceToMoveHigh, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+	{
+		CLOG(WARNING, DNPAKLOGGER) << "Failed to read subfile SetFilePointer " << GetLastError();
+		return std::unique_ptr<cPakData>(nullptr);
+	}
+	std::unique_ptr<uint8[]> buffer(new uint8[entry.eDiskSize]);
+	DWORD dwBytesRead;
+	BOOL bFlag = ReadFile(_handle.get()->_handle, buffer.get(), entry.eDiskSize, &dwBytesRead, nullptr);
+	if (bFlag == FALSE)
+	{
+		CLOG(WARNING, DNPAKLOGGER) << "Failed to read subfile" << GetLastError();
+		throw "Unable to read file";
+	}
+	if (dwBytesRead != entry.eDiskSize)
+	{
+		CLOG(WARNING, DNPAKLOGGER) << "Incomplete read of subfile";
+		throw "Incomplete read";
+	}
+	auto bufPtr = buffer.get();
+	auto ret = std::make_unique<cPakData>(entry.eFilePath, entry.eDecompressedSize);
+	auto retVec = &ret.get()->_data;
+	z_stream zInfo = { nullptr };
+	zInfo.total_in = entry.eDiskSize;
+	zInfo.avail_in = entry.eDiskSize;
+	zInfo.total_out = entry.eDecompressedSize;
+	zInfo.avail_out = entry.eDecompressedSize;
+	zInfo.next_in = bufPtr;
+	zInfo.next_out = retVec->data();
+	int zError;
+	int zRet = -1;
+	zError = inflateInit(&zInfo);
+	if (zError == Z_OK)
+	{
+		zError = inflate(&zInfo, Z_FINISH);
+		if (zError == Z_STREAM_END)
+		{
+			zRet = zInfo.total_out;
+		}
+	}
+	else
+	{
+		CLOG(WARNING, DNPAKLOGGER) << "Error while decompressing: " << zError;
+	}
+	inflateEnd(&zInfo);
+	if (zRet != entry.eDecompressedSize)
+	{
+		CLOG(WARNING, DNPAKLOGGER) << "Decompression amount doesn't match index size: "
+			<< entry.eDecompressedSize << ", got " << zRet;
+	}
+	return ret;
 }
 
-std::vector<PakFileTableEntry> cPak::GetEntries()
+std::vector<PakFileTableEntry> cPak::GetFiles()
 {
-	return std::vector<PakFileTableEntry>();
+	std::vector<PakFileTableEntry> ret(_fileTable.size());
+	for (auto it : _fileTable)
+	{
+		ret.push_back(it.second);
+	}
+	return ret;
+}
+
+cPak::PakFileTable cPak::GetFileTable()
+{
+	return _fileTable;
 }
