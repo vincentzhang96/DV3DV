@@ -29,6 +29,7 @@ using PPACMANAGER = ppac::cPPACManager;
 std::unique_ptr<PPACMANAGER> mPPACManager;
 
 #define TPUID_ICON { 0x0205, 0x0000, 0x00000001 }
+#define TPUID_SPLASH { 0x0206, 0x0000, 0x00000001 }
 
 void OnWindowActive()
 {
@@ -293,6 +294,229 @@ void _ParseCommandLineFlag(DV3DVConfig& config, LPWSTR* argv, int argc, int i)
 	}
 }
 
+void _drawSplash()
+{
+	//	Normally the texture manager would handle the loading and registering and maintaining the texture for us
+	//	But we're still in startup and have to get this splash drawn as fast as possible
+	auto splashData = mPPACManager.get()->GetFileData(TPUID_SPLASH);
+	if (splashData)
+	{
+#define ASSERT_NO_GL_ERROR assert(glGetError() == GL_NO_ERROR);
+		GLenum err;
+		auto dataVec = splashData->_data;
+		uint32_t* asUint32 = reinterpret_cast<uint32_t*>(dataVec.data());
+		uint32_t* itr = asUint32;
+		uint32_t magic = *itr;
+		if (magic != 0x20534444)
+		{
+			LOG(WARNING) << "Invalid splash texture: not a DDS";
+			return;
+		}
+		itr += 1;
+		DDS_HEADER header = *reinterpret_cast<DDS_HEADER*>(itr);
+		if (header.dwSize != 124)
+		{
+			LOG(WARNING) << "Corrupt or invalid DDS: invalid dwSize, expected 124, got " << header.dwSize;
+			return;
+		}
+		size_t bufSize = (header.dwMipMapCount > 1) ? header.dwPitchOrLinearSize * 2 : header.dwPitchOrLinearSize;
+		std::vector<uint8_t> buf(bufSize);
+		std::copy_n(&dataVec[128], bufSize, std::back_inserter(buf));
+		size_t numComponenets = (header.ddspf.dwFourCC == DDS_FOURCC_DXT1) ? 3 : 4;
+		GLuint glTexFormat;
+		switch (header.ddspf.dwFourCC)
+		{
+		case DDS_FOURCC_DXT1:
+			glTexFormat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+			break;
+		case DDS_FOURCC_DXT3:
+			glTexFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+			break;
+		case DDS_FOURCC_DXT5:
+			glTexFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			break;
+		default:
+			LOG(WARNING) << "Unknown FourCC " << header.ddspf.dwFourCC;
+			return;
+		}
+		size_t blockSize = (glTexFormat == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT) ? 8 : 16;
+		size_t offset = 0;
+		size_t width = header.dwWidth;
+		size_t height = header.dwHeight;
+		GLuint splashTextureId;
+		glGenTextures(1, &splashTextureId);
+		glBindTexture(GL_TEXTURE_2D, splashTextureId);
+		ASSERT_NO_GL_ERROR;
+		LOG(INFO) << header.dwMipMapCount;
+		for (auto level = 0U; level <= header.dwMipMapCount && (width || height); ++level)
+		{
+			LOG(DEBUG) << "Mipmap " << level << " " << width << "x" << height;
+
+			size_t sz = ((width + 3) / 4) * ((height + 3) / 4) * blockSize;
+			glCompressedTexImage2D(GL_TEXTURE_2D, level, glTexFormat, width, height, 0, sz, &buf.at(offset));
+			offset += sz;
+			width /= 2;
+			height /= 2;
+			ASSERT_NO_GL_ERROR;
+		}
+
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		if (header.dwMipMapCount > 1)
+		{
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		}
+		else
+		{
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		}
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		//	Textured quad
+		GLfloat windowCenterX = oglContext->GetWindowWidth() / 2.0F;
+		GLfloat windowCenterY = oglContext->GetWindowHeight() / 2.0F;
+		GLfloat quadHalfSize = 256.0F;
+//		GLfloat verts[] = {
+//			windowCenterX - quadHalfSize, windowCenterY - quadHalfSize, 0.0F, 0.0F, 0.0F,
+//			windowCenterX + quadHalfSize, windowCenterY - quadHalfSize, 0.0F, 1.0F, 0.0F,
+//			windowCenterX + quadHalfSize, windowCenterY + quadHalfSize, 0.0F, 1.0F, 1.0F,
+//			windowCenterX - quadHalfSize, windowCenterY + quadHalfSize, 0.0F, 0.0F, 1.0F
+//		};
+		GLfloat verts[] = {
+			-1.0, -1.0, 0.0F, 0.0F, 0.0F,
+			 1.0, -1.0, 0.0F, 1.0F, 0.0F,
+			 1.0,  1.0, 0.0F, 1.0F, 1.0F,
+			-1.0,  1.0, 0.0F, 0.0F, 1.0F
+		};
+		GLuint indx[] = {
+			0, 1, 2,
+			0, 2, 3
+		};
+		GLuint vao;
+		glGenVertexArrays(1, &vao);
+		if (vao == GL_INVALID_VALUE)
+		{
+			LOG(WARNING) << "Failed to create VAO";
+			return;
+		}
+		GLuint vbo[2];
+		glGenBuffers(2, vbo);
+		glBindVertexArray(vao);
+		{
+			glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+			{
+				glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+				glEnableVertexAttribArray(0);
+				glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(GLfloat) * 5, (GLvoid*)0);
+				glEnableVertexAttribArray(1);
+				glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(GLfloat) * 5, (GLvoid*)(sizeof(GLfloat) * 5));
+			}
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[1]);
+			{
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indx), indx, GL_STATIC_DRAW);
+			}
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		}
+		glBindVertexArray(0);
+
+			//	Shader
+		std::string vertShaderSrc = R"(#version 430
+		layout(location = 0) in vec3 position;
+		layout(location = 1) in vec2 uvCoords;
+		layout(location = 2) uniform sampler2D mtl;
+
+		out vec2 textureCoords;
+
+		void main()
+		{
+			gl_Position = vec4(position, 1.0);
+			textureCoords = uvCoords;
+		}
+		)";
+		std::string fragShaderSrc = R"(#version 430
+		layout(location = 2) uniform sampler2D mtl;
+		in vec2 textureCoords;
+		out vec4 color;
+		void main()
+		{
+			color = texture(mtl, textureCoords);
+		}
+		)";
+		GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
+		const char* vertShaderCstr = vertShaderSrc.c_str();
+		glShaderSource(vertShader, 1, &vertShaderCstr, 0);
+		glCompileShader(vertShader);
+		
+		GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
+		const char* fragShaderCstr = fragShaderSrc.c_str();
+		glShaderSource(fragShader, 1, &fragShaderCstr, 0);
+		glCompileShader(fragShader);
+		
+		GLint success;
+		glGetShaderiv(vertShader, GL_COMPILE_STATUS, &success);
+		if (!success)
+		{
+			GLchar infoLog[512];
+			glGetShaderInfoLog(vertShader, 512, NULL, infoLog);
+			LOG(WARNING) << "Vertex shader compilation failed: " << infoLog;
+			return;
+		}
+		glGetShaderiv(fragShader, GL_COMPILE_STATUS, &success);
+		if (!success)
+		{
+			GLchar infoLog[512];
+			glGetShaderInfoLog(fragShader, 512, NULL, infoLog);
+			LOG(WARNING) << "Vertex shader compilation failed: " << infoLog;
+			return;
+		}
+		GLuint shader = glCreateProgram();
+		glAttachShader(shader, vertShader);
+		glAttachShader(shader, fragShader);
+		glLinkProgram(shader);
+		glDeleteShader(vertShader);
+		glDeleteShader(fragShader);
+		glGetProgramiv(shader, GL_LINK_STATUS, &success);
+		if (!success) {
+			GLchar infoLog[512];
+			glGetProgramInfoLog(shader, 512, NULL, infoLog);
+			LOG(WARNING) << "Shader linking failed: " << infoLog;
+			return;
+		}
+		while (true)
+		{
+			oglContext->PreRender();
+			glUseProgram(shader);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, splashTextureId);
+			glUniform1i(2, 0);
+
+			glBindVertexArray(vao);
+			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+			glBindVertexArray(0);
+			glUseProgram(0);
+
+			err = glGetError();
+			if (err != GL_NO_ERROR)
+			{
+				LOG(WARNING) << glewGetErrorString(err) << err;
+			}
+			oglContext->PostRender();
+		}
+		glDeleteVertexArrays(1, &vao);
+		glDeleteBuffers(2, vbo);
+		glDeleteTextures(1, &splashTextureId);
+		glDeleteProgram(shader);
+	}
+	else
+	{
+		LOG(WARNING) << "No splash texture found";
+	}
+}
+
 int WINAPI WinMain(HINSTANCE hInstance,
                    HINSTANCE hPrevInstance,
                    LPSTR lpCmdLine,
@@ -342,19 +566,23 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	LOG(INFO) << "Divinitor 3D Viewer v0.1.0";
 	LOG(INFO) << "Built " << __TIMESTAMP__;
 	LOG(INFO) << "Starting...";
-	//	Init asset managers
+	//	Init PPAC asset manager
+	//	We'll init the general asset manager after we get a window with a splash displayed on screen as fast as possible
 	mPPACManager = std::make_unique<ppac::cPPACManager>();
-	//	TODO Init asset managers
-
 	//	PPAC manager, load init first
 	mPPACManager.get()->LoadPPAC(L"init.ppac");
-
 	//	Create the window
 	if (!CreateOGLWindow(L"DV3DV", config.winWidth, config.winHeight, config.fullscreen))
 	{
 		LOG(ERROR) << "Failed to create window, stopping";
 		return 0;
 	}
+	//	Render splash screen
+	_drawSplash();
+
+
+	Sleep(10000);
+
 	//	Prep for main loop
 	auto exitLoop = false;
 	//	Main loop
