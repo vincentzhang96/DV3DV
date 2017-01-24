@@ -4,7 +4,8 @@
 //
 
 #pragma once
-
+#ifndef H_STDAFX
+#define H_STDAFX
 #include "targetver.h"
 
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
@@ -33,3 +34,45 @@
 #include "lib/zlib.h"
 
 #include "lib/packed_freelist.h"
+
+//	DDS stuff
+#pragma pack(push, def, 4)
+typedef struct {
+	DWORD dwSize;
+	DWORD dwFlags;
+	DWORD dwFourCC;
+	DWORD dwRGBBitCount;
+	DWORD dwRBitMask;
+	DWORD dwGBitMask;
+	DWORD dwBBitMask;
+	DWORD dwABitMask;
+} DDS_PIXELFORMAT;
+
+typedef struct {
+	DWORD           dwSize;
+	DWORD           dwFlags;
+	DWORD           dwHeight;
+	DWORD           dwWidth;
+	DWORD           dwPitchOrLinearSize;
+	DWORD           dwDepth;
+	DWORD           dwMipMapCount;
+	DWORD           dwReserved1[11];
+	DDS_PIXELFORMAT ddspf;
+	DWORD           dwCaps;
+	DWORD           dwCaps2;
+	DWORD           dwCaps3;
+	DWORD           dwCaps4;
+	DWORD           dwReserved2;
+} DDS_HEADER;
+
+#define DDS_FOURCC_DXT1 0x31545844
+#define DDS_FOURCC_DXT2 0x32545844
+#define DDS_FOURCC_DXT3 0x33545844
+#define DDS_FOURCC_DXT4 0x34545844
+#define DDS_FOURCC_DXT5 0x35545844
+#define DDS_FOURCC_DX10 0x30315844
+
+#pragma pack(pop, def)
+
+
+#endif
