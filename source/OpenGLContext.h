@@ -33,5 +33,15 @@ public:
 	{
 		return _glMinorVer;
 	}
+
+	GLint GetWindowWidth() const
+	{
+		return _windowWidth;
+	}
+
+	GLint GetWindowHeight() const
+	{
+		return _windowHeight;
+	}
 };
 
