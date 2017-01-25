@@ -435,10 +435,6 @@ void _drawSplash()
 			return;
 		}
 
-		int vertLoc = glGetAttribLocation(shaderProgram, "position");
-		int uvLoc = glGetAttribLocation(shaderProgram, "uvCoords");
-		int texSamplerLoc = glGetUniformLocation(shaderProgram, "mtl");
-
 		//	Textured quad
 		GLfloat quadHalfSizeX = 512.0F;
 		GLfloat quadHalfSizeY = 512.0F;
@@ -469,10 +465,10 @@ void _drawSplash()
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(vertLoc);
-		glVertexAttribPointer(vertLoc, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)0);
-		glEnableVertexAttribArray(uvLoc);
-		glVertexAttribPointer(uvLoc, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)(sizeof(GLfloat) * 3));
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)(sizeof(GLfloat) * 3));
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[1]);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indx), &indx[0], GL_STATIC_DRAW);
 		glBindVertexArray(0);
@@ -485,7 +481,7 @@ void _drawSplash()
 		glUseProgram(shaderProgram);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, splashTextureId);
-		glProgramUniform1i(shaderProgram, texSamplerLoc, 0);
+		glProgramUniform1i(shaderProgram, 2, 0);
 
 		glBindVertexArray(vao);
 		glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, (void*)0);

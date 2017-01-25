@@ -1,7 +1,4 @@
 #pragma once
-#include "../../stdafx.h"
-#include <mutex>
-#include "../../ppac/PhoenixPAC.h"
 
 namespace dn
 {

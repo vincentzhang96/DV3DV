@@ -20,6 +20,8 @@
 #include <memory>
 #include <map>
 #include <handleapi.h>
+#include <mutex>
+#include <unordered_map>
 
 #include "lib/GL/glew.h"
 #include "lib/GL/wglew.h"

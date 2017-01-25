@@ -1,3 +1,4 @@
+#include "../stdafx.h"
 #include "DnPak.h"
 
 using namespace dn;

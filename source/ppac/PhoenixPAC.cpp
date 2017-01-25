@@ -1,3 +1,4 @@
+#include "../stdafx.h"
 #include "PhoenixPAC.h"
 
 using namespace ppac;
