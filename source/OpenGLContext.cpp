@@ -5,6 +5,9 @@
 
 OpenGLContext::OpenGLContext()
 {
+	_windowWidth = 1600;
+	_windowHeight = 900;
+	_fullscreen = false;
 }
 
 OpenGLContext::~OpenGLContext()

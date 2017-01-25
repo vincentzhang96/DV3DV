@@ -5,10 +5,20 @@ using namespace dn;
 
 PakFileTableEntry::PakFileTableEntry()
 {
+	eDiskSize = 0;
+	eDecompressedSize = 0;
+	eCompressedSize = 0;
+	eDataOffset = 0;
+	eUnknownA = 0;
 }
 
 PakFileTableEntry::PakFileTableEntry(void* ignored)
 {
+	eDiskSize = 0;
+	eDecompressedSize = 0;
+	eCompressedSize = 0;
+	eDataOffset = 0;
+	eUnknownA = 0;
 }
 
 
@@ -100,7 +110,6 @@ void cPak::_ReadIndex(const std::wstring file)
 	CLOG(INFO, DNPAKLOGGER) << "Num entries: " << _header.hFileCount;
 	for (auto i = 0U; i < _header.hFileCount; ++i)
 	{
-		auto start = bufPtr;
 		PakFileTableEntry entry;
 		bufPtr += dn::_memcpyIncr(strBuf, bufPtr, 256);
 		std::string path(strBuf);

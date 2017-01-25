@@ -322,7 +322,6 @@ void _drawSplash()
 		size_t bufSize = (header.dwMipMapCount > 1) ? header.dwPitchOrLinearSize * 2 : header.dwPitchOrLinearSize;
 		std::unique_ptr<uint8_t[]> buf(new uint8_t[bufSize]);
 		std::copy_n(&dataVec[128], bufSize, buf.get());
-		size_t numComponenets = (header.ddspf.dwFourCC == DDS_FOURCC_DXT1) ? 3 : 4;
 		GLuint glTexFormat;
 		switch (header.ddspf.dwFourCC)
 		{
@@ -340,7 +339,6 @@ void _drawSplash()
 			return;
 		}
 		size_t blockSize = (glTexFormat == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT) ? 8 : 16;
-		size_t offset = 0;
 		size_t width = header.dwWidth;
 		size_t height = header.dwHeight;
 		GLuint splashTextureId;
@@ -716,7 +714,7 @@ void _LoadIcon(WNDCLASSEX& wc)
 		{
 			wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
 		}
-		HICON hSmIcon = nullptr;
+		HICON hSmIcon;
 		int smOffset = LookupIconIdFromDirectoryEx(buf, true, smallIconXSz, smallIconYSz, LR_DEFAULTCOLOR);
 		if (smOffset != 0)
 		{

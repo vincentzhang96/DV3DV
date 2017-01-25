@@ -617,8 +617,8 @@ bool _endsWith(std::wstring const &a, std::wstring const &suffix)
 bool cPPACManager::LoadDir(std::wstring pathToDir)
 {
 	WIN32_FIND_DATAW fdData;
-	HANDLE hFind = INVALID_HANDLE_VALUE;
-	DWORD dwError = 0;
+	HANDLE hFind;
+	DWORD dwError;
 	size_t szPathLength;
 	StringCchLengthW(pathToDir.c_str(), MAX_PATH, &szPathLength);
 	if (szPathLength > MAX_PATH - 3)

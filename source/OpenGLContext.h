@@ -15,14 +15,14 @@ protected:
 	GLint _glMinorVer = -1;
 
 public:
-	OpenGLContext(void);
-	~OpenGLContext(void);
+	OpenGLContext();
+	~OpenGLContext();
 
 	bool CreateContext(HWND hWnd);
 	void ResizeWindow(int newWidth, int newHeight);
 
-	void PreRender(void);
-	void PostRender(void);
+	void PreRender();
+	void PostRender();
 
 	GLint GetGLMajorVersion() const
 	{
