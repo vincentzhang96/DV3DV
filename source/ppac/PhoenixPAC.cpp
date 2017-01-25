@@ -569,7 +569,7 @@ cPPACData::cPPACData(TPUID tpuid, uint32 size)
 {
 	_tpuid = tpuid;
 	_size = size;
-	_data.reserve(size);
+	_data = std::vector<uint8>(_size);
 }
 
 cPPACData::~cPPACData()
@@ -706,5 +706,6 @@ std::unique_ptr<cPPACData> cPPACManager::GetFileData(const TPUID& tpuid)
 		}
 	}
 	//	Failed
+	CLOG(WARNING, "PPAC") << "No such file " << tpuid.t << "/" << tpuid.p << "/" << tpuid.u;
 	return std::unique_ptr<cPPACData>(nullptr);
 }
