@@ -122,7 +122,7 @@ void OpenGLContext::ResizeWindow(int newWidth, int newHeight)
 void OpenGLContext::PreRender()
 {
 	glViewport(0, 0, _windowWidth, _windowHeight);
-	glClearColor(0, 0, 0, 0);
+	glClearColor(19.0F / 255.0F, 19.0F / 255.0F, 21.0F / 255.0F, 0.0F);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
