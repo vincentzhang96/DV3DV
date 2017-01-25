@@ -152,31 +152,31 @@ OPENPACFILEHANDLE::~OPENPACFILEHANDLE()
 	CloseHandle(_handle);
 }
 
-int _memcpyIncr(void* dest, const void* src, const size_t sz)
+int ppac::_memcpyIncr(void* dest, const void* src, const size_t sz)
 {
 	memcpy(dest, src, sz);
 	return sz;
 }
 
-void _swp16(uint16* i)
+void ppac::_swp16(uint16* i)
 {
 	*i = (*i << 8) | (*i >> 8);
 }
 
-void _swp32(uint32* i)
+void ppac::_swp32(uint32* i)
 {
 	*i = ((*i << 8) & 0xFF00FF00) | ((*i >> 8) & 0xFF00FF);
 	*i = (*i << 16) | (*i >> 16);
 }
 
-void _swp64(uint64* i)
+void ppac::_swp64(uint64* i)
 {
 	*i = ((*i << 8) & 0xFF00FF00FF00FF00ULL) | ((*i >> 8) & 0x00FF00FF00FF00FFULL);
 	*i = ((*i << 16) & 0xFFFF0000FFFF0000ULL) | ((*i >> 16) & 0x0000FFFF0000FFFFULL);
 	*i = (*i << 32) | (*i >> 32);
 }
 
-int _memcpyIncrSwp(void* dest, const void* src, const size_t sz)
+int ppac::_memcpyIncrSwp(void* dest, const void* src, const size_t sz)
 {
 	auto ret = _memcpyIncr(dest, src, sz);
 	if (sz == 2)

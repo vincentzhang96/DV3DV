@@ -270,4 +270,10 @@ namespace ppac
 
 		std::unique_ptr<cPPACData> GetFileData(const TPUID& tpuid);
 	};
+
+	int _memcpyIncr(void* dest, const void* src, const size_t sz);
+	void _swp16(uint16* i);
+	void _swp32(uint32* i);
+	void _swp64(uint64* i);
+	int _memcpyIncrSwp(void* dest, const void* src, const size_t sz);
 }
