@@ -320,8 +320,8 @@ void _drawSplash()
 			return;
 		}
 		size_t bufSize = (header.dwMipMapCount > 1) ? header.dwPitchOrLinearSize * 2 : header.dwPitchOrLinearSize;
-		std::vector<uint8_t> buf(bufSize);
-		std::copy_n(&dataVec[128], bufSize, std::back_inserter(buf));
+		std::unique_ptr<uint8_t[]> buf(new uint8_t[bufSize]);
+		std::copy_n(&dataVec[128], bufSize, buf.get());
 		size_t numComponenets = (header.ddspf.dwFourCC == DDS_FOURCC_DXT1) ? 3 : 4;
 		GLuint glTexFormat;
 		switch (header.ddspf.dwFourCC)
@@ -347,83 +347,25 @@ void _drawSplash()
 		glGenTextures(1, &splashTextureId);
 		glBindTexture(GL_TEXTURE_2D, splashTextureId);
 		ASSERT_NO_GL_ERROR;
-		LOG(INFO) << header.dwMipMapCount;
-		for (auto level = 0U; level <= header.dwMipMapCount && (width || height); ++level)
-		{
-			LOG(DEBUG) << "Mipmap " << level << " " << width << "x" << height;
-
-			size_t sz = ((width + 3) / 4) * ((height + 3) / 4) * blockSize;
-			glCompressedTexImage2D(GL_TEXTURE_2D, level, glTexFormat, width, height, 0, sz, &buf.at(offset));
-			offset += sz;
-			width /= 2;
-			height /= 2;
-			ASSERT_NO_GL_ERROR;
-		}
-
-
+		size_t imgSize = ((width + 3) / 4) * ((height + 3) / 4) * blockSize;
+		glCompressedTexImage2D(GL_TEXTURE_2D, 0, glTexFormat, width, height, 0, imgSize, buf.get());
+		ASSERT_NO_GL_ERROR;
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		if (header.dwMipMapCount > 1)
-		{
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		}
-		else
-		{
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		}
+		ASSERT_NO_GL_ERROR;
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		ASSERT_NO_GL_ERROR;
+
 		glBindTexture(GL_TEXTURE_2D, 0);
 
-		//	Textured quad
-		GLfloat windowCenterX = oglContext->GetWindowWidth() / 2.0F;
-		GLfloat windowCenterY = oglContext->GetWindowHeight() / 2.0F;
-		GLfloat quadHalfSize = 256.0F;
-//		GLfloat verts[] = {
-//			windowCenterX - quadHalfSize, windowCenterY - quadHalfSize, 0.0F, 0.0F, 0.0F,
-//			windowCenterX + quadHalfSize, windowCenterY - quadHalfSize, 0.0F, 1.0F, 0.0F,
-//			windowCenterX + quadHalfSize, windowCenterY + quadHalfSize, 0.0F, 1.0F, 1.0F,
-//			windowCenterX - quadHalfSize, windowCenterY + quadHalfSize, 0.0F, 0.0F, 1.0F
-//		};
-		GLfloat verts[] = {
-			-1.0, -1.0, 0.0F, 0.0F, 0.0F,
-			 1.0, -1.0, 0.0F, 1.0F, 0.0F,
-			 1.0,  1.0, 0.0F, 1.0F, 1.0F,
-			-1.0,  1.0, 0.0F, 0.0F, 1.0F
-		};
-		GLuint indx[] = {
-			0, 1, 2,
-			0, 2, 3
-		};
-		GLuint vao;
-		glGenVertexArrays(1, &vao);
-		if (vao == GL_INVALID_VALUE)
+		err = glGetError();
+		if (err != GL_NO_ERROR)
 		{
-			LOG(WARNING) << "Failed to create VAO";
-			return;
+			LOG(WARNING) << glewGetErrorString(err) << err;
 		}
-		GLuint vbo[2];
-		glGenBuffers(2, vbo);
-		glBindVertexArray(vao);
-		{
-			glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-			{
-				glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
-				glEnableVertexAttribArray(0);
-				glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(GLfloat) * 5, (GLvoid*)0);
-				glEnableVertexAttribArray(1);
-				glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof(GLfloat) * 5, (GLvoid*)(sizeof(GLfloat) * 5));
-			}
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[1]);
-			{
-				glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indx), indx, GL_STATIC_DRAW);
-			}
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-		}
-		glBindVertexArray(0);
 
-			//	Shader
+		//	Shader
 		std::string vertShaderSrc = R"(#version 430
 		layout(location = 0) in vec3 position;
 		layout(location = 1) in vec2 uvCoords;
@@ -434,7 +376,7 @@ void _drawSplash()
 		void main()
 		{
 			gl_Position = vec4(position, 1.0);
-			textureCoords = uvCoords;
+			textureCoords = vec2(uvCoords.x, 1.0 - uvCoords.y);
 		}
 		)";
 		std::string fragShaderSrc = R"(#version 430
@@ -443,19 +385,25 @@ void _drawSplash()
 		out vec4 color;
 		void main()
 		{
-			color = texture(mtl, textureCoords);
+			//color = vec4(textureCoords.xy, 0.0, 1.0);
+			vec4 texColor = texture(mtl, textureCoords);
+			if (texColor.a < 1.0 / 255.0)
+			{
+				discard;
+			}
+			color = texColor;
 		}
 		)";
 		GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
 		const char* vertShaderCstr = vertShaderSrc.c_str();
 		glShaderSource(vertShader, 1, &vertShaderCstr, 0);
 		glCompileShader(vertShader);
-		
+
 		GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
 		const char* fragShaderCstr = fragShaderSrc.c_str();
 		glShaderSource(fragShader, 1, &fragShaderCstr, 0);
 		glCompileShader(fragShader);
-		
+
 		GLint success;
 		glGetShaderiv(vertShader, GL_COMPILE_STATUS, &success);
 		if (!success)
@@ -473,43 +421,88 @@ void _drawSplash()
 			LOG(WARNING) << "Vertex shader compilation failed: " << infoLog;
 			return;
 		}
-		GLuint shader = glCreateProgram();
-		glAttachShader(shader, vertShader);
-		glAttachShader(shader, fragShader);
-		glLinkProgram(shader);
+		GLuint shaderProgram = glCreateProgram();
+		glAttachShader(shaderProgram, vertShader);
+		glAttachShader(shaderProgram, fragShader);
+		glLinkProgram(shaderProgram);
 		glDeleteShader(vertShader);
 		glDeleteShader(fragShader);
-		glGetProgramiv(shader, GL_LINK_STATUS, &success);
+		glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
 		if (!success) {
 			GLchar infoLog[512];
-			glGetProgramInfoLog(shader, 512, NULL, infoLog);
+			glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
 			LOG(WARNING) << "Shader linking failed: " << infoLog;
 			return;
 		}
-		while (true)
+
+		int vertLoc = glGetAttribLocation(shaderProgram, "position");
+		int uvLoc = glGetAttribLocation(shaderProgram, "uvCoords");
+		int texSamplerLoc = glGetUniformLocation(shaderProgram, "mtl");
+
+		//	Textured quad
+		GLfloat quadHalfSizeX = 512.0F;
+		GLfloat quadHalfSizeY = 512.0F;
+		//	Convert to NDC
+		quadHalfSizeX /= oglContext->GetWindowWidth();
+		quadHalfSizeY /= oglContext->GetWindowHeight();
+
+		GLfloat verts[] = {
+			-quadHalfSizeX, -quadHalfSizeY, 0.0F, 0.0F, 0.0F,
+			quadHalfSizeX, -quadHalfSizeY, 0.0F, 1.0F, 0.0F,
+			quadHalfSizeX, quadHalfSizeY, 0.0F, 1.0F, 1.0F,
+			-quadHalfSizeX, quadHalfSizeY, 0.0F, 0.0F, 1.0F
+		};
+
+
+		GLuint indx[] = {
+			0, 1, 2, 3
+		};
+		GLuint vao;
+		glGenVertexArrays(1, &vao);
+		if (vao == GL_INVALID_VALUE)
 		{
-			oglContext->PreRender();
-			glUseProgram(shader);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, splashTextureId);
-			glUniform1i(2, 0);
-
-			glBindVertexArray(vao);
-			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-			glBindVertexArray(0);
-			glUseProgram(0);
-
-			err = glGetError();
-			if (err != GL_NO_ERROR)
-			{
-				LOG(WARNING) << glewGetErrorString(err) << err;
-			}
-			oglContext->PostRender();
+			LOG(WARNING) << "Failed to create VAO";
+			return;
 		}
+		GLuint vbo[2];
+		glGenBuffers(2, vbo);
+		glBindVertexArray(vao);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(vertLoc);
+		glVertexAttribPointer(vertLoc, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)0);
+		glEnableVertexAttribArray(uvLoc);
+		glVertexAttribPointer(uvLoc, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)(sizeof(GLfloat) * 3));
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[1]);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indx), &indx[0], GL_STATIC_DRAW);
+		glBindVertexArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+		oglContext->PreRender();
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glUseProgram(shaderProgram);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, splashTextureId);
+		glProgramUniform1i(shaderProgram, texSamplerLoc, 0);
+
+		glBindVertexArray(vao);
+		glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, (void*)0);
+		glBindVertexArray(0);
+		glUseProgram(0);
+
+		err = glGetError();
+		if (err != GL_NO_ERROR)
+		{
+			LOG(WARNING) << glewGetErrorString(err) << err;
+		}
+		oglContext->PostRender();
+
 		glDeleteVertexArrays(1, &vao);
 		glDeleteBuffers(2, vbo);
 		glDeleteTextures(1, &splashTextureId);
-		glDeleteProgram(shader);
+		glDeleteProgram(shaderProgram);
 	}
 	else
 	{
