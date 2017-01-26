@@ -1,5 +1,6 @@
 #pragma once
 #include "ppac/PhoenixPAC.h"
+#include "dn/pak/DnPak.h"
 
 namespace resman
 {
@@ -10,30 +11,31 @@ namespace resman
 
 	enum ResourceRequestType
 	{
+		REQ_NONE,
 		REQ_TPUID,
 		REQ_PAKPATH
-	};
-
-	union ResourceRequestPayload
-	{
-		ppac::TPUID tpuid;
-		std::string pakPath;
 	};
 
 	typedef struct ResourceRequest
 	{
 		ResourceRequestType type;
-		ResourceRequestPayload payload;
+		union
+		{
+			ppac::TPUID resTpuid;
+			std::string resPakPath;
+		};
 
 		ResourceRequest();
-		ResourceRequest(ppac::TPUID tpuid);
-		ResourceRequest(std::string pakPath);
+		ResourceRequest(const ppac::TPUID& tpuid);
+		ResourceRequest(const std::string& pakPath);
+		~ResourceRequest();
 	} ResourceRequest;
 
 	class ResourceManager
 	{
 	private:
-		ppac::cPPACManager _pacManager;
+		ppac::cPPACManager _ppacManager;
+		dn::cPakManager _dnPakManager;
 		
 
 	public:
