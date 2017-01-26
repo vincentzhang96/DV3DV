@@ -567,7 +567,7 @@ cPPACData::~cPPACData()
 
 cPPACManager::cPPACManager()
 {
-	_loadedPPACs = packed_freelist<cPPAC>(1000);
+	_loadedPPACs = packed_freelist<cPPAC>(512);
 }
 
 cPPACManager::~cPPACManager()
