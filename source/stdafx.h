@@ -37,6 +37,8 @@
 
 #include "lib/packed_freelist.h"
 
+#include "lib/glm/glm.hpp"
+
 //	DDS stuff
 #pragma pack(push, def, 4)
 typedef struct {
