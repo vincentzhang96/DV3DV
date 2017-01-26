@@ -236,3 +236,169 @@ cPak::PakFileTable cPak::GetFileTable()
 {
 	return _fileTable;
 }
+
+cPakManager::cPakManager()
+{
+	_loadedPaks = packed_freelist<cPak>(512);
+}
+
+cPakManager::~cPakManager()
+{
+}
+
+PAKHANDLE cPakManager::LoadPak(std::wstring pathToPak)
+{
+	try
+	{
+		//	Construct the PPAC in place in the packed freelist
+		PAKHANDLE hPak = _loadedPaks.emplace(pathToPak.c_str());
+		if (hPak == PAKHANDLE_INVALID)
+		{
+			return PAKHANDLE_INVALID;
+		}
+		//	Index all the entries
+		auto entries = _loadedPaks[hPak].GetFiles();
+		for (auto entry : entries)
+		{
+			//	Use insert, which does not write if the key already exists
+			//	DN uses whatever is loaded first, not last
+			_pathToPakMap.insert(std::pair<std::string, PAKHANDLE>(entry.eFilePath, hPak));
+		}
+		CLOG(TRACE, DNPAKLOGGER) << "Indexed " << entries.size() << " subfiles";
+		return hPak;
+	}
+	catch (const std::string msg)
+	{
+		CLOG(WARNING, DNPAKLOGGER) << "Failed to load " << pathToPak << ": " << msg << " (file skipped)";
+		return PAKHANDLE_INVALID;
+	}
+	catch (...)
+	{
+		CLOG(WARNING, DNPAKLOGGER) << "Failed to load " << pathToPak << ": unknown (file skipped)";
+		return PAKHANDLE_INVALID;
+	}
+}
+
+bool cPakManager::LoadDir(std::wstring pathToDir)
+{
+	//	We aren't recursively loading the directory
+	WIN32_FIND_DATAW fdData;
+	HANDLE hFind;
+	DWORD dwError;
+	size_t szPathLength;
+	StringCchLengthW(pathToDir.c_str(), MAX_PATH, &szPathLength);
+	if (szPathLength > MAX_PATH - 3)
+	{
+		CLOG(WARNING, DNPAKLOGGER) << "Ignoring directory " << pathToDir << " since its too deep";
+		return false;
+	}
+	//	Append \* to the path since we want to recursively look through all files in the dir
+	std::wstring extDir = pathToDir + L"\\*";
+	hFind = FindFirstFileW(extDir.c_str(), &fdData);
+	if (hFind == INVALID_HANDLE_VALUE)
+	{
+		CLOG(WARNING, "PPAC") << "Unable to get first file in directory " << pathToDir;
+		return false;
+	}
+	std::vector<std::wstring> files;
+	do
+	{
+		//	Ignore "." and ".." and other directories
+		if (wcscmp(fdData.cFileName, L".") == 0 ||
+			wcscmp(fdData.cFileName, L"..") == 0 || fdData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+		{
+			//	Ignore
+		}
+		else if (_endsWith(fdData.cFileName, L".pak"))
+		{
+			files.push_back(pathToDir + L"\\" + fdData.cFileName);
+		}
+	} while (FindNextFileW(hFind, &fdData) != FALSE);
+	dwError = GetLastError();
+	FindClose(hFind);
+	if (dwError != ERROR_NO_MORE_FILES)
+	{
+		CLOG(WARNING, DNPAKLOGGER) << "Failed to load directory " << pathToDir << ": " << dwError;
+		return false;
+	}
+	//	Also, load in the following order:
+	//		1. Files ending in .pak that start with Patch, in reverse alphabetical order
+	//		2. Files ending in .pak that do not start with Patch, in alphabetical order
+	//	This allows us to load files in the same order tha game does, except we can support patch files
+	//	without having to apply them to the paks themselves.
+	struct Sorter
+	{
+		bool operator()(std::wstring a, std::wstring b) const
+		{
+			bool aPatch = _startsWith(a, L"Patch");
+			bool bPatch = _startsWith(a, L"Patch");
+			if (aPatch  != bPatch)
+			{
+				return aPatch;
+			}
+			return a.compare(b) < 0;
+		}
+	} sorter;
+	std::sort(files.begin(), files.end(), sorter);
+	for (auto filePath : files)
+	{
+		CLOG(INFO, DNPAKLOGGER) << "\t\t\t" << filePath;
+		//	Load
+		PAKHANDLE handle = LoadPak(filePath);
+		if (handle == PAKHANDLE_INVALID)
+		{
+			CLOG(WARNING, DNPAKLOGGER) << "Failed to read pak " << filePath;
+		}
+		else
+		{
+			CLOG(DEBUG, DNPAKLOGGER) << "Loaded pak " << filePath;
+		}
+	}
+	return true;
+}
+
+bool cPakManager::FileExists(const std::string& path)
+{
+	return _pathToPakMap.find(path) != _pathToPakMap.end();
+}
+
+std::unique_ptr<cPakData> cPakManager::GetFileData(const std::string& path)
+{
+	//	Find the PPAC that the entry belongs to
+	auto iter = _pathToPakMap.find(path);
+	if (iter != _pathToPakMap.end())
+	{
+		//	Grab the handle
+		PAKHANDLE hPak = iter->second;
+		if (hPak != PAKHANDLE_INVALID)
+		{
+			//	Get the data
+			return _loadedPaks[hPak].GetFileData(path);
+		}
+	}
+	//	Failed
+	CLOG(WARNING, DNPAKLOGGER) << "No such file " << path;
+	return std::unique_ptr<cPakData>(nullptr);
+}
+
+void cPakManager::Unload()
+{
+	//	packed_freelist doesn't implement clear, so we'll just deconstruct it and reconstruct it
+	(&_loadedPaks)->~packed_freelist();
+	_pathToPakMap.clear();
+	_loadedPaks = packed_freelist<cPak>(512);
+}
+
+bool cPakManager::_endsWith(std::wstring const &a, std::wstring const &suffix)
+{
+	if (a.length() >= suffix.length())
+	{
+		return (a.compare(a.length() - suffix.length(), suffix.length(), suffix)) == 0;
+	}
+	return false;
+}
+
+bool cPakManager::_startsWith(std::wstring const& a, std::wstring const& b)
+{
+	return (a.compare(0, b.length(), b) == 0);
+}

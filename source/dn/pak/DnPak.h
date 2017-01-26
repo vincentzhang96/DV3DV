@@ -6,10 +6,11 @@ namespace dn
 	typedef uint16_t uint16;
 	typedef uint32_t uint32;
 	typedef uint64_t uint64;
+	typedef uint32 PAKHANDLE;
 
 #define DNPAKLOGGER "dn-pak"
 #define INIT_DNPAK_LOGGER el::Logger* dnPakLogger = el::Loggers::getLogger("dn-pak");
-
+#define PAKHANDLE_INVALID 0
 
 
 	struct PakHeader;
@@ -87,6 +88,33 @@ namespace dn
 		std::vector<PakFileTableEntry> GetFiles();
 
 		PakFileTable GetFileTable();
+	};
+
+	class cPakManager
+	{
+	private:
+		typedef std::unordered_map<std::string, PAKHANDLE> HandleMap;
+
+		packed_freelist<cPak> _loadedPaks;
+		HandleMap _pathToPakMap;
+
+		static bool _endsWith(std::wstring const &a, std::wstring const &suffix);
+		static bool _startsWith(std::wstring const &a, std::wstring const &b);
+
+
+	public:
+		cPakManager();
+		~cPakManager();
+
+		PAKHANDLE LoadPak(std::wstring pathToPak);
+
+		bool LoadDir(std::wstring pathToDir);
+
+		bool FileExists(const std::string& path);
+
+		std::unique_ptr<cPakData> GetFileData(const std::string& path);
+
+		void Unload();
 	};
 
 	int _memcpyIncr(void* dest, const void* src, const size_t sz);
