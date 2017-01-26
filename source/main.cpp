@@ -30,6 +30,8 @@ std::unique_ptr<PPACMANAGER> mPPACManager;
 
 #define TPUID_ICON { 0x0205, 0x0000, 0x00000001 }
 #define TPUID_SPLASH { 0x0206, 0x0000, 0x00000001 }
+#define TPUID_SPLASH_VERT_SHDR { 0x0107, 0x0000, 0x00000001 }
+#define TPUID_SPLASH_FRAG_SHDR { 0x0108, 0x0000, 0x00000001 }
 
 void OnWindowActive()
 {
@@ -299,7 +301,9 @@ void _drawSplash()
 	//	Normally the texture manager would handle the loading and registering and maintaining the texture for us
 	//	But we're still in startup and have to get this splash drawn as fast as possible
 	auto splashData = mPPACManager.get()->GetFileData(TPUID_SPLASH);
-	if (splashData)
+	auto splashVertShader = mPPACManager.get()->GetFileData(TPUID_SPLASH_VERT_SHDR);
+	auto splashFragShader = mPPACManager.get()->GetFileData(TPUID_SPLASH_FRAG_SHDR);
+	if (splashData && splashVertShader && splashFragShader)
 	{
 #define ASSERT_NO_GL_ERROR assert(glGetError() == GL_NO_ERROR);
 		GLenum err;
@@ -363,35 +367,11 @@ void _drawSplash()
 			LOG(WARNING) << glewGetErrorString(err) << err;
 		}
 
+		splashVertShader.get()->_data.push_back(0);
+		splashFragShader.get()->_data.push_back(0);
 		//	Shader
-		std::string vertShaderSrc = R"(#version 430
-		layout(location = 0) in vec3 position;
-		layout(location = 1) in vec2 uvCoords;
-		layout(location = 2) uniform sampler2D mtl;
-
-		out vec2 textureCoords;
-
-		void main()
-		{
-			gl_Position = vec4(position, 1.0);
-			textureCoords = vec2(uvCoords.x, 1.0 - uvCoords.y);
-		}
-		)";
-		std::string fragShaderSrc = R"(#version 430
-		layout(location = 2) uniform sampler2D mtl;
-		in vec2 textureCoords;
-		out vec4 color;
-		void main()
-		{
-			//color = vec4(textureCoords.xy, 0.0, 1.0);
-			vec4 texColor = texture(mtl, textureCoords);
-			if (texColor.a < 1.0 / 255.0)
-			{
-				discard;
-			}
-			color = texColor;
-		}
-		)";
+		std::string vertShaderSrc(reinterpret_cast<char*>(splashVertShader.get()->_data.data()));
+		std::string fragShaderSrc(reinterpret_cast<char*>(splashFragShader.get()->_data.data()));
 		GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
 		const char* vertShaderCstr = vertShaderSrc.c_str();
 		glShaderSource(vertShader, 1, &vertShaderCstr, 0);
@@ -416,7 +396,7 @@ void _drawSplash()
 		{
 			GLchar infoLog[512];
 			glGetShaderInfoLog(fragShader, 512, NULL, infoLog);
-			LOG(WARNING) << "Vertex shader compilation failed: " << infoLog;
+			LOG(WARNING) << "Fragment shader compilation failed: " << infoLog;
 			return;
 		}
 		GLuint shaderProgram = glCreateProgram();

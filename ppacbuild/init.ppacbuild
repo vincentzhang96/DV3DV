@@ -4,3 +4,6 @@ OUTPUT=../runtime/init.ppac
 
 # Starting splash
 0x0206,0x0000,0x00000001=init/splash.dds
+# Shaders
+0x0107,0x0000,0x00000001=init/splash.vert.glsl
+0x0108,0x0000,0x00000001=init/splash.frag.glsl
