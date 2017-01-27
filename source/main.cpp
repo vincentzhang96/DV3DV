@@ -27,6 +27,7 @@ using json = nlohmann::json;
 using PPACMANAGER = ppac::cPPACManager;
 
 std::unique_ptr<PPACMANAGER> mPPACManager;
+std::unique_ptr<dn::cPakManager> mPakManager;
 
 #define TPUID_ICON { 0x0205, 0x0000, 0x00000001 }
 #define TPUID_SPLASH { 0x0206, 0x0000, 0x00000001 }
@@ -367,8 +368,8 @@ void _drawSplash()
 			LOG(WARNING) << glewGetErrorString(err) << err;
 		}
 
-		splashVertShader.get()->_data.push_back(0);
-		splashFragShader.get()->_data.push_back(0);
+		splashVertShader->_data.push_back(0);
+		splashFragShader->_data.push_back(0);
 		//	Shader
 		std::string vertShaderSrc(reinterpret_cast<char*>(splashVertShader.get()->_data.data()));
 		std::string fragShaderSrc(reinterpret_cast<char*>(splashFragShader.get()->_data.data()));
@@ -536,8 +537,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	//	Init PPAC asset manager
 	//	We'll init the general asset manager after we get a window with a splash displayed on screen as fast as possible
 	mPPACManager = std::make_unique<ppac::cPPACManager>();
+	mPakManager = std::make_unique<dn::cPakManager>();
 	//	PPAC manager, load init first
-	mPPACManager.get()->LoadPPAC(L"init.ppac");
+	mPPACManager->LoadPPAC(L"init.ppac");
 	//	Create the window
 	if (!CreateOGLWindow(L"DV3DV", config.winWidth, config.winHeight, config.fullscreen))
 	{
@@ -546,9 +548,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	}
 	//	Render splash screen
 	_drawSplash();
-
-
-	Sleep(10000);
 
 	//	Prep for main loop
 	auto exitLoop = false;
@@ -671,8 +670,7 @@ void _LoadIcon(WNDCLASSEX& wc)
 		int largeIconYSz = GetSystemMetrics(SM_CYICON);
 		int smallIconXSz = GetSystemMetrics(SM_CXSMICON);
 		int smallIconYSz = GetSystemMetrics(SM_CYSMICON);
-		auto iconPpacData = iconData.get();
-		uint8_t* buf = iconPpacData->_data.data();
+		uint8_t* buf = iconData->_data.data();
 		//	Fix icon for memory rep
 		uint16_t count = *reinterpret_cast<uint16_t*>(&buf[4]);
 		for (auto i = 1; i < count; ++i)
