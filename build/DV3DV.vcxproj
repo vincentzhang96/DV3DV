@@ -154,6 +154,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\source\3d\TextureManager.cpp" />
     <ClCompile Include="..\source\dn\pak\DnPak.cpp" />
     <ClCompile Include="..\source\main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
@@ -168,6 +169,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\source\3d\TextureManager.h" />
     <ClInclude Include="..\source\dn\pak\DnPak.h" />
     <ClInclude Include="..\source\main.h" />
     <ClInclude Include="..\source\OpenGLContext.h" />
