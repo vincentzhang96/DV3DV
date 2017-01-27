@@ -347,7 +347,6 @@ bool cPakManager::LoadDir(std::wstring pathToDir)
 	//		2. Files ending in .pak that do not start with Patch, in alphabetical order
 	//	This allows us to load files in the same order tha game does, except we can support patch files
 	//	without having to apply them to the paks themselves.
-
 	std::sort(files.begin(), files.end(), comparePakFileNames);
 	for (auto filePath : files)
 	{
