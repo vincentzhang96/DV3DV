@@ -554,20 +554,18 @@ PPACMETABLOCK::PPACMETABLOCKENTRIES cPPAC::GetMetadata(const TPUID& tpuid)
 	return PPACMETABLOCK::PPACMETABLOCKENTRIES();
 }
 
-cPPACData::cPPACData(TPUID tpuid, uint32 size)
+cPPACData::cPPACData(TPUID tpuid, uint32 size): _data(size)
 {
 	_tpuid = tpuid;
 	_size = size;
-	_data = std::vector<uint8>(_size);
 }
 
 cPPACData::~cPPACData()
 {
 }
 
-cPPACManager::cPPACManager()
+cPPACManager::cPPACManager() : _loadedPPACs(512)
 {
-	_loadedPPACs = packed_freelist<cPPAC>(512);
 }
 
 cPPACManager::~cPPACManager()

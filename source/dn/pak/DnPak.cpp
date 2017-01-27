@@ -237,9 +237,8 @@ cPak::PakFileTable cPak::GetFileTable()
 	return _fileTable;
 }
 
-cPakManager::cPakManager()
+cPakManager::cPakManager() : _loadedPaks(512)
 {
-	_loadedPaks = packed_freelist<cPak>(512);
 }
 
 cPakManager::~cPakManager()

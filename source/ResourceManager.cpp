@@ -33,17 +33,26 @@ resman::ResourceRequest::~ResourceRequest()
 	}
 }
 
-resman::ResourceManager::ResourceManager()
+resman::ResourceResponse::ResourceResponse()
 {
-	_ppacManager = ppac::cPPACManager();
-	_dnPakManager = dn::cPakManager();
+	_present = false;
+}
+
+resman::ResourceResponse::ResourceResponse(std::vector<uint8_t> vdata)
+{
+	_present = true;
+	_data = vdata;
+}
+
+resman::ResourceManager::ResourceManager() : _ppacManager(), _dnPakManager()
+{
 }
 
 resman::ResourceManager::~ResourceManager()
 {
 }
 
-std::vector<uint8_t> resman::ResourceManager::GetResource(ResourceRequest request)
+resman::ResourceResponse resman::ResourceManager::GetResource(ResourceRequest request)
 {
 	switch (request.type)
 	{
@@ -52,20 +61,20 @@ std::vector<uint8_t> resman::ResourceManager::GetResource(ResourceRequest reques
 		auto ret = _dnPakManager.GetFileData(request.resPakPath);
 		if (ret)
 		{
-			return ret->_data;
+			return ResourceResponse(ret->_data);
 		}
 		//	Return empty vector
-		return std::vector<uint8_t>();
+		return ResourceResponse();
 	}
 	case REQ_TPUID:
 	{
 		auto ret = _ppacManager.GetFileData(request.resTpuid);
 		if (ret)
 		{
-			return ret->_data;
+			return ResourceResponse(ret->_data);
 		}
 		//	Return empty vector
-		return std::vector<uint8_t>();
+		return ResourceResponse();
 	}
 	case REQ_NONE:
 	default:

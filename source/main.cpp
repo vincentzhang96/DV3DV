@@ -4,6 +4,7 @@
 
 #include "ppac/PhoenixPAC.h"
 #include "dn/pak/DnPak.h"
+#include "ResourceManager.h"
 
 INITIALIZE_EASYLOGGINGPP
 INIT_PPAC_LOGGER
@@ -24,15 +25,12 @@ bool fullscreen;
 
 using json = nlohmann::json;
 
-using PPACMANAGER = ppac::cPPACManager;
+std::unique_ptr<resman::ResourceManager> mResManager;
 
-std::unique_ptr<PPACMANAGER> mPPACManager;
-std::unique_ptr<dn::cPakManager> mPakManager;
-
-#define TPUID_ICON { 0x0205, 0x0000, 0x00000001 }
-#define TPUID_SPLASH { 0x0206, 0x0000, 0x00000001 }
-#define TPUID_SPLASH_VERT_SHDR { 0x0107, 0x0000, 0x00000001 }
-#define TPUID_SPLASH_FRAG_SHDR { 0x0108, 0x0000, 0x00000001 }
+#define TPUID_ICON ppac::TPUID(0x0205, 0x0000, 0x00000001)
+#define TPUID_SPLASH ppac::TPUID(0x0206, 0x0000, 0x00000001)
+#define TPUID_SPLASH_VERT_SHDR ppac::TPUID(0x0107, 0x0000, 0x00000001)
+#define TPUID_SPLASH_FRAG_SHDR ppac::TPUID(0x0108, 0x0000, 0x00000001)
 
 void OnWindowActive()
 {
@@ -164,9 +162,9 @@ bool _CreateUserDir()
 		if (CreateDirectoryW(USER_DATA_DIRW, nullptr) == 0)
 		{
 			MessageBoxW(nullptr,
-				L"Failed to create user data directory at " USER_DATA_DIRW,
-				L"DV3DV Startup Error",
-				MB_OK | MB_ICONERROR);
+			            L"Failed to create user data directory at " USER_DATA_DIRW,
+			            L"DV3DV Startup Error",
+			            MB_OK | MB_ICONERROR);
 			return false;
 		}
 	}
@@ -176,9 +174,9 @@ bool _CreateUserDir()
 		if (CreateDirectoryW(USER_DATA_DIR_FILEW(L"config"), nullptr) == 0)
 		{
 			MessageBoxW(nullptr,
-				L"Failed to create user config directory at " USER_DATA_DIR_FILEW(L"config"),
-				L"DV3DV Startup Error",
-				MB_OK | MB_ICONERROR);
+			            L"Failed to create user config directory at " USER_DATA_DIR_FILEW(L"config"),
+			            L"DV3DV Startup Error",
+			            MB_OK | MB_ICONERROR);
 			return false;
 		}
 	}
@@ -228,18 +226,18 @@ bool _LoadConfig(DV3DVConfig& config)
 bool _WriteConfig(DV3DVConfig& config)
 {
 	auto cfgFile = CreateFileW(USER_DATA_DIR_FILEW(L"config/config.json"),
-		GENERIC_WRITE,
-		0,
-		nullptr,
-		OPEN_ALWAYS,
-		FILE_ATTRIBUTE_NORMAL,
-		nullptr);
+	                                                                     GENERIC_WRITE,
+	                                                                     0,
+	                                                                     nullptr,
+	                                                                     OPEN_ALWAYS,
+	                                                                     FILE_ATTRIBUTE_NORMAL,
+	                                                                     nullptr);
 	if (cfgFile == INVALID_HANDLE_VALUE)
 	{
 		MessageBoxW(nullptr,
-			L"Failed to create user config at " USER_DATA_DIR_FILEW(L"config/config.json"),
-			L"DV3DV Startup Error",
-			MB_OK | MB_ICONERROR);
+		            L"Failed to create user config at " USER_DATA_DIR_FILEW(L"config/config.json"),
+		            L"DV3DV Startup Error",
+		            MB_OK | MB_ICONERROR);
 		return false;
 	}
 	json cfgJson = 
@@ -255,17 +253,17 @@ bool _WriteConfig(DV3DVConfig& config)
 	auto buf = jsonStr.c_str();
 	DWORD dwBytesWritten;
 	auto success = WriteFile(cfgFile,
-		buf,
-		DWORD(strlen(buf)),
-		&dwBytesWritten,
-		nullptr
+	                         buf,
+	                         DWORD(strlen(buf)),
+	                         &dwBytesWritten,
+	                         nullptr
 	);
 	if (success == 0)
 	{
 		MessageBoxW(nullptr,
-			L"Failed to write user config at " USER_DATA_DIR_FILEW(L"config/config.json"),
-			L"DV3DV Startup Error",
-			MB_OK | MB_ICONERROR);
+		            L"Failed to write user config at " USER_DATA_DIR_FILEW(L"config/config.json"),
+		            L"DV3DV Startup Error",
+		            MB_OK | MB_ICONERROR);
 		CloseHandle(cfgFile);
 		return false;
 	}
@@ -301,14 +299,14 @@ void _drawSplash()
 {
 	//	Normally the texture manager would handle the loading and registering and maintaining the texture for us
 	//	But we're still in startup and have to get this splash drawn as fast as possible
-	auto splashData = mPPACManager.get()->GetFileData(TPUID_SPLASH);
-	auto splashVertShader = mPPACManager.get()->GetFileData(TPUID_SPLASH_VERT_SHDR);
-	auto splashFragShader = mPPACManager.get()->GetFileData(TPUID_SPLASH_FRAG_SHDR);
+	auto splashData = mResManager->GetResource(TPUID_SPLASH);
+	auto splashVertShader = mResManager->GetResource(TPUID_SPLASH_VERT_SHDR);
+	auto splashFragShader = mResManager->GetResource(TPUID_SPLASH_FRAG_SHDR);
 	if (splashData && splashVertShader && splashFragShader)
 	{
 #define ASSERT_NO_GL_ERROR assert(glGetError() == GL_NO_ERROR);
 		GLenum err;
-		auto dataVec = splashData->_data;
+		auto dataVec = splashData._data;
 		uint32_t* asUint32 = reinterpret_cast<uint32_t*>(dataVec.data());
 		uint32_t* itr = asUint32;
 		uint32_t magic = *itr;
@@ -368,11 +366,11 @@ void _drawSplash()
 			LOG(WARNING) << glewGetErrorString(err) << err;
 		}
 
-		splashVertShader->_data.push_back(0);
-		splashFragShader->_data.push_back(0);
+		splashVertShader->push_back(0);
+		splashFragShader->push_back(0);
 		//	Shader
-		std::string vertShaderSrc(reinterpret_cast<char*>(splashVertShader.get()->_data.data()));
-		std::string fragShaderSrc(reinterpret_cast<char*>(splashFragShader.get()->_data.data()));
+		std::string vertShaderSrc(reinterpret_cast<char*>(splashVertShader->data()));
+		std::string fragShaderSrc(reinterpret_cast<char*>(splashFragShader->data()));
 		GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
 		const char* vertShaderCstr = vertShaderSrc.c_str();
 		glShaderSource(vertShader, 1, &vertShaderCstr, 0);
@@ -534,12 +532,10 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	LOG(INFO) << "Divinitor 3D Viewer v0.1.0";
 	LOG(INFO) << "Built " << __TIMESTAMP__;
 	LOG(INFO) << "Starting...";
-	//	Init PPAC asset manager
-	//	We'll init the general asset manager after we get a window with a splash displayed on screen as fast as possible
-	mPPACManager = std::make_unique<ppac::cPPACManager>();
-	mPakManager = std::make_unique<dn::cPakManager>();
-	//	PPAC manager, load init first
-	mPPACManager->LoadPPAC(L"init.ppac");
+	//	Init asset manager
+	mResManager = std::make_unique<resman::ResourceManager>();
+	//	Load init
+	mResManager->_ppacManager.LoadPPAC(L"init.ppac");
 	//	Create the window
 	if (!CreateOGLWindow(L"DV3DV", config.winWidth, config.winHeight, config.fullscreen))
 	{
@@ -548,6 +544,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	}
 	//	Render splash screen
 	_drawSplash();
+
+	Sleep(10000);
 
 	//	Prep for main loop
 	auto exitLoop = false;
@@ -560,7 +558,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	//	Destroy window
 	KillOGLWindow();
 	//	Shut down managers
-	mPPACManager.reset();
+	mResManager.reset();
 
 	LOG(INFO) << "Shutdown complete";
 	Sleep(1000);
@@ -662,7 +660,7 @@ void _TrySetupFullscreen(int winWidth, int winHeight, DWORD& dwExStyle, DWORD& d
 
 void _LoadIcon(WNDCLASSEX& wc)
 {
-	auto iconData = mPPACManager.get()->GetFileData(TPUID_ICON);
+	auto iconData = mResManager->GetResource(TPUID_ICON);
 	if (iconData)
 	{
 		HWND hConsoleWindow = GetConsoleWindow();
@@ -670,7 +668,7 @@ void _LoadIcon(WNDCLASSEX& wc)
 		int largeIconYSz = GetSystemMetrics(SM_CYICON);
 		int smallIconXSz = GetSystemMetrics(SM_CXSMICON);
 		int smallIconYSz = GetSystemMetrics(SM_CYSMICON);
-		uint8_t* buf = iconData->_data.data();
+		uint8_t* buf = iconData->data();
 		//	Fix icon for memory rep
 		uint16_t count = *reinterpret_cast<uint16_t*>(&buf[4]);
 		for (auto i = 1; i < count; ++i)

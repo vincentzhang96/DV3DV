@@ -31,6 +31,25 @@ namespace resman
 		~ResourceRequest();
 	} ResourceRequest;
 
+	typedef struct ResourceResponse
+	{
+		bool _present;
+		std::vector<uint8_t> _data;
+
+		ResourceResponse();
+		explicit ResourceResponse(std::vector<uint8_t> vdata);
+
+		operator bool() const
+		{
+			return _present;
+		}
+
+		std::vector<uint8_t>* operator ->()
+		{
+			return &_data;
+		}
+	} ResourceResponse;
+
 	class ResourceManager
 	{
 	private:
@@ -41,7 +60,7 @@ namespace resman
 		ResourceManager();
 		~ResourceManager();
 
-		std::vector<uint8_t> GetResource(ResourceRequest request);
+		ResourceResponse GetResource(ResourceRequest request);
 	};
 
 
