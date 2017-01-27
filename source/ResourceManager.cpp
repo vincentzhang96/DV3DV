@@ -33,4 +33,46 @@ resman::ResourceRequest::~ResourceRequest()
 	}
 }
 
+resman::ResourceManager::ResourceManager()
+{
+	_ppacManager = ppac::cPPACManager();
+	_dnPakManager = dn::cPakManager();
+}
+
+resman::ResourceManager::~ResourceManager()
+{
+}
+
+std::vector<uint8_t> resman::ResourceManager::GetResource(ResourceRequest request)
+{
+	switch (request.type)
+	{
+	case REQ_PAKPATH:
+	{
+		auto ret = _dnPakManager.GetFileData(request.resPakPath);
+		if (ret)
+		{
+			return ret->_data;
+		}
+		//	Return empty vector
+		return std::vector<uint8_t>();
+	}
+	case REQ_TPUID:
+	{
+		auto ret = _ppacManager.GetFileData(request.resTpuid);
+		if (ret)
+		{
+			return ret->_data;
+		}
+		//	Return empty vector
+		return std::vector<uint8_t>();
+	}
+	case REQ_NONE:
+	default:
+		//	This is a programming error
+		LOG(WARNING) << "Invalid request: Got request type " << request.type;
+		throw "Invalid request";
+	}
+}
+
 

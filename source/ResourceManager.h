@@ -34,12 +34,12 @@ namespace resman
 	class ResourceManager
 	{
 	private:
+	public:
 		ppac::cPPACManager _ppacManager;
 		dn::cPakManager _dnPakManager;
-		
 
-	public:
-
+		ResourceManager();
+		~ResourceManager();
 
 		std::vector<uint8_t> GetResource(ResourceRequest request);
 	};
