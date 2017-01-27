@@ -279,6 +279,27 @@ PAKHANDLE cPakManager::LoadPak(std::wstring pathToPak)
 	}
 }
 
+bool cPakManager::comparePakFileNames(FileEntry a, FileEntry b)
+{
+	bool aPatch = _startsWith(a.fileName, L"Patch");
+	bool bPatch = _startsWith(b.fileName, L"Patch");
+	if (aPatch != bPatch)
+	{
+		//	Patches come before rest of paks
+		return aPatch;
+	}
+	if (aPatch)
+	{
+		//	Patches load in reverse ABC order
+		return b.fileName.compare(a.fileName) < 0;
+	}
+	else
+	{
+		//	Rest of paks load in ABC order
+		return a.fileName.compare(b.fileName) < 0;
+	}
+}
+
 bool cPakManager::LoadDir(std::wstring pathToDir)
 {
 	//	We aren't recursively loading the directory
@@ -300,7 +321,7 @@ bool cPakManager::LoadDir(std::wstring pathToDir)
 		CLOG(WARNING, "PPAC") << "Unable to get first file in directory " << pathToDir;
 		return false;
 	}
-	std::vector<std::wstring> files;
+	std::vector<FileEntry> files;
 	do
 	{
 		//	Ignore "." and ".." and other directories
@@ -311,7 +332,7 @@ bool cPakManager::LoadDir(std::wstring pathToDir)
 		}
 		else if (_endsWith(fdData.cFileName, L".pak"))
 		{
-			files.push_back(pathToDir + L"\\" + fdData.cFileName);
+			files.emplace_back(pathToDir + L"\\" + fdData.cFileName, fdData.cFileName);
 		}
 	} while (FindNextFileW(hFind, &fdData) != FALSE);
 	dwError = GetLastError();
@@ -326,32 +347,21 @@ bool cPakManager::LoadDir(std::wstring pathToDir)
 	//		2. Files ending in .pak that do not start with Patch, in alphabetical order
 	//	This allows us to load files in the same order tha game does, except we can support patch files
 	//	without having to apply them to the paks themselves.
-	struct Sorter
-	{
-		bool operator()(std::wstring a, std::wstring b) const
-		{
-			bool aPatch = _startsWith(a, L"Patch");
-			bool bPatch = _startsWith(a, L"Patch");
-			if (aPatch  != bPatch)
-			{
-				return aPatch;
-			}
-			return a.compare(b) < 0;
-		}
-	} sorter;
-	std::sort(files.begin(), files.end(), sorter);
+
+	std::sort(files.begin(), files.end(), comparePakFileNames);
 	for (auto filePath : files)
 	{
-		CLOG(INFO, DNPAKLOGGER) << "\t\t\t" << filePath;
+		auto fullPath = filePath.fullPath;
+		CLOG(INFO, DNPAKLOGGER) << "\t" << fullPath;
 		//	Load
-		PAKHANDLE handle = LoadPak(filePath);
+		PAKHANDLE handle = LoadPak(fullPath);
 		if (handle == PAKHANDLE_INVALID)
 		{
-			CLOG(WARNING, DNPAKLOGGER) << "Failed to read pak " << filePath;
+			CLOG(WARNING, DNPAKLOGGER) << "Failed to read pak " << fullPath;
 		}
 		else
 		{
-			CLOG(DEBUG, DNPAKLOGGER) << "Loaded pak " << filePath;
+			CLOG(DEBUG, DNPAKLOGGER) << "Loaded pak " << fullPath;
 		}
 	}
 	return true;
@@ -389,7 +399,7 @@ void cPakManager::Unload()
 	_loadedPaks = packed_freelist<cPak>(512);
 }
 
-bool cPakManager::_endsWith(std::wstring const &a, std::wstring const &suffix)
+bool dn::_endsWith(std::wstring const &a, std::wstring const &suffix)
 {
 	if (a.length() >= suffix.length())
 	{
@@ -398,7 +408,8 @@ bool cPakManager::_endsWith(std::wstring const &a, std::wstring const &suffix)
 	return false;
 }
 
-bool cPakManager::_startsWith(std::wstring const& a, std::wstring const& b)
+bool dn::_startsWith(std::wstring const& a, std::wstring const& b)
 {
 	return (a.compare(0, b.length(), b) == 0);
 }
+

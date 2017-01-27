@@ -90,17 +90,29 @@ namespace dn
 		PakFileTable GetFileTable();
 	};
 
+
 	class cPakManager
 	{
 	private:
 		typedef std::unordered_map<std::string, PAKHANDLE> HandleMap;
 
+		struct FileEntry
+		{
+			std::wstring fullPath;
+			std::wstring fileName;
+
+			FileEntry(std::wstring fp, std::wstring fn)
+			{
+				fullPath = fp;
+				fileName = fn;
+			}
+		};
+
+
 		packed_freelist<cPak> _loadedPaks;
 		HandleMap _pathToPakMap;
 
-		static bool _endsWith(std::wstring const &a, std::wstring const &suffix);
-		static bool _startsWith(std::wstring const &a, std::wstring const &b);
-
+		static bool comparePakFileNames(FileEntry a, FileEntry b);
 
 	public:
 		cPakManager();
@@ -118,4 +130,8 @@ namespace dn
 	};
 
 	int _memcpyIncr(void* dest, const void* src, const size_t sz);
+	bool _endsWith(std::wstring const &a, std::wstring const &suffix);
+	bool _startsWith(std::wstring const &a, std::wstring const &b);
+
+
 }
