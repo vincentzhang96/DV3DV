@@ -324,7 +324,7 @@ void _drawSplash()
 		}
 		size_t bufSize = (header.dwMipMapCount > 1) ? header.dwPitchOrLinearSize * 2 : header.dwPitchOrLinearSize;
 		std::unique_ptr<uint8_t[]> buf(new uint8_t[bufSize]);
-		std::copy_n(&dataVec[128], bufSize, buf.get());
+		std::copy_n(&dataVec[128], bufSize, stdext::checked_array_iterator<uint8_t*>(buf.get(), bufSize));
 		GLuint glTexFormat;
 		switch (header.ddspf.dwFourCC)
 		{
