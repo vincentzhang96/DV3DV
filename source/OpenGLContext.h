@@ -43,5 +43,14 @@ public:
 	{
 		return _windowHeight;
 	}
+
+	static void CALLBACK DebugClbk(GLenum source, 
+		GLenum type, 
+		GLuint id, 
+		GLenum severity, 
+		GLsizei length,
+		const GLchar *message, 
+		const void *userParam
+	);
 };
 

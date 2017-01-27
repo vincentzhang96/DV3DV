@@ -95,7 +95,7 @@ bool OpenGLContext::CreateContext(HWND hWnd)
 	GLint attribs[] = {
 		WGL_CONTEXT_MAJOR_VERSION_ARB, _glMajorVer,
 		WGL_CONTEXT_MINOR_VERSION_ARB, _glMinorVer,
-		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB | WGL_CONTEXT_DEBUG_BIT_ARB,
 		0
 	};
 	if (wglewIsSupported("WGL_ARB_create_context") == 1)
@@ -109,6 +109,7 @@ bool OpenGLContext::CreateContext(HWND hWnd)
 	{
 		_hRC = tempContext;
 	}
+	glDebugMessageCallback(DebugClbk, nullptr);
 	return true;
 }
 
@@ -130,4 +131,92 @@ void OpenGLContext::PreRender()
 void OpenGLContext::PostRender()
 {
 	SwapBuffers(_hDC);
+}
+
+void OpenGLContext::DebugClbk(GLenum source, 
+	GLenum type, 
+	GLuint id, 
+	GLenum severity, 
+	GLsizei length,
+	const GLchar *message, 
+	const void *userParam
+)
+{
+	std::string sourceStr;
+	switch (source)
+	{
+	case GL_DEBUG_SOURCE_API:
+		sourceStr = "OpenGL";
+		break;
+	case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+		sourceStr = "Windows";
+		break;
+	case GL_DEBUG_SOURCE_SHADER_COMPILER:
+		sourceStr = "Shader compiler";
+		break;
+	case GL_DEBUG_SOURCE_THIRD_PARTY:
+		sourceStr = "Third party";
+		break;
+	case GL_DEBUG_SOURCE_APPLICATION:
+		sourceStr = "Application";
+		break;
+	case GL_DEBUG_SOURCE_OTHER:
+		sourceStr = "Other";
+		break;
+	default:
+		sourceStr = "Unknown";
+		break;
+	}
+	std::string typeStr;
+	switch (type)
+	{
+	case GL_DEBUG_TYPE_ERROR:
+		typeStr = "ERROR";
+		break;
+	case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+		typeStr = "DEPRECATED";
+		break;
+	case GL_DEBUG_TYPE_MARKER:
+		typeStr = "MARK";
+		break;
+	case GL_DEBUG_TYPE_PERFORMANCE:
+		typeStr = "PERF";
+		break;
+	case GL_DEBUG_TYPE_POP_GROUP:
+		typeStr = "POPGRP";
+		break;
+	case GL_DEBUG_TYPE_PORTABILITY:
+		typeStr = "PORT";
+		break;
+	case GL_DEBUG_TYPE_PUSH_GROUP:
+		typeStr = "PUSHGRP";
+		break;
+	case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+		typeStr = "UNDEFBEHAVIOR";
+		break;
+	case GL_DEBUG_TYPE_OTHER:
+		typeStr = "OTHER";
+		break;
+	default:
+		typeStr = "UNKNOWN";
+		break;
+	}
+
+	std::string sevStr;
+	switch (severity)
+	{
+	case GL_DEBUG_SEVERITY_HIGH:
+		sevStr = "HIGH";
+		break;
+	case GL_DEBUG_SEVERITY_MEDIUM:
+		sevStr = "MEDIUM";
+		break;
+	case GL_DEBUG_SEVERITY_LOW:
+		sevStr = "LOW";
+		break;
+	case GL_DEBUG_SEVERITY_NOTIFICATION:
+		sevStr = "NOTIF";
+		break;
+	}
+	LOG(DEBUG) << "[" << sevStr << "] [" << sourceStr << "] [" << typeStr << "] ID[" << id << "]: " << message;
 }

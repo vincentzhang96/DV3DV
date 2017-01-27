@@ -464,12 +464,6 @@ void _drawSplash()
 		glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, (void*)0);
 		glBindVertexArray(0);
 		glUseProgram(0);
-
-		err = glGetError();
-		if (err != GL_NO_ERROR)
-		{
-			LOG(WARNING) << glewGetErrorString(err) << err;
-		}
 		oglContext->PostRender();
 
 		glDeleteVertexArrays(1, &vao);
