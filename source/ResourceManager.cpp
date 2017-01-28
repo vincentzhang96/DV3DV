@@ -52,7 +52,7 @@ resman::ResourceManager::~ResourceManager()
 {
 }
 
-resman::ResourceResponse resman::ResourceManager::GetResource(ResourceRequest request)
+resman::ResourceResponse resman::ResourceManager::GetResource(const ResourceRequest &request)
 {
 	switch (request.type)
 	{

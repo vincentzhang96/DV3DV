@@ -5,6 +5,7 @@
 #include "ppac/PhoenixPAC.h"
 #include "dn/pak/DnPak.h"
 #include "ResourceManager.h"
+#include "3d/TextureManager.h"
 
 INITIALIZE_EASYLOGGINGPP
 INIT_PPAC_LOGGER
@@ -26,6 +27,8 @@ bool fullscreen;
 using json = nlohmann::json;
 
 std::unique_ptr<resman::ResourceManager> mResManager;
+
+std::unique_ptr<dv3d::TextureManager> dv3dmTexManager;
 
 #define TPUID_ICON ppac::TPUID(0x0205, 0x0000, 0x00000001)
 #define TPUID_SPLASH ppac::TPUID(0x0206, 0x0000, 0x00000001)
@@ -299,73 +302,12 @@ void _drawSplash()
 {
 	//	Normally the texture manager would handle the loading and registering and maintaining the texture for us
 	//	But we're still in startup and have to get this splash drawn as fast as possible
-	auto splashData = mResManager->GetResource(TPUID_SPLASH);
+	auto hSplashTex = dv3dmTexManager->Load(TPUID_SPLASH);
+	auto splashTex = dv3dmTexManager->Get(hSplashTex);
 	auto splashVertShader = mResManager->GetResource(TPUID_SPLASH_VERT_SHDR);
 	auto splashFragShader = mResManager->GetResource(TPUID_SPLASH_FRAG_SHDR);
-	if (splashData && splashVertShader && splashFragShader)
+	if (splashTex && splashVertShader && splashFragShader)
 	{
-#define ASSERT_NO_GL_ERROR assert(glGetError() == GL_NO_ERROR);
-		GLenum err;
-		auto dataVec = splashData._data;
-		uint32_t* asUint32 = reinterpret_cast<uint32_t*>(dataVec.data());
-		uint32_t* itr = asUint32;
-		uint32_t magic = *itr;
-		if (magic != 0x20534444)
-		{
-			LOG(WARNING) << "Invalid splash texture: not a DDS";
-			return;
-		}
-		itr += 1;
-		DDS_HEADER header = *reinterpret_cast<DDS_HEADER*>(itr);
-		if (header.dwSize != 124)
-		{
-			LOG(WARNING) << "Corrupt or invalid DDS: invalid dwSize, expected 124, got " << header.dwSize;
-			return;
-		}
-		size_t bufSize = (header.dwMipMapCount > 1) ? header.dwPitchOrLinearSize * 2 : header.dwPitchOrLinearSize;
-		std::unique_ptr<uint8_t[]> buf(new uint8_t[bufSize]);
-		std::copy_n(&dataVec[128], bufSize, stdext::checked_array_iterator<uint8_t*>(buf.get(), bufSize));
-		GLuint glTexFormat;
-		switch (header.ddspf.dwFourCC)
-		{
-		case DDS_FOURCC_DXT1:
-			glTexFormat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-			break;
-		case DDS_FOURCC_DXT3:
-			glTexFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-			break;
-		case DDS_FOURCC_DXT5:
-			glTexFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			break;
-		default:
-			LOG(WARNING) << "Unknown FourCC " << header.ddspf.dwFourCC;
-			return;
-		}
-		size_t blockSize = (glTexFormat == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT) ? 8 : 16;
-		size_t width = header.dwWidth;
-		size_t height = header.dwHeight;
-		GLuint splashTextureId;
-		glGenTextures(1, &splashTextureId);
-		glBindTexture(GL_TEXTURE_2D, splashTextureId);
-		ASSERT_NO_GL_ERROR;
-		size_t imgSize = ((width + 3) / 4) * ((height + 3) / 4) * blockSize;
-		glCompressedTexImage2D(GL_TEXTURE_2D, 0, glTexFormat, width, height, 0, imgSize, buf.get());
-		ASSERT_NO_GL_ERROR;
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		ASSERT_NO_GL_ERROR;
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		ASSERT_NO_GL_ERROR;
-
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-		err = glGetError();
-		if (err != GL_NO_ERROR)
-		{
-			LOG(WARNING) << glewGetErrorString(err) << err;
-		}
-
 		splashVertShader->push_back(0);
 		splashFragShader->push_back(0);
 		//	Shader
@@ -373,7 +315,7 @@ void _drawSplash()
 		std::string fragShaderSrc(reinterpret_cast<char*>(splashFragShader->data()));
 		GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
 		const char* vertShaderCstr = vertShaderSrc.c_str();
-		glShaderSource(vertShader, 1, &vertShaderCstr, 0);
+		glShaderSource(vertShader, 1, &vertShaderCstr , 0);
 		glCompileShader(vertShader);
 
 		GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -457,18 +399,19 @@ void _drawSplash()
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glUseProgram(shaderProgram);
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, splashTextureId);
+		splashTex.Attach();
 		glProgramUniform1i(shaderProgram, 2, 0);
 
 		glBindVertexArray(vao);
 		glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, (void*)0);
 		glBindVertexArray(0);
+		splashTex.Detatch();
 		glUseProgram(0);
 		oglContext->PostRender();
 
 		glDeleteVertexArrays(1, &vao);
 		glDeleteBuffers(2, vbo);
-		glDeleteTextures(1, &splashTextureId);
+		dv3dmTexManager->Unload(hSplashTex);
 		glDeleteProgram(shaderProgram);
 	}
 	else
@@ -528,6 +471,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	LOG(INFO) << "Starting...";
 	//	Init asset manager
 	mResManager = std::make_unique<resman::ResourceManager>();
+	dv3dmTexManager = std::make_unique<dv3d::TextureManager>(mResManager.get());
 	//	Load init
 	mResManager->_ppacManager.LoadPPAC(L"init.ppac");
 	//	Create the window

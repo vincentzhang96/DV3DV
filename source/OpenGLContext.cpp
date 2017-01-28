@@ -217,6 +217,27 @@ void OpenGLContext::DebugClbk(GLenum source,
 	case GL_DEBUG_SEVERITY_NOTIFICATION:
 		sevStr = "NOTIF";
 		break;
+	default:
+		sevStr = "UNKNOWN";
+		break;
 	}
-	LOG(DEBUG) << "[" << sevStr << "] [" << sourceStr << "] [" << typeStr << "] ID[" << id << "]: " << message;
+#define MSGFMT "[" << sevStr << "] [" << sourceStr << "] [" << typeStr << "] ID[" << id << "]: " << message
+	switch(severity)
+	{
+	case GL_DEBUG_SEVERITY_HIGH:
+		LOG(ERROR) << MSGFMT;
+		break;
+	case GL_DEBUG_SEVERITY_MEDIUM:
+		LOG(WARNING) << MSGFMT;
+		break;
+	case GL_DEBUG_SEVERITY_LOW:
+		LOG(DEBUG) << MSGFMT;
+		break;
+	case GL_DEBUG_SEVERITY_NOTIFICATION:
+		LOG(TRACE) << MSGFMT;
+		break;
+	default:
+		break;
+	}
+#undef MSGFMT
 }

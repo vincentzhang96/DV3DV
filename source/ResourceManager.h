@@ -60,7 +60,7 @@ namespace resman
 		ResourceManager();
 		~ResourceManager();
 
-		ResourceResponse GetResource(ResourceRequest request);
+		ResourceResponse GetResource(const ResourceRequest &request);
 	};
 
 
