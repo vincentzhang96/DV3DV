@@ -42,7 +42,7 @@ namespace dv3d
 		resman::ResourceManager* _resManager;
 
 	public:
-		TextureManager(resman::ResourceManager* resManager);
+		explicit TextureManager(resman::ResourceManager* resManager);
 		~TextureManager();
 
 		GLTEXHANDLE Load(const resman::ResourceRequest &request);
