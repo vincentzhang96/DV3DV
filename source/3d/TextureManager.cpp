@@ -53,7 +53,6 @@ dv3d::TextureManager::TextureManager(resman::ResourceManager* resManager) : _tex
 
 dv3d::TextureManager::~TextureManager()
 {
-	(&_textures)->~packed_freelist();
 }
 
 dv3d::GLTEXHANDLE dv3d::TextureManager::Load(const resman::ResourceRequest& request)
@@ -119,11 +118,13 @@ dv3d::GLTEXHANDLE dv3d::TextureManager::LoadDDS(std::vector<uint8_t>& data)
 	size_t width = header.dwWidth;
 	size_t height = header.dwHeight;
 	GLuint splashTextureId;
+	//	Generate a texture and grab it
 	auto handle = _textures.emplace(GL_TEXTURE_2D);
 	auto ref = Get(handle);
+	//	Attach
 	ref.Attach();
 	size_t offset = 0;
-	for (auto i = 0; i <= header.dwMipMapCount && (width && height); ++i)
+	for (auto i = 0U; i <= header.dwMipMapCount && (width && height); ++i)
 	{
 		size_t imgSize = ((width + 3) / 4) * ((height + 3) / 4) * blockSize;
 		glCompressedTexImage2D(GL_TEXTURE_2D, i, glTexFormat, width, height, 0, imgSize, buf.get() + offset);
