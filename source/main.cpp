@@ -496,6 +496,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	//	Destroy window
 	KillOGLWindow();
 	//	Shut down managers
+	dv3dmTexManager.reset();
 	mResManager.reset();
 
 	LOG(INFO) << "Shutdown complete";
