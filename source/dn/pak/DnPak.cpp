@@ -134,10 +134,10 @@ void cPak::_ReadIndex(const std::wstring file)
 	}
 }
 
-cPak::cPak(LPCWSTR file)
+cPak::cPak(const std::wstring file)
 {
 	CLOG(DEBUG, DNPAKLOGGER) << "Reading file " << file;
-	HANDLE hFile = CreateFileW(file,
+	HANDLE hFile = CreateFileW(file.c_str(),
 		GENERIC_READ,
 		FILE_SHARE_READ,
 		nullptr,

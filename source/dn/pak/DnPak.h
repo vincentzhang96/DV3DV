@@ -80,7 +80,7 @@ namespace dn
 		void _ReadIndex(const std::wstring file);
 
 	public:
-		explicit cPak(LPCWSTR file);
+		explicit cPak(const std::wstring file);
 		~cPak() = default;
 
 		std::unique_ptr<cPakData> GetFileData(const std::string fileName);
