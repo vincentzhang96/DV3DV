@@ -394,7 +394,7 @@ void cPakManager::Unload()
 	//	packed_freelist doesn't implement clear, so we'll just deconstruct it and reconstruct it
 	(&_loadedPaks)->~packed_freelist();
 	_pathToPakMap.clear();
-	_loadedPaks = packed_freelist<cPak>(512);
+	new (&_loadedPaks) packed_freelist<cPak>(512);
 }
 
 bool dn::_endsWith(std::wstring const &a, std::wstring const &suffix)
