@@ -300,13 +300,10 @@ void _ParseCommandLineFlag(DV3DVConfig& config, LPWSTR* argv, int argc, int i)
 
 void _drawSplash()
 {
-	//	Normally the texture manager would handle the loading and registering and maintaining the texture for us
-	//	But we're still in startup and have to get this splash drawn as fast as possible
-	auto hSplashTex = dv3dmTexManager->Load(TPUID_SPLASH);
-	auto splashTex = dv3dmTexManager->Get(hSplashTex);
+	auto splashTex = dv3dmTexManager->LoadAndGet(TPUID_SPLASH);
 	auto splashVertShader = mResManager->GetResource(TPUID_SPLASH_VERT_SHDR);
 	auto splashFragShader = mResManager->GetResource(TPUID_SPLASH_FRAG_SHDR);
-	if (splashTex && splashVertShader && splashFragShader)
+	if (splashTex.first && splashVertShader && splashFragShader)
 	{
 		splashVertShader->push_back(0);
 		splashFragShader->push_back(0);
@@ -399,19 +396,19 @@ void _drawSplash()
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glUseProgram(shaderProgram);
 		glActiveTexture(GL_TEXTURE0);
-		splashTex.Attach();
+		splashTex.second.Attach();
 		glProgramUniform1i(shaderProgram, 2, 0);
 
 		glBindVertexArray(vao);
 		glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, (void*)0);
 		glBindVertexArray(0);
-		splashTex.Detatch();
+		splashTex.second.Detatch();
 		glUseProgram(0);
 		oglContext->PostRender();
 
 		glDeleteVertexArrays(1, &vao);
 		glDeleteBuffers(2, vbo);
-		dv3dmTexManager->Unload(hSplashTex);
+		dv3dmTexManager->Unload(splashTex.first);
 		glDeleteProgram(shaderProgram);
 	}
 	else

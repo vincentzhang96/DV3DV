@@ -37,6 +37,7 @@ namespace dv3d
 
 	class TextureManager
 	{
+		typedef std::pair<GLTEXHANDLE, GLTextureReference> GLTexHandleAndReference;
 	private:
 		packed_freelist<GLTexture> _textures;
 		resman::ResourceManager* _resManager;
@@ -47,6 +48,7 @@ namespace dv3d
 
 		GLTEXHANDLE Load(const resman::ResourceRequest &request);
 		GLTEXHANDLE LoadDDS(std::vector<uint8_t> &data);
+		GLTexHandleAndReference LoadAndGet(const resman::ResourceRequest &request);
 		GLTextureReference Get(const GLTEXHANDLE &handle) const;
 		void Unload(const GLTEXHANDLE &handle);
 		void UnloadAllOf(const std::vector<GLTEXHANDLE> &handles);

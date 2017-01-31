@@ -152,6 +152,12 @@ dv3d::GLTEXHANDLE dv3d::TextureManager::LoadDDS(std::vector<uint8_t>& data)
 	return handle;
 }
 
+dv3d::TextureManager::GLTexHandleAndReference dv3d::TextureManager::LoadAndGet(const resman::ResourceRequest& request)
+{
+	GLTEXHANDLE handle = Load(request);
+	return GLTexHandleAndReference(handle, Get(handle));
+}
+
 dv3d::GLTextureReference dv3d::TextureManager::Get(const GLTEXHANDLE& handle) const
 {
 	if (_textures.contains(handle)) {
