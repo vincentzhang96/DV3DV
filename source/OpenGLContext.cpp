@@ -98,7 +98,7 @@ bool OpenGLContext::CreateContext(HWND hWnd)
 		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB | WGL_CONTEXT_DEBUG_BIT_ARB,
 		0
 	};
-	if (wglewIsSupported("WGL_ARB_create_context") == 1)
+	if (WGLEW_ARB_create_context)
 	{
 		_hRC = wglCreateContextAttribsARB(_hDC, nullptr, attribs);
 		wglMakeCurrent(nullptr, nullptr);
@@ -107,9 +107,19 @@ bool OpenGLContext::CreateContext(HWND hWnd)
 	}
 	else
 	{
+		LOG(WARNING) << "Unable to upgrade OGL context, using reduced context";
 		_hRC = tempContext;
 	}
 	glDebugMessageCallback(DebugClbk, nullptr);
+	if (_glMinorVer >= 5 || GLEW_ARB_clip_control)
+	{
+		glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+	}
+	else
+	{
+		LOG(ERROR) << "glClipControl not supported";
+		return false;
+	}
 	return true;
 }
 
