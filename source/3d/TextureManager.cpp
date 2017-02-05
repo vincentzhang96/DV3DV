@@ -1,50 +1,6 @@
 #include "../stdafx.h"
 #include "TextureManager.h"
 
-dv3d::GLTexture::GLTexture()
-{
-	glGenTextures(1, &_glTex);
-	_texTarget = GL_TEXTURE_2D;
-}
-
-dv3d::GLTexture::GLTexture(GLenum target) : GLTexture()
-{
-	_texTarget = target;
-}
-
-dv3d::GLTexture::~GLTexture()
-{
-	LOG(DEBUG) << "Releasing texture " << _glTex;
-	glDeleteTextures(1, &_glTex);
-}
-
-dv3d::GLTextureReference::GLTextureReference(const GLTexture& tex)
-{
-	_glTex = tex._glTex;
-	_texTarget = tex._texTarget;
-}
-
-dv3d::GLTextureReference::GLTextureReference(const GLuint& id)
-{
-	_glTex = id;
-	_texTarget = GL_TEXTURE_2D;
-}
-
-dv3d::GLTextureReference::operator bool() const
-{
-	return _glTex != 0;
-}
-
-void dv3d::GLTextureReference::Attach() const
-{
-	glBindTexture(_texTarget, _glTex);
-}
-
-void dv3d::GLTextureReference::Detatch() const
-{
-	glBindTexture(_texTarget, 0);
-}
-
 dv3d::TextureManager::TextureManager(resman::ResourceManager* resManager) : _textures(2048)
 {
 	assert(resManager != nullptr);
@@ -120,9 +76,8 @@ dv3d::GLTEXHANDLE dv3d::TextureManager::LoadDDS(std::vector<uint8_t>& data)
 	GLuint splashTextureId;
 	//	Generate a texture and grab it
 	auto handle = _textures.emplace(GL_TEXTURE_2D);
-	auto ref = Get(handle);
 	//	Attach
-	ref.Attach();
+	glBindTexture(GL_TEXTURE_2D, Get(handle));
 	size_t offset = 0;
 	for (auto i = 0U; i <= header.dwMipMapCount && (width && height); ++i)
 	{
@@ -148,7 +103,7 @@ dv3d::GLTEXHANDLE dv3d::TextureManager::LoadDDS(std::vector<uint8_t>& data)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	}
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	ref.Detatch();
+	glBindTexture(GL_TEXTURE_2D, 0);
 	return handle;
 }
 
@@ -158,12 +113,12 @@ dv3d::TextureManager::GLTexHandleAndReference dv3d::TextureManager::LoadAndGet(c
 	return GLTexHandleAndReference(handle, Get(handle));
 }
 
-dv3d::GLTextureReference dv3d::TextureManager::Get(const GLTEXHANDLE& handle) const
+GLuint dv3d::TextureManager::Get(const GLTEXHANDLE& handle) const
 {
 	if (_textures.contains(handle)) {
-		return GLTextureReference(_textures[handle]);
+		return _textures[handle];
 	}
-	return GLTextureReference(0);
+	return 0;
 }
 
 void dv3d::TextureManager::Unload(const GLTEXHANDLE& handle)
