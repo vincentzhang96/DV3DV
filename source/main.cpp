@@ -396,13 +396,13 @@ void _drawSplash()
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glUseProgram(shaderProgram);
 		glActiveTexture(GL_TEXTURE0);
-		splashTex.second.Attach();
+		glBindTexture(GL_TEXTURE_2D, splashTex.second);
 		glProgramUniform1i(shaderProgram, 2, 0);
 
 		glBindVertexArray(vao);
 		glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, (void*)0);
 		glBindVertexArray(0);
-		splashTex.second.Detatch();
+		glBindTexture(GL_TEXTURE_2D, 0);
 		glUseProgram(0);
 		oglContext->PostRender();
 
