@@ -22,6 +22,7 @@
 #include <handleapi.h>
 #include <mutex>
 #include <unordered_map>
+#include <stdio.h>
 
 #include "lib/GL/glew.h"
 #include "lib/GL/wglew.h"
@@ -34,6 +35,7 @@
 #define DV_CLASS_NAME L"DV3DV"
 
 #include "lib/zlib.h"
+#include "lib/jpeglib.h"
 
 #include "lib/packed_freelist.h"
 
