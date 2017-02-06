@@ -74,11 +74,11 @@ dv3d::GLTEXHANDLE dv3d::TextureManager::LoadDDS(std::vector<uint8_t>& data)
 	size_t width = header.dwWidth;
 	size_t height = header.dwHeight;
 	//	Generate a texture and grab it
-	GLuint handle;
-	glGenTextures(1, &handle);
-	_textures.insert(handle);
+	GLuint tex;
+	glGenTextures(1, &tex);
+	auto handle = _textures.insert(tex);
 	//	Attach
-	glBindTexture(GL_TEXTURE_2D, Get(handle));
+	glBindTexture(GL_TEXTURE_2D, tex);
 	size_t offset = 0;
 	for (auto i = 0U; i <= header.dwMipMapCount && (width && height); ++i)
 	{
@@ -105,6 +105,7 @@ dv3d::GLTEXHANDLE dv3d::TextureManager::LoadDDS(std::vector<uint8_t>& data)
 	}
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glBindTexture(GL_TEXTURE_2D, 0);
+	LOG(DEBUG) << "Loaded DDS texture with texhandle " << handle << " GLTEXID " << tex;
 	return handle;
 }
 
@@ -124,6 +125,14 @@ GLuint dv3d::TextureManager::Get(const GLTEXHANDLE& handle) const
 
 void dv3d::TextureManager::Unload(const GLTEXHANDLE& handle)
 {
-	auto tex = _textures[handle];
-	glDeleteTextures(1, &tex);
+	if (_textures.contains(handle)) {
+		auto tex = _textures[handle];
+		glDeleteTextures(1, &tex);
+		_textures.erase(handle);
+		LOG(DEBUG) << "Deleted texhandle " << handle << " GLTEXID " << tex;
+	}
+	else
+	{
+		LOG(WARNING) << "Attempted to unload a texture that doesn't exist or has already been unloaded: texhandle " << handle;
+	}
 }
