@@ -73,9 +73,10 @@ dv3d::GLTEXHANDLE dv3d::TextureManager::LoadDDS(std::vector<uint8_t>& data)
 	size_t blockSize = (glTexFormat == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT) ? 8 : 16;
 	size_t width = header.dwWidth;
 	size_t height = header.dwHeight;
-	GLuint splashTextureId;
 	//	Generate a texture and grab it
-	auto handle = _textures.emplace(GL_TEXTURE_2D);
+	GLuint handle;
+	glGenTextures(1, &handle);
+	_textures.insert(handle);
 	//	Attach
 	glBindTexture(GL_TEXTURE_2D, Get(handle));
 	size_t offset = 0;
@@ -123,5 +124,6 @@ GLuint dv3d::TextureManager::Get(const GLTEXHANDLE& handle) const
 
 void dv3d::TextureManager::Unload(const GLTEXHANDLE& handle)
 {
-	_textures.erase(handle);
+	auto tex = _textures[handle];
+	glDeleteTextures(1, &tex);
 }
