@@ -24,6 +24,15 @@ dv3d::GLTEXHANDLE dv3d::TextureManager::Load(const resman::ResourceRequest& requ
 		case MAGIC_DDS:
 			return LoadDDS(data._data);
 		default:
+			//	JPEG has a 2 byte header
+			uint16_t shortMagic = *reinterpret_cast<uint16_t*>(data->data());
+			switch (shortMagic)
+			{
+			case MAGIC_JPEG:
+				return LoadJPEG(data._data);
+			default:
+				break;
+			}
 			//	Unsupported
 			return INVALID_GLTEXHANDLE;
 		}
@@ -109,6 +118,54 @@ dv3d::GLTEXHANDLE dv3d::TextureManager::LoadDDS(std::vector<uint8_t>& data)
 	return handle;
 }
 
+dv3d::GLTEXHANDLE dv3d::TextureManager::LoadJPEG(std::vector<uint8_t>& data)
+{
+	jpeg_decompress_struct cinfo;
+	jpeg_error_mgr jerr;
+	cinfo.err = jpeg_std_error(&jerr);
+	jpeg_create_decompress(&cinfo);
+	jpeg::jpeg_mem_src(&cinfo, data.data(), data.size());
+	int rc = jpeg_read_header(&cinfo, true);
+	if (rc != 1)
+	{
+		LOG(WARNING) << "Corrupt or invalid JPEG";
+		return INVALID_GLTEXHANDLE;
+	}
+	jpeg_start_decompress(&cinfo);
+	int width = cinfo.output_width;
+	int height = cinfo.output_height;
+	int components = cinfo.output_components;
+	size_t bitmapSz = width * height * components;
+	std::unique_ptr<uint8_t[]> buf(new uint8_t[bitmapSz]);
+	int rowStride = width * components;
+	while (cinfo.output_scanline < height)
+	{
+		unsigned char* bufArray[1];
+		bufArray[0] = buf.get() + (cinfo.output_scanline) * rowStride;
+		jpeg_read_scanlines(&cinfo, bufArray, 1);
+	}
+	jpeg_finish_decompress(&cinfo);
+	jpeg_destroy_decompress(&cinfo);
+	GLuint tex;
+	glGenTextures(1, &tex);
+	auto handle = _textures.insert(tex);
+	//	Attach
+	glBindTexture(GL_TEXTURE_2D, tex);
+	GLenum type = GL_RGB;
+	if (components == 4)
+	{
+		type = GL_RGBA;
+	}
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, type, GL_UNSIGNED_BYTE, buf.get());
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	LOG(DEBUG) << "Loaded JPEG texture with texhandle " << handle << " GLTEXID " << tex;
+	return handle;
+}
+
 dv3d::TextureManager::GLTexHandleAndReference dv3d::TextureManager::LoadAndGet(const resman::ResourceRequest& request)
 {
 	GLTEXHANDLE handle = Load(request);
@@ -136,3 +193,52 @@ void dv3d::TextureManager::Unload(const GLTEXHANDLE& handle)
 		LOG(WARNING) << "Attempted to unload a texture that doesn't exist or has already been unloaded: texhandle " << handle;
 	}
 }
+
+void dv3d::jpeg::init_source(j_decompress_ptr cinfo)
+{
+	//	Empty
+}
+
+boolean dv3d::jpeg::fill_input_buffer(j_decompress_ptr cinfo)
+{
+	ERREXIT(cinfo, JERR_INPUT_EMPTY);
+	return true;
+}
+
+void dv3d::jpeg::skip_input_data(j_decompress_ptr cinfo, long num_bytes)
+{
+	jpeg_source_mgr* src = static_cast<jpeg_source_mgr*>(cinfo->src);
+	if (num_bytes > 0)
+	{
+		src->next_input_byte += static_cast<size_t>(num_bytes);
+		src->bytes_in_buffer -= static_cast<size_t>(num_bytes);
+	} 
+}
+
+void dv3d::jpeg::term_source(j_decompress_ptr cinfo)
+{
+	//	Empty
+}
+
+void dv3d::jpeg::jpeg_mem_src(j_decompress_ptr cinfo, void* buffer, long nbytes)
+{
+	jpeg_source_mgr* src;
+	if (cinfo->src == nullptr)
+	{
+		cinfo->src = static_cast<jpeg_source_mgr*>(
+			(*cinfo->mem->alloc_small)(reinterpret_cast<j_common_ptr>(cinfo), 
+				JPOOL_PERMANENT, 
+				sizeof(jpeg_source_mgr))
+		);
+	}
+	src = static_cast<jpeg_source_mgr*>(cinfo->src);
+	src->init_source = init_source;
+	src->fill_input_buffer = fill_input_buffer;
+	src->skip_input_data = skip_input_data;
+	src->resync_to_restart = jpeg_resync_to_restart;
+	src->term_source = term_source;
+	src->bytes_in_buffer = nbytes;
+	src->next_input_byte = static_cast<JOCTET*>(buffer);
+}
+
+

@@ -36,6 +36,7 @@
 
 #include "lib/zlib.h"
 #include "lib/jpeglib.h"
+#include "lib/jerror.h"
 
 #include "lib/packed_freelist.h"
 
