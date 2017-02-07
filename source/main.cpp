@@ -305,11 +305,9 @@ void _drawSplash()
 	auto splashFragShader = mResManager->GetResource(TPUID_SPLASH_FRAG_SHDR);
 	if (splashTex.first && splashVertShader && splashFragShader)
 	{
-		splashVertShader->push_back(0);
-		splashFragShader->push_back(0);
 		//	Shader
-		std::string vertShaderSrc(reinterpret_cast<char*>(splashVertShader->data()));
-		std::string fragShaderSrc(reinterpret_cast<char*>(splashFragShader->data()));
+		std::string vertShaderSrc(reinterpret_cast<char*>(splashVertShader->data()), splashVertShader->size());
+		std::string fragShaderSrc(reinterpret_cast<char*>(splashFragShader->data()), splashFragShader->size());
 		GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
 		const char* vertShaderCstr = vertShaderSrc.c_str();
 		glShaderSource(vertShader, 1, &vertShaderCstr , 0);
