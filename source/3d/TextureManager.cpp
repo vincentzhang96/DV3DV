@@ -1,7 +1,7 @@
 #include "../stdafx.h"
 #include "TextureManager.h"
 
-dv3d::TextureManager::TextureManager(resman::ResourceManager* resManager) : _textures(2048)
+dv3d::TextureManager::TextureManager(resman::ResourceManager* resManager) : _textures(TEXTURE_STORAGE_SIZE)
 {
 	assert(resManager != nullptr);
 	_resManager = resManager;
@@ -182,7 +182,8 @@ GLuint dv3d::TextureManager::Get(const GLTEXHANDLE& handle) const
 
 void dv3d::TextureManager::Unload(const GLTEXHANDLE& handle)
 {
-	if (_textures.contains(handle)) {
+	if (_textures.contains(handle)) 
+	{
 		auto tex = _textures[handle];
 		glDeleteTextures(1, &tex);
 		_textures.erase(handle);
@@ -192,6 +193,38 @@ void dv3d::TextureManager::Unload(const GLTEXHANDLE& handle)
 	{
 		LOG(WARNING) << "Attempted to unload a texture that doesn't exist or has already been unloaded: texhandle " << handle;
 	}
+}
+
+void dv3d::TextureManager::UnloadAllOf(const std::vector<GLTEXHANDLE>& handles)
+{
+	std::vector<GLuint> texs(handles.size());
+	for (auto handle : handles)
+	{
+		if (_textures.contains(handle))
+		{
+			texs.push_back(_textures[handle]);
+			_textures.erase(handle);
+		}
+		else
+		{
+			LOG(WARNING) << "Attempted to unload a texture that doesn't exist or has already been unloaded: texhandle " << handle;
+		}
+	}
+	glDeleteTextures(texs.size(), texs.data());
+	LOG(DEBUG) << "Deleted " << texs.size() << " textures";
+}
+
+void dv3d::TextureManager::UnloadAll()
+{
+	std::vector<GLuint> texs(_textures.size());
+	for (auto handle : _textures)
+	{
+		texs.push_back(_textures[handle]);
+	}
+	glDeleteTextures(texs.size(), texs.data());
+	LOG(DEBUG) << "Cleared all " << texs.size() << " textures";
+	(&_textures)->~packed_freelist();
+	new (&_textures) packed_freelist<GLuint>(TEXTURE_STORAGE_SIZE);
 }
 
 void dv3d::jpeg::init_source(j_decompress_ptr cinfo)

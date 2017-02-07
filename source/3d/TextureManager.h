@@ -10,6 +10,8 @@ namespace dv3d
 #define MAGIC_DDS 0x20534444
 #define MAGIC_JPEG 0xD8FF
 
+#define TEXTURE_STORAGE_SIZE 4096
+
 
 	class TextureManager
 	{
