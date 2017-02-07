@@ -7,6 +7,7 @@
 #include "ResourceManager.h"
 #include "3d/TextureManager.h"
 #include "3d/ShaderManager.h"
+#include "3d/TextRenderer.h"
 
 INITIALIZE_EASYLOGGINGPP
 INIT_PPAC_LOGGER
