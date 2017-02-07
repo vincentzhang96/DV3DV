@@ -93,9 +93,16 @@ bool OpenGLContext::CreateContext(HWND hWnd)
 		return false;
 	}
 	GLint attribs[] = {
-		WGL_CONTEXT_MAJOR_VERSION_ARB, _glMajorVer,
-		WGL_CONTEXT_MINOR_VERSION_ARB, _glMinorVer,
-		WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB | WGL_CONTEXT_DEBUG_BIT_ARB,
+		WGL_CONTEXT_MAJOR_VERSION_ARB,
+		_glMajorVer,
+		WGL_CONTEXT_MINOR_VERSION_ARB, 
+		_glMinorVer,
+		WGL_CONTEXT_FLAGS_ARB, 
+		WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB 
+#ifdef _DEBUG
+		| WGL_CONTEXT_DEBUG_BIT_ARB
+#endif
+		,
 		0
 	};
 	if (WGLEW_ARB_create_context)
@@ -110,7 +117,9 @@ bool OpenGLContext::CreateContext(HWND hWnd)
 		LOG(WARNING) << "Unable to upgrade OGL context, using reduced context";
 		_hRC = tempContext;
 	}
+#ifdef _DEBUG
 	glDebugMessageCallback(DebugClbk, nullptr);
+#endif
 	if (_glMinorVer >= 5 || GLEW_ARB_clip_control)
 	{
 		glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
