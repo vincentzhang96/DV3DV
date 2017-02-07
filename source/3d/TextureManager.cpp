@@ -9,6 +9,7 @@ dv3d::TextureManager::TextureManager(resman::ResourceManager* resManager) : _tex
 
 dv3d::TextureManager::~TextureManager()
 {
+	UnloadAll();
 }
 
 dv3d::GLTEXHANDLE dv3d::TextureManager::Load(const resman::ResourceRequest& request)

@@ -9,6 +9,7 @@ dv3d::ShaderManager::ShaderManager(resman::ResourceManager* resManager) : _progr
 
 dv3d::ShaderManager::~ShaderManager()
 {
+	UnloadAll();
 }
 
 dv3d::GLPROGHANDLE dv3d::ShaderManager::NewProgram()
