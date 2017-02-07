@@ -1,6 +1,11 @@
 #include "../stdafx.h"
 #include "ShaderManager.h"
 
+dv3d::PendingProgram::PendingProgram()
+{
+	success = true;
+}
+
 dv3d::ShaderManager::ShaderManager(resman::ResourceManager* resManager) : _programs(PROGRAM_STORAGE_SIZE)
 {
 	assert(resManager != nullptr);
@@ -21,14 +26,19 @@ dv3d::GLPROGHANDLE dv3d::ShaderManager::NewProgram()
 	}
 	GLPROGHANDLE ret = _programs.insert(program);
 	//	Add pending
-	auto pair = _pendingProgramShaders.emplace(ret, std::vector<GLuint>());
-	//	Clear if it already exists
-	pair.first->second.clear();
+	auto pair = _pendingProgramShaders.emplace(ret, PendingProgram());
+	//	Handles are unique so it can't have previously existed
 	return ret;
 }
 
-bool dv3d::ShaderManager::AttachAndCompileShader(GLPROGHANDLE handle, const resman::ResourceRequest& request)
+void dv3d::ShaderManager::AttachAndCompileShader(GLPROGHANDLE handle, const resman::ResourceRequest& request)
 {
+	if (!_programs.contains(handle))
+	{
+		LOG(WARNING) << "Nonexistant shader program for handle " << handle;
+		return;
+	}
+	auto pending = _pendingProgramShaders[handle];
 	if (request.type == resman::REQ_TPUID)
 	{
 		GLenum shdrType;
@@ -51,33 +61,32 @@ bool dv3d::ShaderManager::AttachAndCompileShader(GLPROGHANDLE handle, const resm
 			break;
 		default:
 			LOG(WARNING) << "Unknown shader type " << request.resTpuid.t;
-			return false;
+			pending.success = false;
+			return;
 		}
 		auto data = _resManager->GetResource(request);
 		if (!data._present)
 		{
 			LOG(WARNING) << "Unable to load data";
-			return false;
+			pending.success = false;
+			return;
 		}
 		auto shdrSrc = std::string(reinterpret_cast<char*>(data._data.data()), data._data.size());
-		return AttachAndCompileShader(handle, shdrType, shdrSrc);
+		AttachAndCompileShader(handle, shdrType, shdrSrc);
 	}
 	else
 	{
 		LOG(WARNING) << "Unsupported ResourceRequest for shader loading";
-		return false;
+		pending.success = false;
+		return;
 	}
 }
 
-bool dv3d::ShaderManager::AttachAndCompileShader(GLPROGHANDLE handle, GLenum type, std::string &shaderSrc)
+void dv3d::ShaderManager::AttachAndCompileShader(GLPROGHANDLE handle, GLenum type, std::string &shaderSrc)
 {
-	GLuint prog;
-	if (!_programs.contains(handle))
-	{
-		LOG(WARNING) << "Nonexistant shader program for handle " << handle;
-		return false;
-	}
-	prog = _programs[handle];
+	assert(_programs.contains(handle));
+	PendingProgramShaders::mapped_type pendingProgram = _pendingProgramShaders[handle];
+	GLuint prog = _programs[handle];
 	GLuint shdr = glCreateShader(type);
 	auto shdrCstr = shaderSrc.c_str();
 	glShaderSource(shdr, 1, &shdrCstr, nullptr);
@@ -89,19 +98,20 @@ bool dv3d::ShaderManager::AttachAndCompileShader(GLPROGHANDLE handle, GLenum typ
 		GLchar infoLog[512];
 		glGetShaderInfoLog(shdr, 512, nullptr, infoLog);
 		LOG(WARNING) << "Shader compilation failed: " << infoLog;
-		return false;
+		pendingProgram.success = false;
+		return;
 	}
 	glAttachShader(prog, shdr);
 	//	Add this shader to the list
-	_pendingProgramShaders[handle].push_back(shdr);
-	return true;
+	pendingProgram.pendingShaders.push_back(shdr);
+	return;
 }
 
 bool dv3d::ShaderManager::LinkAndFinishProgram(GLPROGHANDLE handle)
 {
 	auto prog = _programs[handle];
 	glLinkProgram(prog);
-	auto list = _pendingProgramShaders.at(handle);
+	auto list = _pendingProgramShaders.at(handle).pendingShaders;
 	//	Delete the shaders because we don't need them anymore after linking
 	for (auto shdr : list)
 	{
@@ -110,6 +120,7 @@ bool dv3d::ShaderManager::LinkAndFinishProgram(GLPROGHANDLE handle)
 	//	Don't need the list anymore
 	list.clear();
 	//	Remove from pending
+	bool pendingOk = _pendingProgramShaders.at(handle).success;
 	_pendingProgramShaders.erase(handle);
 	int success;
 	glGetProgramiv(prog, GL_LINK_STATUS, &success);
@@ -119,7 +130,8 @@ bool dv3d::ShaderManager::LinkAndFinishProgram(GLPROGHANDLE handle)
 		LOG(WARNING) << "Shader linking failed: " << infoLog;
 		return false;
 	}
-	return true;
+	LOG(DEBUG) << "Successfully linked shader program with proghandle " << handle << " GLPROGID " << prog;
+	return pendingOk;
 }
 
 GLuint dv3d::ShaderManager::Get(const GLPROGHANDLE& handle) const
@@ -137,11 +149,11 @@ void dv3d::ShaderManager::Unload(const GLPROGHANDLE& handle)
 		auto prog = _programs[handle];
 		glDeleteProgram(prog);
 		_programs.erase(handle);
-		LOG(DEBUG) << "Deleted texhandle " << handle << " GLTEXID " << prog;
+		LOG(DEBUG) << "Deleted proghandle " << handle << " GLPROGID " << prog;
 	}
 	else
 	{
-		LOG(WARNING) << "Attempted to unload a texture that doesn't exist or has already been unloaded: texhandle " << handle;
+		LOG(WARNING) << "Attempted to unload a shader program that doesn't exist or has already been unloaded: proghandle " << handle;
 	}
 }
 
@@ -155,8 +167,10 @@ void dv3d::ShaderManager::UnloadAllOf(const std::vector<GLPROGHANDLE>& handles)
 
 void dv3d::ShaderManager::UnloadAll()
 {
+	size_t len = _programs.size();
 	for (auto handle : _programs)
 	{
 		Unload(handle);
 	}
+	LOG(DEBUG) << "Cleared all " << len << " shader programs";
 }

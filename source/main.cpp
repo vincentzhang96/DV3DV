@@ -304,10 +304,9 @@ void _drawSplash()
 {
 	auto splashTex = dv3dmTexManager->LoadAndGet(TPUID_SPLASH);
 	auto hSplashShdr = dv3dmShaderManager->NewProgram();
-	bool shdrOk = true;
-	shdrOk &= dv3dmShaderManager->AttachAndCompileShader(hSplashShdr, TPUID_SPLASH_VERT_SHDR);
-	shdrOk &= dv3dmShaderManager->AttachAndCompileShader(hSplashShdr, TPUID_SPLASH_FRAG_SHDR);
-	shdrOk &= dv3dmShaderManager->LinkAndFinishProgram(hSplashShdr);
+	dv3dmShaderManager->AttachAndCompileShader(hSplashShdr, TPUID_SPLASH_VERT_SHDR);
+	dv3dmShaderManager->AttachAndCompileShader(hSplashShdr, TPUID_SPLASH_FRAG_SHDR);
+	bool shdrOk = dv3dmShaderManager->LinkAndFinishProgram(hSplashShdr);
 	if (splashTex.first && shdrOk)
 	{
 		//	Textured quad

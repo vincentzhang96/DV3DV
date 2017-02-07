@@ -9,10 +9,19 @@ namespace dv3d
 
 #define PROGRAM_STORAGE_SIZE 1024
 
+	class PendingProgram
+	{
+	public:
+		std::vector<GLuint> pendingShaders;
+		bool success;
+		PendingProgram();
+		~PendingProgram() = default;
+	};
+
 	class ShaderManager
 	{
 		typedef std::pair<GLPROGHANDLE, GLuint> GLProgHandleAndReference;
-		typedef std::unordered_map<GLPROGHANDLE, std::vector<GLuint>> PendingProgramShaders;
+		typedef std::unordered_map<GLPROGHANDLE, PendingProgram> PendingProgramShaders;
 	private:
 		packed_freelist<GLuint> _programs;
 		resman::ResourceManager* _resManager;
@@ -23,8 +32,8 @@ namespace dv3d
 		~ShaderManager();
 
 		GLPROGHANDLE NewProgram();
-		bool AttachAndCompileShader(GLPROGHANDLE handle, const resman::ResourceRequest &request);
-		bool AttachAndCompileShader(GLPROGHANDLE handle, GLenum type, std::string &shaderSrc);
+		void AttachAndCompileShader(GLPROGHANDLE handle, const resman::ResourceRequest &request);
+		void AttachAndCompileShader(GLPROGHANDLE handle, GLenum type, std::string &shaderSrc);
 		bool LinkAndFinishProgram(GLPROGHANDLE handle);
 		GLuint Get(const GLPROGHANDLE &handle) const;
 		void Unload(const GLPROGHANDLE &handle);
