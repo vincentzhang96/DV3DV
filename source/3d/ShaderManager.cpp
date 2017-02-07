@@ -117,7 +117,7 @@ bool dv3d::ShaderManager::LinkAndFinishProgram(GLPROGHANDLE handle)
 		GLchar infoLog[512];
 		glGetProgramInfoLog(prog, 512, nullptr, infoLog);
 		LOG(WARNING) << "Shader linking failed: " << infoLog;
-		return;
+		return false;
 	}
 	return true;
 }
