@@ -6,6 +6,7 @@
 #include "dn/pak/DnPak.h"
 #include "ResourceManager.h"
 #include "3d/TextureManager.h"
+#include "3d/ShaderManager.h"
 
 INITIALIZE_EASYLOGGINGPP
 INIT_PPAC_LOGGER
@@ -29,6 +30,7 @@ using json = nlohmann::json;
 std::unique_ptr<resman::ResourceManager> mResManager;
 
 std::unique_ptr<dv3d::TextureManager> dv3dmTexManager;
+std::unique_ptr<dv3d::ShaderManager> dv3dmShaderManager;
 
 #define TPUID_ICON ppac::TPUID(0x0205, 0x0000, 0x00000001)
 #define TPUID_SPLASH ppac::TPUID(0x0206, 0x0000, 0x00000001)
@@ -301,54 +303,13 @@ void _ParseCommandLineFlag(DV3DVConfig& config, LPWSTR* argv, int argc, int i)
 void _drawSplash()
 {
 	auto splashTex = dv3dmTexManager->LoadAndGet(TPUID_SPLASH);
-	auto splashVertShader = mResManager->GetResource(TPUID_SPLASH_VERT_SHDR);
-	auto splashFragShader = mResManager->GetResource(TPUID_SPLASH_FRAG_SHDR);
-	if (splashTex.first && splashVertShader && splashFragShader)
+	auto hSplashShdr = dv3dmShaderManager->NewProgram();
+	bool shdrOk = true;
+	shdrOk &= dv3dmShaderManager->AttachAndCompileShader(hSplashShdr, TPUID_SPLASH_VERT_SHDR);
+	shdrOk &= dv3dmShaderManager->AttachAndCompileShader(hSplashShdr, TPUID_SPLASH_FRAG_SHDR);
+	shdrOk &= dv3dmShaderManager->LinkAndFinishProgram(hSplashShdr);
+	if (splashTex.first && shdrOk)
 	{
-		//	Shader
-		std::string vertShaderSrc(reinterpret_cast<char*>(splashVertShader->data()), splashVertShader->size());
-		std::string fragShaderSrc(reinterpret_cast<char*>(splashFragShader->data()), splashFragShader->size());
-		GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
-		const char* vertShaderCstr = vertShaderSrc.c_str();
-		glShaderSource(vertShader, 1, &vertShaderCstr , 0);
-		glCompileShader(vertShader);
-
-		GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
-		const char* fragShaderCstr = fragShaderSrc.c_str();
-		glShaderSource(fragShader, 1, &fragShaderCstr, 0);
-		glCompileShader(fragShader);
-
-		GLint success;
-		glGetShaderiv(vertShader, GL_COMPILE_STATUS, &success);
-		if (!success)
-		{
-			GLchar infoLog[512];
-			glGetShaderInfoLog(vertShader, 512, NULL, infoLog);
-			LOG(WARNING) << "Vertex shader compilation failed: " << infoLog;
-			return;
-		}
-		glGetShaderiv(fragShader, GL_COMPILE_STATUS, &success);
-		if (!success)
-		{
-			GLchar infoLog[512];
-			glGetShaderInfoLog(fragShader, 512, NULL, infoLog);
-			LOG(WARNING) << "Fragment shader compilation failed: " << infoLog;
-			return;
-		}
-		GLuint shaderProgram = glCreateProgram();
-		glAttachShader(shaderProgram, vertShader);
-		glAttachShader(shaderProgram, fragShader);
-		glLinkProgram(shaderProgram);
-		glDeleteShader(vertShader);
-		glDeleteShader(fragShader);
-		glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-		if (!success) {
-			GLchar infoLog[512];
-			glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-			LOG(WARNING) << "Shader linking failed: " << infoLog;
-			return;
-		}
-
 		//	Textured quad
 		GLfloat quadHalfSizeX = 512.0F;
 		GLfloat quadHalfSizeY = 512.0F;
@@ -362,8 +323,6 @@ void _drawSplash()
 			quadHalfSizeX, quadHalfSizeY, 0.0F, 1.0F, 1.0F,
 			-quadHalfSizeX, quadHalfSizeY, 0.0F, 0.0F, 1.0F
 		};
-
-
 		GLuint indx[] = {
 			0, 1, 2, 3
 		};
@@ -392,10 +351,11 @@ void _drawSplash()
 		oglContext->PreRender();
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUseProgram(shaderProgram);
+		auto prog = dv3dmShaderManager->Get(hSplashShdr);
+		glUseProgram(prog);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, splashTex.second);
-		glProgramUniform1i(shaderProgram, 2, 0);
+		glProgramUniform1i(prog, 2, 0);
 
 		glBindVertexArray(vao);
 		glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, (void*)0);
@@ -407,7 +367,7 @@ void _drawSplash()
 		glDeleteVertexArrays(1, &vao);
 		glDeleteBuffers(2, vbo);
 		dv3dmTexManager->Unload(splashTex.first);
-		glDeleteProgram(shaderProgram);
+		dv3dmShaderManager->Unload(hSplashShdr);
 	}
 	else
 	{
@@ -467,6 +427,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	//	Init asset manager
 	mResManager = std::make_unique<resman::ResourceManager>();
 	dv3dmTexManager = std::make_unique<dv3d::TextureManager>(mResManager.get());
+	dv3dmShaderManager = std::make_unique<dv3d::ShaderManager>(mResManager.get());
 	//	Load init
 	mResManager->_ppacManager.LoadPPAC(L"init.ppac");
 	//	Create the window
@@ -492,6 +453,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	KillOGLWindow();
 	//	Shut down managers
 	dv3dmTexManager.reset();
+	dv3dmShaderManager.reset();
 	mResManager.reset();
 
 	LOG(INFO) << "Shutdown complete";
