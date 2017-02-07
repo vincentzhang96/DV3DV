@@ -31,7 +31,7 @@ dv3d::GLPROGHANDLE dv3d::ShaderManager::NewProgram()
 	return ret;
 }
 
-void dv3d::ShaderManager::AttachAndCompileShader(GLPROGHANDLE handle, const resman::ResourceRequest& request)
+void dv3d::ShaderManager::AttachAndCompileShader(const GLPROGHANDLE &handle, const resman::ResourceRequest& request)
 {
 	if (!_programs.contains(handle))
 	{
@@ -82,7 +82,7 @@ void dv3d::ShaderManager::AttachAndCompileShader(GLPROGHANDLE handle, const resm
 	}
 }
 
-void dv3d::ShaderManager::AttachAndCompileShader(GLPROGHANDLE handle, GLenum type, std::string &shaderSrc)
+void dv3d::ShaderManager::AttachAndCompileShader(const GLPROGHANDLE &handle, GLenum type, std::string &shaderSrc)
 {
 	assert(_programs.contains(handle));
 	PendingProgramShaders::mapped_type pendingProgram = _pendingProgramShaders[handle];
@@ -107,7 +107,7 @@ void dv3d::ShaderManager::AttachAndCompileShader(GLPROGHANDLE handle, GLenum typ
 	return;
 }
 
-bool dv3d::ShaderManager::LinkAndFinishProgram(GLPROGHANDLE handle)
+bool dv3d::ShaderManager::LinkAndFinishProgram(const GLPROGHANDLE &handle)
 {
 	auto prog = _programs[handle];
 	glLinkProgram(prog);

@@ -32,9 +32,9 @@ namespace dv3d
 		~ShaderManager();
 
 		GLPROGHANDLE NewProgram();
-		void AttachAndCompileShader(GLPROGHANDLE handle, const resman::ResourceRequest &request);
-		void AttachAndCompileShader(GLPROGHANDLE handle, GLenum type, std::string &shaderSrc);
-		bool LinkAndFinishProgram(GLPROGHANDLE handle);
+		void AttachAndCompileShader(const GLPROGHANDLE &handle, const resman::ResourceRequest &request);
+		void AttachAndCompileShader(const GLPROGHANDLE &handle, GLenum type, std::string &shaderSrc);
+		bool LinkAndFinishProgram(const GLPROGHANDLE &handle);
 		GLuint Get(const GLPROGHANDLE &handle) const;
 		void Unload(const GLPROGHANDLE &handle);
 		void UnloadAllOf(const std::vector<GLPROGHANDLE> &handles);
