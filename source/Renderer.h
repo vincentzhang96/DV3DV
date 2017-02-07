@@ -5,6 +5,14 @@
 class Renderer
 {
 private:
+	int _fboWidth;
+	int _fboHeight;
+	int _winWidth;
+	int _winHeight;
+	float _supersamplingScale;
+
+	GLuint finalOutputFbo;
+
 
 public:
 	Renderer();
