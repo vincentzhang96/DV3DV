@@ -21,7 +21,7 @@ dv3d::GLPROGHANDLE dv3d::ShaderManager::NewProgram()
 	}
 	GLPROGHANDLE ret = _programs.insert(program);
 	//	Add pending
-	auto pair = _pendingProgramShaders.emplace(std::make_pair(ret, std::vector<GLuint>()));
+	auto pair = _pendingProgramShaders.emplace(ret, std::vector<GLuint>());
 	//	Clear if it already exists
 	pair.first->second.clear();
 	return ret;
@@ -93,7 +93,7 @@ bool dv3d::ShaderManager::AttachAndCompileShader(GLPROGHANDLE handle, GLenum typ
 	}
 	glAttachShader(prog, shdr);
 	//	Add this shader to the list
-	_pendingProgramShaders[prog].push_back(prog);
+	_pendingProgramShaders[handle].push_back(shdr);
 	return true;
 }
 
@@ -101,7 +101,7 @@ bool dv3d::ShaderManager::LinkAndFinishProgram(GLPROGHANDLE handle)
 {
 	auto prog = _programs[handle];
 	glLinkProgram(prog);
-	auto list = _pendingProgramShaders[prog];
+	auto list = _pendingProgramShaders.at(handle);
 	//	Delete the shaders because we don't need them anymore after linking
 	for (auto shdr : list)
 	{
@@ -110,7 +110,7 @@ bool dv3d::ShaderManager::LinkAndFinishProgram(GLPROGHANDLE handle)
 	//	Don't need the list anymore
 	list.clear();
 	//	Remove from pending
-	_pendingProgramShaders.erase(prog);
+	_pendingProgramShaders.erase(handle);
 	int success;
 	glGetProgramiv(prog, GL_LINK_STATUS, &success);
 	if (!success) {
