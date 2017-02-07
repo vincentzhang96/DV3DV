@@ -1,1 +1,2 @@
-OUTPUT=out/core.ppac
+OUTPUT=../target/data/core.ppac
+
