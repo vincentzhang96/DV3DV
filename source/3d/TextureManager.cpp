@@ -133,9 +133,9 @@ dv3d::GLTEXHANDLE dv3d::TextureManager::LoadJPEG(std::vector<uint8_t>& data)
 		return INVALID_GLTEXHANDLE;
 	}
 	jpeg_start_decompress(&cinfo);
-	int width = cinfo.output_width;
-	int height = cinfo.output_height;
-	int components = cinfo.output_components;
+	unsigned int width = cinfo.output_width;
+	unsigned int height = cinfo.output_height;
+	unsigned int components = cinfo.output_components;
 	size_t bitmapSz = width * height * components;
 	std::unique_ptr<uint8_t[]> buf(new uint8_t[bitmapSz]);
 	int rowStride = width * components;
