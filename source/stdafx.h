@@ -42,6 +42,9 @@
 
 #include "lib/glm/glm.hpp"
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 //	DDS stuff
 #pragma pack(push, def, 4)
 typedef struct {
