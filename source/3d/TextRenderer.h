@@ -1,5 +1,6 @@
 #pragma once
 #include "../ResourceManager.h"
+#include "ShaderManager.h"
 
 namespace dv3d
 {
@@ -82,12 +83,15 @@ namespace dv3d
 	{
 		packed_freelist<std::unique_ptr<FontEntry>> _fonts;
 		resman::ResourceManager* _resManager;
+		ShaderManager* _shdrManager;
 		FT_Library ft;
 
 		void InitFont(FontEntry &entry, FONTSIZE fontSize, FONTWEIGHT weight);
+		void CreateAsciiAtlas(FontEntry &fontEntry, FontWeightSizeEntry &entry, FONTSIZE fontSize, FONTWEIGHT weight);
 		void LoadGlyph(FontEntry &fontEntry, FontWeightSizeEntry &entry, FONTSIZE fontSize, FONTWEIGHT weight, uint32_t codepoint);
+		static bool IsGlyphLoaded(FontEntry &fontEntry, FONTSIZE fontSize, FONTWEIGHT weight, uint32_t codepoint);
 	public:
-		explicit TextRenderer(resman::ResourceManager* resMan);
+		explicit TextRenderer(resman::ResourceManager* resMan, ShaderManager* shdrManager);
 		~TextRenderer();
 
 		FONTHANDLE LoadFont(const resman::ResourceRequest &request);
