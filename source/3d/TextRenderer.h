@@ -3,6 +3,7 @@
 
 namespace dv3d
 {
+#define INVALID_FONTHANDLE 0
 
 	typedef uint32_t FONTHANDLE;
 	typedef uint32_t STATICTEXTHANDLE;
@@ -11,17 +12,21 @@ namespace dv3d
 
 	struct Character;
 	struct FontEntry;
-	struct FontSizeEntry;
-	struct FontSizeWeightEntry;
+	struct FontWeightEntry;
+	struct FontWeightSizeEntry;
 
-	struct FontSizeEntry
+	struct FontWeightEntry
 	{
-		std::unordered_map<FONTWEIGHT, FontSizeWeightEntry> weights;
+		std::unordered_map<FONTWEIGHT, FontWeightSizeEntry> sizes;
+		FontWeightEntry();
 	};
 
 	struct FontEntry
 	{
-		std::unordered_map<FONTSIZE, FontSizeEntry> sizes;
+		std::unordered_map<FONTSIZE, FontWeightEntry> weights;
+		FT_Face zeroFace;
+		std::vector<uint8_t> fontData;
+		FontEntry();
 	};
 
 	struct StaticText
@@ -61,22 +66,28 @@ namespace dv3d
 			///	The texture for this character (extended)
 			GLuint extTexture;
 		};
+
+		Character();
 	};
 
-	struct FontSizeWeightEntry
+	struct FontWeightSizeEntry
 	{
 		GLuint asciiAtlasTex;
 		Character asciiChars[128];
 		std::unordered_map<uint32_t, Character> extChars;
+		FontWeightSizeEntry();
 	};
 
 	class TextRenderer
 	{
-		packed_freelist<FontEntry> _fonts;
-		resman::ResourceManager* _resMan;
+		packed_freelist<std::unique_ptr<FontEntry>> _fonts;
+		resman::ResourceManager* _resManager;
 		FT_Library ft;
+
+		void InitFont(FontEntry &entry, FONTSIZE fontSize, FONTWEIGHT weight);
+		void LoadGlyph(FontEntry &fontEntry, FontWeightSizeEntry &entry, FONTSIZE fontSize, FONTWEIGHT weight, uint32_t codepoint);
 	public:
-		TextRenderer(resman::ResourceManager* resMan);
+		explicit TextRenderer(resman::ResourceManager* resMan);
 		~TextRenderer();
 
 		FONTHANDLE LoadFont(const resman::ResourceRequest &request);
