@@ -1,2 +1,20 @@
 OUTPUT=../target/data/core.ppac
 
+# Font Shaders
+0x0107,0x0001,0x00000001=core/font/shader/text2d.vert.glsl
+0x0108,0x0001,0x00000001=core/font/shader/text2d.frag.glsl
+#0x0107,0x0001,0x00000002=core/font/shader/text3d.vert.glsl
+#0x0108,0x0001,0x00000002=core/font/shader/text3d.frag.glsl
+
+# Lato font files
+0x0500,0x0001,0x00000100=core/font/ttf/lato/Lato-Regular.ttf
+0x0500,0x0001,0x00000101=core/font/ttf/lato/Lato-Light.ttf
+0x0500,0x0001,0x00000102=core/font/ttf/lato/Lato-Thin.ttf
+0x0500,0x0001,0x00000103=core/font/ttf/lato/Lato-Hairline.ttf
+0x0500,0x0001,0x00000104=core/font/ttf/lato/Lato-Medium.ttf
+0x0500,0x0001,0x00000105=core/font/ttf/lato/Lato-Semibold.ttf
+0x0500,0x0001,0x00000106=core/font/ttf/lato/Lato-Bold.ttf
+0x0500,0x0001,0x00000107=core/font/ttf/lato/Lato-Heavy.ttf
+0x0500,0x0001,0x00000108=core/font/ttf/lato/Lato-Black.ttf
+
+
