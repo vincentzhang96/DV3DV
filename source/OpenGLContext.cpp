@@ -129,6 +129,7 @@ bool OpenGLContext::CreateContext(HWND hWnd)
 		LOG(ERROR) << "glClipControl not supported";
 		return false;
 	}
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	return true;
 }
 
