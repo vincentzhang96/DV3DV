@@ -17,4 +17,11 @@ OUTPUT=../runtime/data/core.ppac
 0x0500,0x0001,0x00000107=core/font/ttf/lato/Lato-Heavy.ttf
 0x0500,0x0001,0x00000108=core/font/ttf/lato/Lato-Black.ttf
 
+# Geomanist font files
+0x0501,0x0001,0x00000200=core/font/otf/geomanist/Geomanist-Regular_0.otf
 
+# Nanum (Korean) font
+0x0500,0x0001,0x00000300=core/font/ttf/nanum/nanum_semibold.ttf
+
+# Jun Pro (Japanese) font
+0x0501,0x0001,0x00000400=core/font/otf/Jun Pro/a-otf jun pro 34.otf
