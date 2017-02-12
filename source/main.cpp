@@ -33,6 +33,10 @@ std::unique_ptr<resman::ResourceManager> mResManager;
 std::unique_ptr<dv3d::TextureManager> dv3dmTexManager;
 std::unique_ptr<dv3d::ShaderManager> dv3dmShaderManager;
 
+//	TODO TEMP
+std::unique_ptr<dv3d::TextRenderer> dv3drTextRenderer;
+dv3d::FONTHANDLE hFont;
+
 #define TPUID_ICON ppac::TPUID(0x0205, 0x0000, 0x00000001)
 #define TPUID_SPLASH ppac::TPUID(0x0206, 0x0000, 0x00000001)
 #define TPUID_SPLASH_VERT_SHDR ppac::TPUID(0x0107, 0x0000, 0x00000001)
@@ -71,6 +75,8 @@ void OnWindowResize(int newWidth, int newHeight)
 	LOG(TRACE) << "Window resized to " << newWidth << "x" << newHeight;
 
 	//	TODO resetup stuff
+	//	TODO TEMP
+	dv3drTextRenderer->UpdateScreenSize(newWidth, newHeight);
 }
 
 void OnKeyDown(int keyCode)
@@ -127,6 +133,10 @@ inline bool _DoMainLoop()
 		//	Inner loop
 		oglContext->PreRender();
 		//	TODO Render stuff
+
+		
+
+
 
 		oglContext->PostRender();
 		//	TODO Clock this
@@ -428,6 +438,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	mResManager = std::make_unique<resman::ResourceManager>();
 	dv3dmTexManager = std::make_unique<dv3d::TextureManager>(mResManager.get());
 	dv3dmShaderManager = std::make_unique<dv3d::ShaderManager>(mResManager.get());
+	//	TODO TEMPORARY
+	dv3drTextRenderer = std::make_unique<dv3d::TextRenderer>(mResManager.get(), dv3dmShaderManager.get());
 	//	Load init
 	mResManager->_ppacManager.LoadPPAC(L"init.ppac");
 	//	Create the window
@@ -438,8 +450,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	}
 	//	Render splash screen
 	_drawSplash();
-
-	Sleep(10000);
+	//	Load data directory
+	mResManager->_ppacManager.LoadDir(L"data");
+	hFont = dv3drTextRenderer->LoadFont(ppac::TPUID(0x0500, 0x0001, 0x00000100));
 
 	//	Prep for main loop
 	auto exitLoop = false;
@@ -452,6 +465,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	//	Destroy window
 	KillOGLWindow();
 	//	Shut down managers
+	//	TODO TEMP
+	dv3drTextRenderer.reset();
 	dv3dmTexManager.reset();
 	dv3dmShaderManager.reset();
 	mResManager.reset();

@@ -81,6 +81,9 @@ namespace dv3d
 		resman::ResourceManager* _resManager;
 		ShaderManager* _shdrManager;
 		FT_Library ft;
+		int screenWidth;
+		int screenHeight;
+		glm::fmat4 orthoMatrix;
 
 		void InitFont(FontEntry &entry, FONTSIZE fontSize);
 		void CreateAsciiAtlas(FontEntry &fontEntry, FontSizeEntry &entry, FONTSIZE fontSize);
@@ -92,6 +95,7 @@ namespace dv3d
 
 		FONTHANDLE LoadFont(const resman::ResourceRequest &request);
 		STATICTEXTHANDLE CreateStaticText(FONTHANDLE handle, const std::string &text, FONTSIZE fontSize);
+		void UpdateScreenSize(int width, int height);
 		void DrawStaticText2D(STATICTEXTHANDLE hStaticText, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF, TEXTALIGNMENT alignment = TXTA_LEFT);
 		void DrawStaticText3D(STATICTEXTHANDLE hStaticText, glm::fmat4x4 projectionModelViewMatrix, uint32_t color = 0xFFFFFFFF, TEXTALIGNMENT alignment = TXTA_LEFT);
 		void DrawDynamicText2D(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF);

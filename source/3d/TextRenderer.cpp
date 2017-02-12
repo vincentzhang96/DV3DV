@@ -85,10 +85,10 @@ bool dv3d::TextRenderer::IsGlyphLoaded(FontEntry& fontEntry, FONTSIZE fontSize, 
 	auto itSize = fontEntry.sizes.find(fontSize);
 	if (itSize != fontEntry.sizes.end())
 	{
-		if (codepoint < 256)
-		{
-			return true;
-		}
+//		if (codepoint < 256)
+//		{
+//			return true;
+//		}
 		auto fntSzEntry = itSize->second;
 		auto itPt = fntSzEntry.extChars.find(codepoint);
 		return itPt != fntSzEntry.extChars.end();
@@ -135,6 +135,23 @@ dv3d::FONTHANDLE dv3d::TextRenderer::LoadFont(const resman::ResourceRequest& req
 		return INVALID_FONTHANDLE;
 	}
 	return hFont;
+}
+
+void dv3d::TextRenderer::UpdateScreenSize(int width, int height)
+{
+	screenWidth = width;
+	screenHeight = height;
+	projView = glm::ortho(0.0F, float(screenWidth), 0.0F, float(screenHeight)) *  glm::lookAt(glm::vec3(0, 0, 10), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+}
+
+void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z, uint32_t color)
+{
+	DrawDynamicText2D(hFont, text, fontSize, projView * glm::translate(glm::mat4(1.0F), glm::vec3(x, y, z)), color);
+}
+
+void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, glm::fmat4x4 projectionModelViewMatrix, uint32_t color)
+{
+
 }
 
 
