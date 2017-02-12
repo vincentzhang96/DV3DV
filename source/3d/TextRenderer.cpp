@@ -196,20 +196,18 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 	auto fontSz = font->sizes[fontSize];
 	//	Optimize for the common case, single byte UTF8 means we don't need to expand to UTF32 and can also take advantage of the ASCII texture atlas.
 	bool hasMultibyte = hasMultiByteUTF8(text);
-	
 	GLfloat red = GLfloat((color >> 16) & 0xFF) / 255.0F;
 	GLfloat green = GLfloat((color >> 8) & 0xFF) / 255.0F;
 	GLfloat blue = GLfloat(color & 0xFF) / 255.0F;
 	GLfloat alpha = GLfloat((color >> 24) & 0xFF) / 255.0F;
-
+	glUseProgram(_shdrManager->Get(h2dTextShader));
+	glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(projView));
+	glActiveTexture(GL_TEXTURE0);
+	glBindVertexArray(quadVertexArray);
 
 	if (!hasMultibyte)
 	{
-		//	TODO right now naive solution
-		glUseProgram(_shdrManager->Get(h2dTextShader));
-		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(projView));
-		glActiveTexture(GL_TEXTURE0);
-		glBindVertexArray(quadVertexArray);
+		//	TODO right now naive solution, everything is ext
 		std::string::const_iterator c;
 		for (c = text.begin(); c != text.end(); ++c)
 		{
@@ -237,10 +235,57 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 			x += (ch.pxAdvance >> 6);
 		}
-		glBindVertexArray(0);
-		glUseProgram(0);
-		glBindTexture(GL_TEXTURE_2D, 0);
 	}
+	else
+	{
+		std::vector<uint32_t> asUtf32;
+		const char* cstr = text.c_str();
+		size_t len = strlen(cstr);
+		std::unique_ptr<char*> buf = std::make_unique<char*>(new char[len + 1]);
+		auto bufPtr = *buf.get();
+		std::copy_n(cstr, len + 1, bufPtr);
+		utf8::unchecked::utf8to32(bufPtr, bufPtr + len, std::back_inserter(asUtf32));
+		buf.reset();
+		for (auto codepoint : asUtf32)
+		{
+			Character ch;
+			auto it = fontSz.extChars.find(codepoint);
+			if (it == fontSz.extChars.end())
+			{
+				LoadExtGlyph(font, &font->sizes.at(fontSize), fontSize, codepoint);
+				ch = fontSz.extChars[codepoint];
+			}
+			else
+			{
+				ch = it->second;
+			}
+			if (ch.pxDimensions.x == 0 || ch.extTexture == 0)
+			{
+				x += (ch.pxAdvance >> 6);
+				continue;
+			}
+			GLfloat xPos = x + ch.pxBearing.x;
+			GLfloat yPos = y - (ch.pxDimensions.y - ch.pxBearing.y);
+			GLfloat w = ch.pxDimensions.x;
+			GLfloat h = ch.pxDimensions.y;
+			GLfloat verts[4][3 + 4 + 2] = {
+				{ xPos, yPos , z, red, green, blue, alpha, 0.0F, 0.0F },
+				{ xPos, yPos + h, z, red, green, blue, alpha, 0.0F, 1.0F },
+				{ xPos + w, yPos + h, z, red, green, blue, alpha, 1.0F, 1.0F },
+				{ xPos + w, yPos, z, red, green, blue, alpha, 1.0F, 0.0F }
+			};
+			glBindTexture(GL_TEXTURE_2D, ch.extTexture);
+			glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
+			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+			x += (ch.pxAdvance >> 6);
+		}
+
+	}
+	glBindVertexArray(0);
+	glUseProgram(0);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 
