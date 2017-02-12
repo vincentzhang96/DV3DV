@@ -40,7 +40,8 @@
 
 #include "lib/packed_freelist.h"
 
-#include "lib/glm/glm.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
