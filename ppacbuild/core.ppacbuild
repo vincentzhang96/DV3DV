@@ -1,4 +1,4 @@
-OUTPUT=../target/data/core.ppac
+OUTPUT=../runtime/data/core.ppac
 
 # Font Shaders
 0x0107,0x0001,0x00000001=core/font/shader/text2d.vert.glsl
