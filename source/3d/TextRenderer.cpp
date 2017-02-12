@@ -8,7 +8,6 @@ dv3d::FontEntry::FontEntry() : sizes()
 
 dv3d::FontEntry::~FontEntry()
 {
-	FT_Done_Face(face);
 }
 
 dv3d::Character::Character()
@@ -22,30 +21,33 @@ dv3d::FontSizeEntry::FontSizeEntry() : extChars()
 
 dv3d::FontSizeEntry::~FontSizeEntry()
 {
-	FT_Done_Size(ftSize);
 }
 
-void dv3d::TextRenderer::InitFont(FontEntry& entry, FONTSIZE fontSize)
+void dv3d::TextRenderer::InitFont(FontEntry* entry, FONTSIZE fontSize)
 {
-	if (entry.sizes.find(fontSize) == entry.sizes.end())
+	if (entry->sizes.find(fontSize) == entry->sizes.end())
 	{
-		auto emp = entry.sizes.emplace(fontSize, FontSizeEntry());
+		auto emp = entry->sizes.emplace(fontSize, FontSizeEntry());
 		auto szEntry = &emp.first->second;
-		FT_New_Size(entry.face, &szEntry->ftSize);
+		FT_New_Size(entry->face, &szEntry->ftSize);
 		FT_Activate_Size(szEntry->ftSize);
-		FT_Set_Pixel_Sizes(entry.face, 0, fontSize);
-		CreateAsciiAtlas(entry, *szEntry, fontSize);
+		FT_Set_Pixel_Sizes(entry->face, 0, fontSize);
+		CreateAsciiAtlas(entry, szEntry, fontSize);
 	}
 }
 
-void dv3d::TextRenderer::CreateAsciiAtlas(FontEntry& fontEntry, FontSizeEntry& entry, FONTSIZE fontSize)
+void dv3d::TextRenderer::CreateAsciiAtlas(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize)
 {
-
+	//	TODO Naive
+	for (uint32_t i = 0; i < 128; ++i)
+	{
+		LoadExtGlyph(fontEntry, entry, fontSize, i);
+	}
 }
 
-void dv3d::TextRenderer::LoadExtGlyph(FontEntry& fontEntry, FontSizeEntry& entry, FONTSIZE fontSize, uint32_t codepoint)
+void dv3d::TextRenderer::LoadExtGlyph(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize, uint32_t codepoint)
 {
-	auto face = fontEntry.face;
+	auto face = fontEntry->face;
 	if (FT_Load_Char(face, codepoint, FT_LOAD_RENDER))
 	{
 		LOG(WARNING) << "Failed to load glyph for codepoint " << codepoint;
@@ -77,21 +79,33 @@ void dv3d::TextRenderer::LoadExtGlyph(FontEntry& fontEntry, FontSizeEntry& entry
 	character.pxBearing.x = face->glyph->bitmap_left;
 	character.pxBearing.y = face->glyph->bitmap_top;
 	character.pxAdvance = face->glyph->advance.x;
-	entry.extChars.insert(std::pair<uint32_t, Character>(codepoint, character));
+	entry->extChars.insert(std::pair<uint32_t, Character>(codepoint, character));
 }
 
-bool dv3d::TextRenderer::IsGlyphLoaded(FontEntry& fontEntry, FONTSIZE fontSize, uint32_t codepoint)
+bool dv3d::TextRenderer::IsGlyphLoaded(FontEntry* fontEntry, FONTSIZE fontSize, uint32_t codepoint)
 {
-	auto itSize = fontEntry.sizes.find(fontSize);
-	if (itSize != fontEntry.sizes.end())
+	auto itSize = fontEntry->sizes.find(fontSize);
+	if (itSize != fontEntry->sizes.end())
 	{
-//		if (codepoint < 256)
+//		if (codepoint < 128)
 //		{
 //			return true;
 //		}
 		auto fntSzEntry = itSize->second;
 		auto itPt = fntSzEntry.extChars.find(codepoint);
 		return itPt != fntSzEntry.extChars.end();
+	}
+	return false;
+}
+
+bool dv3d::TextRenderer::hasMultiByteUTF8(const std::string& text)
+{
+	for (auto c : text)
+	{
+		if (c & 0x80)
+		{
+			return true;
+		}
 	}
 	return false;
 }
@@ -110,6 +124,37 @@ dv3d::TextRenderer::TextRenderer(resman::ResourceManager* resMan, ShaderManager*
 dv3d::TextRenderer::~TextRenderer()
 {
 	FT_Done_FreeType(ft);
+}
+
+void dv3d::TextRenderer::PostRendererInit()
+{
+	//	Set up VAOs
+	glGenVertexArrays(1, &quadVertexArray);
+	glGenBuffers(1, &quadVertexBuffer);
+	glBindVertexArray(quadVertexArray);
+	glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
+	//	Vertex format is POS(X, Y, Z) COLOR(R, G, B, A) TEXCOORD(U, V)
+	size_t stride = 3 + 4 + 2;
+	size_t strideSz = sizeof(GLfloat) * stride;
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 4 * stride, nullptr, GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, strideSz, nullptr);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, strideSz, reinterpret_cast<void*>(sizeof(float) * 3));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, strideSz, reinterpret_cast<void*>(sizeof(float) * (3 + 4)));
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	//	Load shaders
+	h2dTextShader = _shdrManager->NewProgram();
+	_shdrManager->AttachAndCompileShader(h2dTextShader, ppac::TPUID(0x0107, 0x0001, 0x00000001));
+	_shdrManager->AttachAndCompileShader(h2dTextShader, ppac::TPUID(0x0108, 0x0001, 0x00000001));
+	if (!_shdrManager->LinkAndFinishProgram(h2dTextShader))
+	{
+
+		LOG(WARNING) << "Shader compilation failed";
+	}
 }
 
 dv3d::FONTHANDLE dv3d::TextRenderer::LoadFont(const resman::ResourceRequest& request)
@@ -141,17 +186,61 @@ void dv3d::TextRenderer::UpdateScreenSize(int width, int height)
 {
 	screenWidth = width;
 	screenHeight = height;
-	projView = glm::ortho(0.0F, float(screenWidth), 0.0F, float(screenHeight)) *  glm::lookAt(glm::vec3(0, 0, 10), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+	projView = glm::ortho(0.0F, float(screenWidth), 0.0F, float(screenHeight));
 }
 
-void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z, uint32_t color)
+void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z, uint32_t color, TEXTALIGNMENT alignment)
 {
-	DrawDynamicText2D(hFont, text, fontSize, projView * glm::translate(glm::mat4(1.0F), glm::vec3(x, y, z)), color);
-}
+	auto font = _fonts[hFont].get();
+	InitFont(font, fontSize);
+	auto fontSz = font->sizes[fontSize];
+	//	Optimize for the common case, single byte UTF8 means we don't need to expand to UTF32 and can also take advantage of the ASCII texture atlas.
+	bool hasMultibyte = hasMultiByteUTF8(text);
+	
+	GLfloat red = GLfloat((color >> 16) & 0xFF) / 255.0F;
+	GLfloat green = GLfloat((color >> 8) & 0xFF) / 255.0F;
+	GLfloat blue = GLfloat(color & 0xFF) / 255.0F;
+	GLfloat alpha = GLfloat((color >> 24) & 0xFF) / 255.0F;
 
-void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, glm::fmat4x4 projectionModelViewMatrix, uint32_t color)
-{
 
+	if (!hasMultibyte)
+	{
+		//	TODO right now naive solution
+		glUseProgram(_shdrManager->Get(h2dTextShader));
+		glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(projView));
+		glActiveTexture(GL_TEXTURE0);
+		glBindVertexArray(quadVertexArray);
+		std::string::const_iterator c;
+		for (c = text.begin(); c != text.end(); ++c)
+		{
+			Character ch = fontSz.extChars[uint32_t(*c) & 0xFFu];
+			if (ch.pxDimensions.x == 0 || ch.extTexture == 0)
+			{
+				x += (ch.pxAdvance >> 6);
+				continue;
+			}
+
+			GLfloat xPos = x + ch.pxBearing.x;
+			GLfloat yPos = y - (ch.pxDimensions.y - ch.pxBearing.y);
+			GLfloat w = ch.pxDimensions.x;
+			GLfloat h = ch.pxDimensions.y;
+			GLfloat verts[4][3 + 4 + 2] = {
+				{xPos, yPos , z, red, green, blue, alpha, 0.0F, 0.0F},
+				{xPos, yPos + h, z, red, green, blue, alpha, 0.0F, 1.0F},
+				{xPos + w, yPos + h, z, red, green, blue, alpha, 1.0F, 1.0F},
+				{xPos + w, yPos, z, red, green, blue, alpha, 1.0F, 0.0F}
+			};
+			glBindTexture(GL_TEXTURE_2D, ch.extTexture);
+			glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
+			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+			x += (ch.pxAdvance >> 6);
+		}
+		glBindVertexArray(0);
+		glUseProgram(0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
 }
 
 

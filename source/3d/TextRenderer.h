@@ -68,7 +68,7 @@ namespace dv3d
 	struct FontSizeEntry
 	{
 		GLuint asciiAtlasTex;
-		Character asciiChars[256];
+		Character asciiChars[128];
 		std::unordered_map<uint32_t, Character> extChars;
 		FT_Size ftSize;
 		FontSizeEntry();
@@ -83,23 +83,27 @@ namespace dv3d
 		FT_Library ft;
 		int screenWidth;
 		int screenHeight;
-		glm::fmat4 orthoMatrix;
+		glm::fmat4 projView;
+		GLuint quadVertexArray = 0;
+		GLuint quadVertexBuffer = 0;
+		GLPROGHANDLE h2dTextShader = 0;
 
-		void InitFont(FontEntry &entry, FONTSIZE fontSize);
-		void CreateAsciiAtlas(FontEntry &fontEntry, FontSizeEntry &entry, FONTSIZE fontSize);
-		void LoadExtGlyph(FontEntry &fontEntry, FontSizeEntry &entry, FONTSIZE fontSize, uint32_t codepoint);
-		static bool IsGlyphLoaded(FontEntry &fontEntry, FONTSIZE fontSize, uint32_t codepoint);
+
+		void InitFont(FontEntry* entry, FONTSIZE fontSize);
+		void CreateAsciiAtlas(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize);
+		void LoadExtGlyph(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize, uint32_t codepoint);
+		static bool IsGlyphLoaded(FontEntry* fontEntry, FONTSIZE fontSize, uint32_t codepoint);
+
+		static bool hasMultiByteUTF8(const std::string &text);
 	public:
 		explicit TextRenderer(resman::ResourceManager* resMan, ShaderManager* shdrManager);
 		~TextRenderer();
-
+		void PostRendererInit();
 		FONTHANDLE LoadFont(const resman::ResourceRequest &request);
 		STATICTEXTHANDLE CreateStaticText(FONTHANDLE handle, const std::string &text, FONTSIZE fontSize);
 		void UpdateScreenSize(int width, int height);
 		void DrawStaticText2D(STATICTEXTHANDLE hStaticText, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF, TEXTALIGNMENT alignment = TXTA_LEFT);
-		void DrawStaticText3D(STATICTEXTHANDLE hStaticText, glm::fmat4x4 projectionModelViewMatrix, uint32_t color = 0xFFFFFFFF, TEXTALIGNMENT alignment = TXTA_LEFT);
-		void DrawDynamicText2D(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF);
-		void DrawDynamicText2D(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, glm::fmat4x4 projectionModelViewMatrix, uint32_t color = 0xFFFFFFFF);
+		void DrawDynamicText2D(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF, TEXTALIGNMENT alignment = TXTA_LEFT);
 		size_t GetStaticTextWidth(STATICTEXTHANDLE hStaticText);
 		size_t GetDynamicTextWidth(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize);
 		void ReleaseStaticText(STATICTEXTHANDLE hStaticText);
