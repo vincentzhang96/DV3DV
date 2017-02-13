@@ -108,6 +108,10 @@ void dv3d::TextRenderer::CreateAsciiAtlas(FontEntry* fontEntry, FontSizeEntry* e
 		int rowNum = codepoint / 12;
 		int colNum = codepoint % 12;
 		Character* ch = &entry->asciiChars[codepoint];
+		if (ch->pxDimensions.x == 0)
+		{
+			continue;
+		}
 		if (FT_Load_Char(face, codepoint, FT_LOAD_RENDER))
 		{
 			LOG(WARNING) << "Failed to load glyph bitmap for codepoint " << codepoint;
