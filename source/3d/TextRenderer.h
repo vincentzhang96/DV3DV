@@ -79,16 +79,21 @@ namespace dv3d
 		~FontSizeEntry();
 	};
 
+
+#define TEXTOPTION_ALIGNMENT 1
+#define TEXTOPTION_TRACKING 2
+
 	struct TextOptions
 	{
 		uint8_t flags = 0;
 		TEXTALIGNMENT alignment = TXTA_LEFT;
 		int tracking = 0;
-		float verticalScale = 1.0F;
-		float horizontalScale = 1.0F;
 
-		TextOptions(int ignored);
+		TextOptions(int f);
 	};
+
+	TextOptions textOptionAlignment(TEXTALIGNMENT align);
+	TextOptions textOptionTracking(int tracking);
 
 	class TextRenderer
 	{

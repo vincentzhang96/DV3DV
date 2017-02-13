@@ -23,8 +23,23 @@ dv3d::FontSizeEntry::~FontSizeEntry()
 {
 }
 
-dv3d::TextOptions::TextOptions(int ignored)
+dv3d::TextOptions::TextOptions(int f)
 {
+	flags = f;
+}
+
+dv3d::TextOptions dv3d::textOptionAlignment(TEXTALIGNMENT align)
+{
+	TextOptions options(TEXTOPTION_ALIGNMENT);
+	options.alignment = align;
+	return options;
+}
+
+dv3d::TextOptions dv3d::textOptionTracking(int tracking)
+{
+	TextOptions options(TEXTOPTION_TRACKING);
+	options.tracking = tracking;
+	return options;
 }
 
 void dv3d::TextRenderer::InitFont(FontEntry* entry, FONTSIZE fontSize)
@@ -285,6 +300,12 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 	glActiveTexture(GL_TEXTURE0);
 	glBindVertexArray(quadVertexArray);
 
+	GLfloat tracking = 0;
+	if (options.flags & TEXTOPTION_TRACKING)
+	{
+		tracking = (options.tracking / 1000.0F) * fontSize;
+	}
+
 	if (!hasMultibyte)
 	{
 		//	Text consists only of the first 128 characters (0-127)
@@ -335,7 +356,7 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-			x += (ch.pxAdvance >> 6);
+			x += (ch.pxAdvance >> 6) + tracking;
 		}
 	}
 	else
@@ -370,7 +391,7 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 			}
 			if (ch.pxDimensions.x == 0)
 			{
-				x += (ch.pxAdvance >> 6);
+				x += (ch.pxAdvance >> 6) + tracking;
 				continue;
 			}
 			GLfloat xPos = x + ch.pxBearing.x;
@@ -427,7 +448,7 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 			}
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-			x += (ch.pxAdvance >> 6);
+			x += (ch.pxAdvance >> 6) + tracking;
 		}
 
 	}
