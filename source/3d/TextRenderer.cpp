@@ -23,6 +23,10 @@ dv3d::FontSizeEntry::~FontSizeEntry()
 {
 }
 
+dv3d::TextOptions::TextOptions(int ignored)
+{
+}
+
 void dv3d::TextRenderer::InitFont(FontEntry* entry, FONTSIZE fontSize)
 {
 	if (entry->sizes.find(fontSize) == entry->sizes.end())
@@ -38,7 +42,80 @@ void dv3d::TextRenderer::InitFont(FontEntry* entry, FONTSIZE fontSize)
 
 void dv3d::TextRenderer::CreateAsciiAtlas(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize)
 {
-	//	TODO Naive
+	glGenTextures(1, &entry->asciiAtlasTex);
+	glBindTexture(GL_TEXTURE_2D, entry->asciiAtlasTex);
+	//	Get the metrics for all characters first
+	glm::ivec2 maxSize(0, 0);
+	auto face = fontEntry->face;
+	for (uint32_t i = 0; i < 128; ++i)
+	{
+		Character* character = &entry->asciiChars[i];
+		if (FT_Load_Char(face, i, FT_LOAD_RENDER))
+		{
+			LOG(WARNING) << "Failed to load glyph metrics for codepoint " << i;
+			continue;
+		}
+		character->pxDimensions.x = face->glyph->bitmap.width;
+		character->pxDimensions.y = face->glyph->bitmap.rows;
+		if (character->pxDimensions.x > maxSize.x)
+		{
+			maxSize.x = character->pxDimensions.x;
+		}
+		if (character->pxDimensions.y > maxSize.y)
+		{
+			maxSize.y = character->pxDimensions.y;
+		}
+		character->pxBearing.x = face->glyph->bitmap_left;
+		character->pxBearing.y = face->glyph->bitmap_top;
+		character->pxAdvance = face->glyph->advance.x;
+	}
+	//	Calculate the number of columns we need, based on the area required and the max width encountered
+	//	We should aim to hit 12 glyphs per row, so
+	int minReqForTwelve = maxSize.x * 12;
+	entry->asciiAtlasTexSize = minReqForTwelve;
+	//	Alloc texture atlas
+	std::vector<uint8_t> empty(minReqForTwelve * minReqForTwelve, 0);
+	glTexImage2D(GL_TEXTURE_2D,
+		0,
+		GL_RED,
+		minReqForTwelve,
+		minReqForTwelve,
+		0,
+		GL_RED,
+		GL_UNSIGNED_BYTE,
+		empty.data()
+	);
+	//	Start shoving in glyphs
+	//	TODO For now we're just shoving in 12 glyphs per row, but later on we can optimize packing
+	for (uint32_t codepoint = 0; codepoint < 128; ++codepoint)
+	{
+		int rowNum = codepoint / 12;
+		int colNum = codepoint % 12;
+		Character* ch = &entry->asciiChars[codepoint];
+		if (FT_Load_Char(face, codepoint, FT_LOAD_RENDER))
+		{
+			LOG(WARNING) << "Failed to load glyph bitmap for codepoint " << codepoint;
+			continue;
+		}
+		glTexSubImage2D(GL_TEXTURE_2D,
+			0,
+			colNum * maxSize.x,
+			rowNum * fontSize,
+			ch->pxDimensions.x,
+			ch->pxDimensions.y,
+			GL_RED,
+			GL_UNSIGNED_BYTE,
+			face->glyph->bitmap.buffer
+		);
+		ch->asciiUVAtlasStart.x = float(colNum * maxSize.x) / entry->asciiAtlasTexSize;
+		ch->asciiUVAtlasStart.y = 1.0 - float(rowNum * fontSize) / entry->asciiAtlasTexSize;
+	}
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);
+//	//	TODO Naive
 	for (uint32_t i = 0; i < 128; ++i)
 	{
 		LoadExtGlyph(fontEntry, entry, fontSize, i);
@@ -148,12 +225,12 @@ void dv3d::TextRenderer::PostRendererInit()
 
 	//	Load shaders
 	h2dTextShader = _shdrManager->NewProgram();
-	_shdrManager->AttachAndCompileShader(h2dTextShader, ppac::TPUID(0x0107, 0x0001, 0x00000001));
-	_shdrManager->AttachAndCompileShader(h2dTextShader, ppac::TPUID(0x0108, 0x0001, 0x00000001));
+	_shdrManager->AttachAndCompileShader(h2dTextShader, SHDR_2D_TEXT_VERT);
+	_shdrManager->AttachAndCompileShader(h2dTextShader, SHDR_2D_TEXT_FRAG);
 	if (!_shdrManager->LinkAndFinishProgram(h2dTextShader))
 	{
-
-		LOG(WARNING) << "Shader compilation failed";
+		LOG(WARNING) << "2D text shader compilation failed";
+		throw "Shader compilation failed";
 	}
 }
 
@@ -189,8 +266,11 @@ void dv3d::TextRenderer::UpdateScreenSize(int width, int height)
 	projView = glm::ortho(0.0F, float(screenWidth), 0.0F, float(screenHeight));
 }
 
-void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z, uint32_t color, TEXTALIGNMENT alignment)
+void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z, uint32_t color, TextOptions options)
 {
+	//	Invert y coordinate system so our origin is top-left
+	//y = - y + fontSize;
+
 	auto font = _fonts[hFont].get();
 	InitFont(font, fontSize);
 	auto fontSz = font->sizes[fontSize];
@@ -207,28 +287,50 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 
 	if (!hasMultibyte)
 	{
-		//	TODO right now naive solution, everything is ext
+		//	Text consists only of the first 128 characters (0-127)
+		//	Use ASCII texture atlas
 		std::string::const_iterator c;
+		glBindTexture(GL_TEXTURE_2D, fontSz.asciiAtlasTex);
 		for (c = text.begin(); c != text.end(); ++c)
 		{
-			Character ch = fontSz.extChars[uint32_t(*c) & 0xFFu];
-			if (ch.pxDimensions.x == 0 || ch.extTexture == 0)
+			Character ch = fontSz.asciiChars[uint32_t(*c) & 0xFFu];
+			if (ch.pxDimensions.x == 0)
 			{
 				x += (ch.pxAdvance >> 6);
 				continue;
 			}
-
 			GLfloat xPos = x + ch.pxBearing.x;
 			GLfloat yPos = y - (ch.pxDimensions.y - ch.pxBearing.y);
 			GLfloat w = ch.pxDimensions.x;
 			GLfloat h = ch.pxDimensions.y;
+			GLfloat uStart = ch.asciiUVAtlasStart.x;
+			GLfloat vEnd = ch.asciiUVAtlasStart.y;
+			GLfloat uSz = w / float(fontSz.asciiAtlasTexSize);
+			GLfloat vSz = h / float(fontSz.asciiAtlasTexSize);
+			GLfloat uEnd = uStart + uSz;
+			GLfloat vStart = vEnd - vSz;
 			GLfloat verts[4][3 + 4 + 2] = {
-				{xPos, yPos , z, red, green, blue, alpha, 0.0F, 0.0F},
-				{xPos, yPos + h, z, red, green, blue, alpha, 0.0F, 1.0F},
-				{xPos + w, yPos + h, z, red, green, blue, alpha, 1.0F, 1.0F},
-				{xPos + w, yPos, z, red, green, blue, alpha, 1.0F, 0.0F}
+				{
+					xPos, yPos , z, 
+					red, green, blue, alpha, 
+					uStart, vStart
+				},
+				{
+					xPos, yPos + h, z, 
+					red, green, blue, alpha, 
+					uStart, vEnd
+				},
+				{
+					xPos + w, yPos + h, z, 
+					red, green, blue, alpha, 
+					uEnd, vEnd
+				},
+				{
+					xPos + w, yPos, z, 
+					red, green, blue, alpha, 
+					uEnd, vStart 
+				}
 			};
-			glBindTexture(GL_TEXTURE_2D, ch.extTexture);
 			glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
 			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -249,17 +351,24 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 		for (auto codepoint : asUtf32)
 		{
 			Character ch;
-			auto it = fontSz.extChars.find(codepoint);
-			if (it == fontSz.extChars.end())
+			if (codepoint < 128)
 			{
-				LoadExtGlyph(font, &font->sizes.at(fontSize), fontSize, codepoint);
-				ch = fontSz.extChars[codepoint];
+				ch = fontSz.asciiChars[codepoint];
 			}
 			else
 			{
-				ch = it->second;
+				auto it = fontSz.extChars.find(codepoint);
+				if (it == fontSz.extChars.end())
+				{
+					LoadExtGlyph(font, &font->sizes.at(fontSize), fontSize, codepoint);
+					ch = fontSz.extChars[codepoint];
+				}
+				else
+				{
+					ch = it->second;
+				}
 			}
-			if (ch.pxDimensions.x == 0 || ch.extTexture == 0)
+			if (ch.pxDimensions.x == 0)
 			{
 				x += (ch.pxAdvance >> 6);
 				continue;
@@ -268,15 +377,54 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 			GLfloat yPos = y - (ch.pxDimensions.y - ch.pxBearing.y);
 			GLfloat w = ch.pxDimensions.x;
 			GLfloat h = ch.pxDimensions.y;
-			GLfloat verts[4][3 + 4 + 2] = {
-				{ xPos, yPos , z, red, green, blue, alpha, 0.0F, 0.0F },
-				{ xPos, yPos + h, z, red, green, blue, alpha, 0.0F, 1.0F },
-				{ xPos + w, yPos + h, z, red, green, blue, alpha, 1.0F, 1.0F },
-				{ xPos + w, yPos, z, red, green, blue, alpha, 1.0F, 0.0F }
-			};
-			glBindTexture(GL_TEXTURE_2D, ch.extTexture);
-			glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
-			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+			if (codepoint < 128)
+			{
+				//	Handle ASCII atlasmap characters
+				GLfloat uStart = ch.asciiUVAtlasStart.x;
+				GLfloat vEnd = ch.asciiUVAtlasStart.y;
+				GLfloat uSz = w / float(fontSz.asciiAtlasTexSize);
+				GLfloat vSz = h / float(fontSz.asciiAtlasTexSize);
+				GLfloat uEnd = uStart + uSz;
+				GLfloat vStart = vEnd - vSz;
+				GLfloat verts[4][3 + 4 + 2] = {
+					{
+						xPos, yPos , z,
+						red, green, blue, alpha,
+						uStart, vStart
+					},
+					{
+						xPos, yPos + h, z,
+						red, green, blue, alpha,
+						uStart, vEnd
+					},
+					{
+						xPos + w, yPos + h, z,
+						red, green, blue, alpha,
+						uEnd, vEnd
+					},
+					{
+						xPos + w, yPos, z,
+						red, green, blue, alpha,
+						uEnd, vStart
+					}
+				};
+				glBindTexture(GL_TEXTURE_2D, fontSz.asciiAtlasTex);
+				glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+			}
+			else
+			{
+				//	Handle ext characters
+				GLfloat verts[4][3 + 4 + 2] = {
+					{ xPos, yPos , z, red, green, blue, alpha, 0.0F, 0.0F },
+					{ xPos, yPos + h, z, red, green, blue, alpha, 0.0F, 1.0F },
+					{ xPos + w, yPos + h, z, red, green, blue, alpha, 1.0F, 1.0F },
+					{ xPos + w, yPos, z, red, green, blue, alpha, 1.0F, 0.0F }
+				};
+				glBindTexture(GL_TEXTURE_2D, ch.extTexture);
+				glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+			}
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 			x += (ch.pxAdvance >> 6);

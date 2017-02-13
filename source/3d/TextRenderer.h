@@ -6,6 +6,9 @@ namespace dv3d
 {
 #define INVALID_FONTHANDLE 0
 
+#define SHDR_2D_TEXT_VERT ppac::TPUID(0x0107, 0x0001, 0x00000001)
+#define SHDR_2D_TEXT_FRAG ppac::TPUID(0x0108, 0x0001, 0x00000001)
+
 	typedef uint32_t FONTHANDLE;
 	typedef uint32_t STATICTEXTHANDLE;
 	typedef uint8_t FONTSIZE;
@@ -68,11 +71,23 @@ namespace dv3d
 	struct FontSizeEntry
 	{
 		GLuint asciiAtlasTex;
+		GLuint asciiAtlasTexSize;
 		Character asciiChars[128];
 		std::unordered_map<uint32_t, Character> extChars;
 		FT_Size ftSize;
 		FontSizeEntry();
 		~FontSizeEntry();
+	};
+
+	struct TextOptions
+	{
+		uint8_t flags = 0;
+		TEXTALIGNMENT alignment = TXTA_LEFT;
+		int tracking = 0;
+		float verticalScale = 1.0F;
+		float horizontalScale = 1.0F;
+
+		TextOptions(int ignored);
 	};
 
 	class TextRenderer
@@ -100,12 +115,12 @@ namespace dv3d
 		~TextRenderer();
 		void PostRendererInit();
 		FONTHANDLE LoadFont(const resman::ResourceRequest &request);
-		STATICTEXTHANDLE CreateStaticText(FONTHANDLE handle, const std::string &text, FONTSIZE fontSize);
+		STATICTEXTHANDLE CreateStaticText(FONTHANDLE handle, const std::string &text, FONTSIZE fontSize, TextOptions options = 0);
 		void UpdateScreenSize(int width, int height);
-		void DrawStaticText2D(STATICTEXTHANDLE hStaticText, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF, TEXTALIGNMENT alignment = TXTA_LEFT);
-		void DrawDynamicText2D(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF, TEXTALIGNMENT alignment = TXTA_LEFT);
+		void DrawStaticText2D(STATICTEXTHANDLE hStaticText, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF);
+		void DrawDynamicText2D(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF, TextOptions options = 0);
 		size_t GetStaticTextWidth(STATICTEXTHANDLE hStaticText);
-		size_t GetDynamicTextWidth(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize);
+		size_t GetDynamicTextWidth(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, TextOptions options = 0);
 		void ReleaseStaticText(STATICTEXTHANDLE hStaticText);
 		void UnloadFont(FONTHANDLE hFont);
 	};
