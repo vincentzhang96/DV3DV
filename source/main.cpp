@@ -136,23 +136,24 @@ inline bool _DoMainLoop()
 		//	Inner loop
 		oglContext->PreRender();
 		//	TODO Render stuff
-		dv3drTextRenderer->DrawDynamicText2D(hFontGeo, "Font: Geomanist", 24, 500, 600, 0, 0xFF98BCD4);
-		dv3drTextRenderer->DrawDynamicText2D(hFontGeo, "DIVINITOR FONT RENDERER TEST", 12, 500, 580);
-		dv3drTextRenderer->DrawDynamicText2D(hFontGeo, "divinitor font renderer test", 12, 500, 560);
+		dv3drTextRenderer->DrawDynamicText2D(hFontGeo, "Font: Geomanist", 24, 200, 600, 0, 0xFF98BCD4);
+		dv3drTextRenderer->DrawDynamicText2D(hFontGeo, "DIVINITOR FONT RENDERER TEST", 12, 200, 580, 0, 0xFF3B6E96);
+		dv3drTextRenderer->DrawDynamicText2D(hFontGeo, "divinitor font renderer test", 12, 200, 560, 0, 0xFFA6AEB3);
 
-		dv3drTextRenderer->DrawDynamicText2D(hFont, "Font: Lato", 24, 500, 500, 0, 0xFF98BCD4);
-		dv3drTextRenderer->DrawDynamicText2D(hFont, "DIVINITOR FONT RENDERER TEST", 12, 500, 480);
-		dv3drTextRenderer->DrawDynamicText2D(hFont, "divinitor font renderer test", 12, 500, 460);
-		dv3drTextRenderer->DrawDynamicText2D(hFont, u8"DIVINITOR FONT R\u0204ND\u0204R\u0204R T\u0204ST", 18, 500, 440);
+		dv3drTextRenderer->DrawDynamicText2D(hFont, "Font: Lato", 24, 200, 500, 0, 0xFF98BCD4);
+		dv3drTextRenderer->DrawDynamicText2D(hFont, "DIVINITOR FONT RENDERER TEST", 12, 200, 480, 0, 0xFF3B6E96);
+		dv3drTextRenderer->DrawDynamicText2D(hFont, "divinitor font renderer test", 12, 200, 460, 0, 0xFFA6AEB3);
+		dv3drTextRenderer->DrawDynamicText2D(hFont, u8"divinitor DIVINITOR FONT R\u0204ND\u0204R\u0204R T\u0204ST", 18, 200, 440, 0, 0xFFA6AEB3);
+		dv3drTextRenderer->DrawDynamicText2D(hFont, u8"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\u0204", 18, 200, 420, 0, 0xFFA6AEB3);
 
-		dv3drTextRenderer->DrawDynamicText2D(hFontKR, "Font: Nanum (KR)", 24, 500, 400, 0, 0xFF98BCD4);
-		dv3drTextRenderer->DrawDynamicText2D(hFontKR, "DIVINITOR FONT RENDERER TEST", 12, 500, 380);
-		dv3drTextRenderer->DrawDynamicText2D(hFontKR, u8"Divinitor \uAE00\uAF34 \uB80C\uB354\uB7EC \uD14C\uC2A4\uD2B8", 18, 500, 360);
+		dv3drTextRenderer->DrawDynamicText2D(hFontKR, "Font: Nanum (KR)", 24, 200, 400, 0, 0xFF98BCD4);
+		dv3drTextRenderer->DrawDynamicText2D(hFontKR, "DIVINITOR FONT RENDERER TEST", 12, 200, 380, 0, 0xFF3B6E96);
+		dv3drTextRenderer->DrawDynamicText2D(hFontKR, u8"divinitor DIVINITOR \uAE00\uAF34 \uB80C\uB354\uB7EC \uD14C\uC2A4\uD2B8", 18, 200, 360, 0, 0xFFA6AEB3);
 
-		dv3drTextRenderer->DrawDynamicText2D(hFontJP, "Font: Jun Pro (JP)", 24, 500, 300, 0, 0xFF98BCD4);
+		dv3drTextRenderer->DrawDynamicText2D(hFontJP, "Font: Jun Pro (JP)", 24, 200, 300, 0, 0xFF98BCD4);
 		dv3drTextRenderer->DrawDynamicText2D(hFontJP,
-			u8"\u65E5\u672C\u8A9E\u304C\u5927\u597D\u304D\u3060\uFF01\u30B3\u30FC\u30D2\u30FC\u304C\u8FFD\u3044\u3057\u3067\u3059\u3002",
-			14, 500, 280);
+			u8"divinitor DIVINITOR\u65E5\u672C\u8A9E\u304C\u5927\u597D\u304D\u3060\uFF01\u30B3\u30FC\u30D2\u30FC\u304C\u8FFD\u3044\u3057\u3067\u3059\u3002",
+			14, 200, 280, 0, 0xFF3B6E96);
 
 		oglContext->PostRender();
 		//	TODO Clock this
