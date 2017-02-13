@@ -46,6 +46,7 @@ void dv3d::TextRenderer::InitFont(FontEntry* entry, FONTSIZE fontSize)
 {
 	if (entry->sizes.find(fontSize) == entry->sizes.end())
 	{
+		LOG(DEBUG) << "Init font " << entry->face->style_name << " sz " << unsigned int(fontSize);
 		auto emp = entry->sizes.emplace(fontSize, FontSizeEntry());
 		auto szEntry = &emp.first->second;
 		FT_New_Size(entry->face, &szEntry->ftSize);
@@ -179,10 +180,10 @@ bool dv3d::TextRenderer::IsGlyphLoaded(FontEntry* fontEntry, FONTSIZE fontSize, 
 	auto itSize = fontEntry->sizes.find(fontSize);
 	if (itSize != fontEntry->sizes.end())
 	{
-//		if (codepoint < 128)
-//		{
-//			return true;
-//		}
+		if (codepoint < 128)
+		{
+			return true;
+		}
 		auto fntSzEntry = itSize->second;
 		auto itPt = fntSzEntry.extChars.find(codepoint);
 		return itPt != fntSzEntry.extChars.end();
@@ -283,9 +284,6 @@ void dv3d::TextRenderer::UpdateScreenSize(int width, int height)
 
 void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z, uint32_t color, TextOptions options)
 {
-	//	Invert y coordinate system so our origin is top-left
-	//y = - y + fontSize;
-
 	auto font = _fonts[hFont].get();
 	InitFont(font, fontSize);
 	auto fontSz = font->sizes[fontSize];
@@ -362,13 +360,12 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 	else
 	{
 		std::vector<uint32_t> asUtf32;
-		const char* cstr = text.c_str();
-		size_t len = strlen(cstr);
+		size_t len = text.length();
 		std::unique_ptr<char*> buf = std::make_unique<char*>(new char[len + 1]);
 		auto bufPtr = *buf.get();
-		std::copy_n(cstr, len + 1, bufPtr);
+		std::copy_n(text.data(), len + 1, bufPtr);
 		utf8::unchecked::utf8to32(bufPtr, bufPtr + len, std::back_inserter(asUtf32));
-		buf.reset();
+		buf.release();
 		for (auto codepoint : asUtf32)
 		{
 			Character ch;
