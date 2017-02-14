@@ -135,8 +135,8 @@ namespace dv3d
 		void UpdateScreenSize(int width, int height);
 		void DrawStaticText2D(STATICTEXTHANDLE hStaticText, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF);
 		void DrawDynamicText2D(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF, TextOptions options = 0);
-		size_t GetStaticTextWidth(STATICTEXTHANDLE hStaticText);
-		size_t GetDynamicTextWidth(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, TextOptions options = 0);
+		GLfloat GetStaticTextWidth(STATICTEXTHANDLE hStaticText);
+		GLfloat GetDynamicTextWidth(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, TextOptions options = 0);
 		void ReleaseStaticText(STATICTEXTHANDLE hStaticText);
 		void UnloadFont(FONTHANDLE hFont);
 	};

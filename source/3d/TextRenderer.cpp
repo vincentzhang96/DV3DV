@@ -499,6 +499,65 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+GLfloat dv3d::TextRenderer::GetDynamicTextWidth(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, TextOptions options)
+{
+	double x = 0;
+	auto font = _fonts[hFont].get();
+	InitFont(font, fontSize);
+	auto fontSz = font->sizes[fontSize];
+	GLfloat tracking = 0;
+	if (options.flags & TEXTOPTION_TRACKING)
+	{
+		tracking = (options.tracking / 1000.0F) * fontSize;
+	}
+
+	//	Optimize for the common case, single byte UTF8 means we don't need to expand to UTF32 and can also take advantage of the ASCII texture atlas.
+	bool hasMultibyte = hasMultiByteUTF8(text);
+	if (!hasMultibyte)
+	{
+		//	Text consists only of the first 128 characters (0-127)
+		//	Use ASCII texture atlas
+		std::string::const_iterator c;
+		for (c = text.begin(); c != text.end(); ++c)
+		{
+			Character ch = fontSz.asciiChars[uint32_t(*c) & 0xFFu];
+			x += (ch.pxAdvance >> 6) + tracking;
+		}
+	}
+	else
+	{
+		//	For this part we will batch ASCII calls in one pass
+		//	and ext chars in another pass. The ext chars will be batched individually as well
+		std::vector<uint32_t> asUtf32;
+		size_t len = text.length();
+		utf8::unchecked::utf8to32(text.data(), text.data() + len, std::back_inserter(asUtf32));
+		for (auto codepoint : asUtf32)
+		{
+			Character ch;
+			bool isExt = codepoint > 0x7F;
+			if (!isExt)
+			{
+				ch = fontSz.asciiChars[codepoint];
+			}
+			else
+			{
+				auto it = fontSz.extChars.find(codepoint);
+				if (it != fontSz.extChars.end())
+				{
+					ch = it->second;
+				}
+				else
+				{
+					LoadExtGlyph(font, &font->sizes.at(fontSize), fontSize, codepoint);
+					ch = fontSz.extChars[codepoint];
+				}
+			}
+			x += (ch.pxAdvance >> 6) + tracking;
+		}
+	}
+	return x;
+}
+
 
 
 
