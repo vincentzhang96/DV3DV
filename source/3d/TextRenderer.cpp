@@ -23,6 +23,11 @@ dv3d::FontSizeEntry::~FontSizeEntry()
 {
 }
 
+dv3d::TextOptions::TextOptions()
+{
+	flags = 0;
+}
+
 dv3d::TextOptions::TextOptions(int f)
 {
 	flags = f;
@@ -253,7 +258,7 @@ void dv3d::TextRenderer::RenderASCIICharacterBuffer(std::vector<GLfloat>* vertex
 	glDrawElements(GL_TRIANGLES, indices->size(), GL_UNSIGNED_SHORT, nullptr);
 }
 
-dv3d::TextRenderer::TextRenderer(resman::ResourceManager* resMan, ShaderManager* shdrManager) : _fonts(16)
+dv3d::TextRenderer::TextRenderer(resman::ResourceManager* resMan, ShaderManager* shdrManager) : _fonts(64), _staticText(8192)
 {
 	_resManager = resMan;
 	_shdrManager = shdrManager;
@@ -346,11 +351,117 @@ dv3d::FONTHANDLE dv3d::TextRenderer::LoadFont(const resman::ResourceRequest& req
 	return hFont;
 }
 
+dv3d::STATICTEXTHANDLE dv3d::TextRenderer::CreateStaticText(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, TextOptions options)
+{
+	auto font = _fonts[hFont].get();
+	InitFont(font, fontSize);
+	auto fontSz = font->sizes[fontSize];
+	GLfloat tracking = 0;
+	if (options.flags & TEXTOPTION_TRACKING)
+	{
+		tracking = (options.tracking / 1000.0F) * fontSize;
+	}
+	GLfloat x = 0;
+	GLfloat y = fontSize * 0.1F;
+	GLfloat width = GetDynamicTextWidth(hFont, text, fontSize, options);
+	StaticText stext;
+	stext.textHeight = fontSize * 2.0F;
+	stext.textWidth = width;
+	stext.textOptions = options;
+	glGenTextures(1, &stext.textTexture);
+	glBindTexture(GL_TEXTURE_2D, stext.textTexture);
+	std::vector<uint8_t> empty(stext.textWidth * stext.textHeight, 0);
+	glTexImage2D(GL_TEXTURE_2D,
+		0,
+		GL_RED,
+		stext.textWidth,
+		stext.textHeight,
+		0,
+		GL_RED,
+		GL_UNSIGNED_BYTE,
+		empty.data()
+	);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	//	Optimize for the common case, single byte UTF8 means we don't need to expand to UTF32
+	bool hasMultibyte = hasMultiByteUTF8(text);
+	if (!hasMultibyte)
+	{
+
+		std::string::const_iterator c;
+		for (c = text.begin(); c != text.end(); ++c)
+		{
+			Character ch = fontSz.asciiChars[uint32_t(*c) & 0xFFu];
+			if (ch.pxDimensions.x != 0)
+			{
+				GLfloat asciiAtlasTexSize = GLfloat(fontSz.asciiAtlasTexSize);
+				GLint srcXStart = ch.asciiUVAtlasStart.x * asciiAtlasTexSize;
+				GLint srcYStart = (1.0F - ch.asciiUVAtlasStart.y) * asciiAtlasTexSize;
+				GLint destXStart = x + ch.pxBearing.x;
+				GLint destYStart = y + (fontSize - ch.pxBearing.y);
+				//	TODO fix these calculations to properly align with baseline with no clipping
+				glCopyImageSubData(
+					fontSz.asciiAtlasTex, GL_TEXTURE_2D, 0,
+					srcXStart, srcYStart, 0,
+					stext.textTexture, GL_TEXTURE_2D, 0,
+					destXStart, destYStart, 0,
+					ch.pxDimensions.x, ch.pxDimensions.y, 1
+				);
+			}
+			x += (ch.pxAdvance >> 6) + tracking;
+		}
+	}
+	return _staticText.insert(stext);
+}
+
 void dv3d::TextRenderer::UpdateScreenSize(int width, int height)
 {
 	screenWidth = width;
 	screenHeight = height;
 	projView = glm::ortho(0.0F, float(screenWidth), 0.0F, float(screenHeight));
+}
+
+void dv3d::TextRenderer::DrawStaticText2D(STATICTEXTHANDLE hStaticText, GLfloat x, GLfloat y, GLfloat z, uint32_t color)
+{
+	StaticText text = _staticText[hStaticText];
+	GLfloat red = GLfloat((color >> 16) & 0xFF) / 255.0F;
+	GLfloat green = GLfloat((color >> 8) & 0xFF) / 255.0F;
+	GLfloat blue = GLfloat(color & 0xFF) / 255.0F;
+	GLfloat alpha = GLfloat((color >> 24) & 0xFF) / 255.0F;
+	glUseProgram(_shdrManager->Get(h2dTextShader));
+	glUniform4f(2, red, green, blue, alpha);
+	glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(projView));
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, text.textTexture);
+	if (text.textOptions.flags & TEXTOPTION_ALIGNMENT)
+	{
+		switch (text.textOptions.alignment)
+		{
+		case TXTA_RIGHT:
+			x -= text.textWidth;
+			break;
+		case TXTA_CENTER:
+			x -= text.textWidth / 2.0F;
+			break;
+		case TXTA_LEFT:
+		default:
+			break;
+		}
+	}
+	GLfloat verts[4][3 + 2] = {
+		{ x, y , z, 0.0F, 0.0F },
+		{ x, y + text.textHeight, z, 0.0F, 1.0F },
+		{ x + text.textWidth, y + text.textHeight, z, 1.0F, 1.0F },
+		{ x + text.textWidth, y, z, 1.0F, 0.0F }
+	};
+	glBindVertexArray(quadVertexArray);
+	glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 }
 
 void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& text, const FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z, uint32_t color, TextOptions options)

@@ -16,6 +16,7 @@ namespace dv3d
 	struct Character;
 	struct FontEntry;
 	struct FontSizeEntry;
+	struct TextOptions;
 
 	struct FontEntry
 	{
@@ -24,13 +25,6 @@ namespace dv3d
 		std::vector<uint8_t> fontData;
 		FontEntry();
 		~FontEntry();
-	};
-
-	struct StaticText
-	{
-		size_t textWidth;
-		FONTHANDLE hFont;
-		//	TODO
 	};
 
 	enum TEXTALIGNMENT
@@ -89,11 +83,21 @@ namespace dv3d
 		TEXTALIGNMENT alignment = TXTA_LEFT;
 		int tracking = 0;
 
+		TextOptions();
 		TextOptions(int f);
 	};
 
 	TextOptions textOptionAlignment(TEXTALIGNMENT align);
 	TextOptions textOptionTracking(int tracking);
+
+	//	Static text is text rendered to a texture and drawn on a single quad
+	struct StaticText
+	{
+		GLfloat textWidth;
+		GLfloat textHeight;
+		GLuint textTexture;
+		TextOptions textOptions;
+	};
 
 	class TextRenderer
 	{
@@ -112,6 +116,7 @@ namespace dv3d
 
 		GLPROGHANDLE h2dTextShader = 0;
 
+		packed_freelist<StaticText> _staticText;
 
 		static void InitFont(FontEntry* entry, FONTSIZE fontSize);
 		static void CreateAsciiAtlas(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize);
