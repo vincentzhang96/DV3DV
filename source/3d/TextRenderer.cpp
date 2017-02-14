@@ -365,11 +365,7 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 	{
 		std::vector<uint32_t> asUtf32;
 		size_t len = text.length();
-		std::unique_ptr<char*> buf = std::make_unique<char*>(new char[len + 1]);
-		auto bufPtr = *buf.get();
-		std::copy_n(text.data(), len + 1, bufPtr);
-		utf8::unchecked::utf8to32(bufPtr, bufPtr + len, std::back_inserter(asUtf32));
-		buf.release();
+		utf8::unchecked::utf8to32(text.data(), text.data() + len, std::back_inserter(asUtf32));
 		for (auto codepoint : asUtf32)
 		{
 			Character ch;
