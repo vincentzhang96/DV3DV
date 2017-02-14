@@ -120,12 +120,12 @@ namespace dv3d
 
 		static bool hasMultiByteUTF8(const std::string &text);
 
-		bool BufferASCIICharacter(GLfloat x, GLfloat y, GLfloat z, 
+		static bool BufferASCIICharacter(GLfloat x, GLfloat y, GLfloat z, 
 			FontSizeEntry* fontSz, Character* ch, 
 			std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices, 
 			size_t vertexNumber
 		);
-		void RenderASCIICharacterBuffer(std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices);
+		void RenderASCIICharacterBuffer(std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices) const;
 	public:
 		explicit TextRenderer(resman::ResourceManager* resMan, ShaderManager* shdrManager);
 		~TextRenderer();

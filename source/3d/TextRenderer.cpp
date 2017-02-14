@@ -58,6 +58,7 @@ void dv3d::TextRenderer::InitFont(FontEntry* entry, FONTSIZE fontSize)
 
 void dv3d::TextRenderer::CreateAsciiAtlas(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize)
 {
+	FT_Activate_Size(entry->ftSize);
 	glGenTextures(1, &entry->asciiAtlasTex);
 	glBindTexture(GL_TEXTURE_2D, entry->asciiAtlasTex);
 	//	Get the metrics for all characters first
@@ -140,6 +141,7 @@ void dv3d::TextRenderer::CreateAsciiAtlas(FontEntry* fontEntry, FontSizeEntry* e
 void dv3d::TextRenderer::LoadExtGlyph(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize, uint32_t codepoint)
 {
 	auto face = fontEntry->face;
+	FT_Activate_Size(entry->ftSize);
 	if (FT_Load_Char(face, codepoint, FT_LOAD_RENDER))
 	{
 		LOG(WARNING) << "Failed to load glyph for codepoint " << codepoint;
@@ -240,7 +242,7 @@ bool dv3d::TextRenderer::BufferASCIICharacter(GLfloat x, GLfloat y, GLfloat z, F
 	return true;
 }
 
-void dv3d::TextRenderer::RenderASCIICharacterBuffer(std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices)
+void dv3d::TextRenderer::RenderASCIICharacterBuffer(std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices) const
 {
 	glBindVertexArray(asciiQuadVertexArray);
 	glBindBuffer(GL_ARRAY_BUFFER, asciiQuadVertexBuffer);
@@ -335,6 +337,12 @@ dv3d::FONTHANDLE dv3d::TextRenderer::LoadFont(const resman::ResourceRequest& req
 		_fonts.erase(hFont);
 		return INVALID_FONTHANDLE;
 	}
+	//	Preload common font sizes
+	FONTSIZE common[] = { 12, 14, 16, 18, 24 };
+	for (auto sz : common)
+	{
+		InitFont(entry, sz);
+	}
 	return hFont;
 }
 
@@ -345,7 +353,7 @@ void dv3d::TextRenderer::UpdateScreenSize(int width, int height)
 	projView = glm::ortho(0.0F, float(screenWidth), 0.0F, float(screenHeight));
 }
 
-void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z, uint32_t color, TextOptions options)
+void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& text, const FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z, uint32_t color, TextOptions options)
 {
 	auto font = _fonts[hFont].get();
 	InitFont(font, fontSize);
@@ -372,7 +380,6 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 		//	Text consists only of the first 128 characters (0-127)
 		//	Use ASCII texture atlas
 		std::string::const_iterator c;
-		glBindTexture(GL_TEXTURE_2D, fontSz.asciiAtlasTex);
 		std::vector<GLfloat> vertexData(0);
 		std::vector<GLushort> indices(0);
 		size_t numQuads = 0;
@@ -387,14 +394,62 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 			}
 			x += (ch.pxAdvance >> 6) + tracking;
 		}
+		glBindTexture(GL_TEXTURE_2D, fontSz.asciiAtlasTex);
 		RenderASCIICharacterBuffer(&vertexData, &indices);
 	}
 	else
 	{
-		glBindVertexArray(quadVertexArray);
+		//	For this part we will batch ASCII calls in one pass
+		//	and ext chars in another pass. The ext chars will be batched individually as well
 		std::vector<uint32_t> asUtf32;
 		size_t len = text.length();
 		utf8::unchecked::utf8to32(text.data(), text.data() + len, std::back_inserter(asUtf32));
+		std::vector<GLfloat> vertexData(0);
+		std::vector<GLushort> indices(0);
+		size_t numQuads = 0;
+		size_t vertexNumber = 0;
+		GLfloat asciiX = x;
+		for (auto codepoint : asUtf32)
+		{
+			Character ch;
+			bool isExt = codepoint > 0x7F;
+			if (!isExt)
+			{
+				ch = fontSz.asciiChars[codepoint];
+			}
+			else
+			{
+				auto it = fontSz.extChars.find(codepoint);
+				if (it != fontSz.extChars.end())
+				{
+					ch = it->second;
+				}
+				else
+				{
+					LoadExtGlyph(font, &font->sizes.at(fontSize), fontSize, codepoint);
+					ch = fontSz.extChars[codepoint];
+				}
+			}
+			if (ch.pxDimensions.x == 0 || isExt)
+			{
+				asciiX += (ch.pxAdvance >> 6) + tracking;
+				continue;
+			}
+			if (BufferASCIICharacter(asciiX, y, z, &fontSz, &ch, &vertexData, &indices, vertexNumber))
+			{
+				++numQuads;
+				vertexNumber += 4;
+			}
+			asciiX += (ch.pxAdvance >> 6) + tracking;
+		}
+		glBindTexture(GL_TEXTURE_2D, fontSz.asciiAtlasTex);
+		RenderASCIICharacterBuffer(&vertexData, &indices);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+
+
+
+		glBindVertexArray(quadVertexArray);
 		for (auto codepoint : asUtf32)
 		{
 			Character ch;
@@ -415,7 +470,7 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 					ch = it->second;
 				}
 			}
-			if (ch.pxDimensions.x == 0)
+			if (ch.pxDimensions.x == 0 || codepoint < 128)
 			{
 				x += (ch.pxAdvance >> 6) + tracking;
 				continue;
@@ -424,50 +479,16 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 			GLfloat yPos = y - (ch.pxDimensions.y - ch.pxBearing.y);
 			GLfloat w = ch.pxDimensions.x;
 			GLfloat h = ch.pxDimensions.y;
-			if (codepoint < 128)
-			{
-				//	Handle ASCII atlasmap characters
-				GLfloat uStart = ch.asciiUVAtlasStart.x;
-				GLfloat vEnd = ch.asciiUVAtlasStart.y;
-				GLfloat uSz = w / float(fontSz.asciiAtlasTexSize);
-				GLfloat vSz = h / float(fontSz.asciiAtlasTexSize);
-				GLfloat uEnd = uStart + uSz;
-				GLfloat vStart = vEnd - vSz;
-				GLfloat verts[4][3 + 2] = {
-					{
-						xPos, yPos , z,
-						uStart, vStart
-					},
-					{
-						xPos, yPos + h, z,
-						uStart, vEnd
-					},
-					{
-						xPos + w, yPos + h, z,
-						uEnd, vEnd
-					},
-					{
-						xPos + w, yPos, z,
-						uEnd, vStart
-					}
-				};
-				glBindTexture(GL_TEXTURE_2D, fontSz.asciiAtlasTex);
-				glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
-				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
-			}
-			else
-			{
-				//	Handle ext characters
-				GLfloat verts[4][3 + 2] = {
-					{ xPos, yPos , z, 0.0F, 0.0F },
-					{ xPos, yPos + h, z, 0.0F, 1.0F },
-					{ xPos + w, yPos + h, z, 1.0F, 1.0F },
-					{ xPos + w, yPos, z, 1.0F, 0.0F }
-				};
-				glBindTexture(GL_TEXTURE_2D, ch.extTexture);
-				glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
-				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
-			}
+			//	Handle ext characters
+			GLfloat verts[4][3 + 2] = {
+				{ xPos, yPos , z, 0.0F, 0.0F },
+				{ xPos, yPos + h, z, 0.0F, 1.0F },
+				{ xPos + w, yPos + h, z, 1.0F, 1.0F },
+				{ xPos + w, yPos, z, 1.0F, 0.0F }
+			};
+			glBindTexture(GL_TEXTURE_2D, ch.extTexture);
+			glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_DYNAMIC_DRAW);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 			x += (ch.pxAdvance >> 6) + tracking;
