@@ -230,16 +230,14 @@ void dv3d::TextRenderer::PostRendererInit()
 	glGenBuffers(1, &quadVertexBuffer);
 	glBindVertexArray(quadVertexArray);
 	glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
-	//	Vertex format is POS(X, Y, Z) COLOR(R, G, B, A) TEXCOORD(U, V)
-	size_t stride = 3 + 4 + 2;
+	//	Vertex format is POS(X, Y, Z) TEXCOORD(U, V)
+	size_t stride = 3 + 2;
 	size_t strideSz = sizeof(GLfloat) * stride;
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 4 * stride, nullptr, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, strideSz, nullptr);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, strideSz, reinterpret_cast<void*>(sizeof(float) * 3));
-	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, strideSz, reinterpret_cast<void*>(sizeof(float) * (3 + 4)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, strideSz, reinterpret_cast<void*>(sizeof(float) * 3));
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
@@ -298,6 +296,7 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 	GLfloat blue = GLfloat(color & 0xFF) / 255.0F;
 	GLfloat alpha = GLfloat((color >> 24) & 0xFF) / 255.0F;
 	glUseProgram(_shdrManager->Get(h2dTextShader));
+	glUniform4f(2, red, green, blue, alpha);
 	glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(projView));
 	glActiveTexture(GL_TEXTURE0);
 	glBindVertexArray(quadVertexArray);
@@ -332,25 +331,21 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 			GLfloat vSz = h / float(fontSz.asciiAtlasTexSize);
 			GLfloat uEnd = uStart + uSz;
 			GLfloat vStart = vEnd - vSz;
-			GLfloat verts[4][3 + 4 + 2] = {
+			GLfloat verts[4][3 + 2] = {
 				{
 					xPos, yPos , z, 
-					red, green, blue, alpha, 
 					uStart, vStart
 				},
 				{
 					xPos, yPos + h, z, 
-					red, green, blue, alpha, 
 					uStart, vEnd
 				},
 				{
 					xPos + w, yPos + h, z, 
-					red, green, blue, alpha, 
 					uEnd, vEnd
 				},
 				{
 					xPos + w, yPos, z, 
-					red, green, blue, alpha, 
 					uEnd, vStart 
 				}
 			};
@@ -404,25 +399,21 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 				GLfloat vSz = h / float(fontSz.asciiAtlasTexSize);
 				GLfloat uEnd = uStart + uSz;
 				GLfloat vStart = vEnd - vSz;
-				GLfloat verts[4][3 + 4 + 2] = {
+				GLfloat verts[4][3 + 2] = {
 					{
 						xPos, yPos , z,
-						red, green, blue, alpha,
 						uStart, vStart
 					},
 					{
 						xPos, yPos + h, z,
-						red, green, blue, alpha,
 						uStart, vEnd
 					},
 					{
 						xPos + w, yPos + h, z,
-						red, green, blue, alpha,
 						uEnd, vEnd
 					},
 					{
 						xPos + w, yPos, z,
-						red, green, blue, alpha,
 						uEnd, vStart
 					}
 				};
@@ -433,11 +424,11 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 			else
 			{
 				//	Handle ext characters
-				GLfloat verts[4][3 + 4 + 2] = {
-					{ xPos, yPos , z, red, green, blue, alpha, 0.0F, 0.0F },
-					{ xPos, yPos + h, z, red, green, blue, alpha, 0.0F, 1.0F },
-					{ xPos + w, yPos + h, z, red, green, blue, alpha, 1.0F, 1.0F },
-					{ xPos + w, yPos, z, red, green, blue, alpha, 1.0F, 0.0F }
+				GLfloat verts[4][3 + 2] = {
+					{ xPos, yPos , z, 0.0F, 0.0F },
+					{ xPos, yPos + h, z, 0.0F, 1.0F },
+					{ xPos + w, yPos + h, z, 1.0F, 1.0F },
+					{ xPos + w, yPos, z, 1.0F, 0.0F }
 				};
 				glBindTexture(GL_TEXTURE_2D, ch.extTexture);
 				glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
