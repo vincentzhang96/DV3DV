@@ -653,6 +653,12 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+GLfloat dv3d::TextRenderer::GetStaticTextWidth(STATICTEXTHANDLE hStaticText) const
+{
+	StaticText text = _staticText[hStaticText];
+	return text.textWidth;
+}
+
 GLfloat dv3d::TextRenderer::GetDynamicTextWidth(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, TextOptions options)
 {
 	GLfloat x = 0;
@@ -711,6 +717,14 @@ GLfloat dv3d::TextRenderer::GetDynamicTextWidth(FONTHANDLE hFont, const std::str
 	return x;
 }
 
+void dv3d::TextRenderer::ReleaseStaticText(STATICTEXTHANDLE hStaticText)
+{
+	StaticText text = _staticText[hStaticText];
+	glDeleteTextures(1, &text.textTexture);
+	_staticText.erase(hStaticText);
+}
 
-
-
+void dv3d::TextRenderer::UnloadFont(FONTHANDLE hFont)
+{
+	_fonts.erase(hFont);
+}
