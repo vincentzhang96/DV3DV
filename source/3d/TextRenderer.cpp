@@ -374,6 +374,22 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 	{
 		tracking = (options.tracking / 1000.0F) * fontSize;
 	}
+	if (options.flags & TEXTOPTION_ALIGNMENT)
+	{
+		switch (options.alignment)
+		{
+		case TXTA_RIGHT:
+			x -= GetDynamicTextWidth(hFont, text, fontSize, options);
+			break;
+		case TXTA_CENTER:
+			x -= GetDynamicTextWidth(hFont, text, fontSize, options) / 2.0F;
+			break;
+		case TXTA_LEFT:
+		default:
+			break;
+		}
+	}
+
 
 	if (!hasMultibyte)
 	{
