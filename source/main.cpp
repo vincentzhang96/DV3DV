@@ -39,6 +39,7 @@ dv3d::FONTHANDLE hFont;
 dv3d::FONTHANDLE hFontGeo;
 dv3d::FONTHANDLE hFontKR;
 dv3d::FONTHANDLE hFontJP;
+dv3d::STATICTEXTHANDLE hStaticText;
 
 #define TPUID_ICON ppac::TPUID(0x0205, 0x0000, 0x00000001)
 #define TPUID_SPLASH ppac::TPUID(0x0206, 0x0000, 0x00000001)
@@ -145,7 +146,14 @@ inline bool _DoMainLoop()
 		dv3drTextRenderer->DrawDynamicText2D(hFont, "divinitor font renderer test", 12, 200, 460, 0, 0xFFA6AEB3);
 		dv3drTextRenderer->DrawDynamicText2D(hFont, u8"divinitor DIVINITOR FONT R\u0204ND\u0204R\u0204R T\u0204ST", 18, 200, 440, 0, 0xFFA6AEB3);
 		dv3drTextRenderer->DrawDynamicText2D(hFont, u8"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\u0204", 18, 200, 420, 0, 0xFFA6AEB3);
-		dv3drTextRenderer->DrawDynamicText2D(hFont, u8"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\u0204", 18, 200, 400, 0, 0xFFA6AEB3, dv3d::textOptionTracking(200));
+
+		std::string testText = u8"CENTER ALIGNED TEXT";
+		dv3drTextRenderer->DrawDynamicText2D(hFont, testText, 18, 200, 400, 0, 0xFFA6AEB3, dv3d::textOptionAlignment(dv3d::TXTA_CENTER));
+		std::string testText2 = u8"RIGHT ALIGNED TEXT";
+		dv3drTextRenderer->DrawDynamicText2D(hFont, testText2, 18, 200, 380, 0, 0xFFA6AEB3, dv3d::textOptionAlignment(dv3d::TXTA_RIGHT));
+
+		dv3drTextRenderer->DrawStaticText2D(hStaticText, 300, 360, 0, 0xFFA6AEB3);
+
 
 		dv3drTextRenderer->DrawDynamicText2D(hFontKR, "Font: Nanum (KR)", 24, 200, 300, 0, 0xFF98BCD4);
 		dv3drTextRenderer->DrawDynamicText2D(hFontKR, "DIVINITOR FONT RENDERER TEST", 12, 200, 280, 0, 0xFF3B6E96);
@@ -477,6 +485,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	hFontGeo = dv3drTextRenderer->LoadFont(ppac::TPUID(0x0501, 0x0001, 0x00000200));
 	hFontKR = dv3drTextRenderer->LoadFont(ppac::TPUID(0x0500, 0x0001, 0x00000300));
 	hFontJP = dv3drTextRenderer->LoadFont(ppac::TPUID(0x0501, 0x0001, 0x00000400));
+	hStaticText = dv3drTextRenderer->CreateStaticText(hFont, "Divinitor font renderer test", 24, dv3d::textOptionTracking(200));
 
 	//	Prep for main loop
 	auto exitLoop = false;
