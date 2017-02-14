@@ -106,6 +106,10 @@ namespace dv3d
 		glm::fmat4 projView;
 		GLuint quadVertexArray = 0;
 		GLuint quadVertexBuffer = 0;
+		GLuint asciiQuadVertexArray = 0;
+		GLuint asciiQuadVertexBuffer = 0;
+		GLuint asciiQuadIndexBuffer = 0;
+
 		GLPROGHANDLE h2dTextShader = 0;
 
 

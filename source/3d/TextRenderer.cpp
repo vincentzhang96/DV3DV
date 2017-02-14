@@ -241,6 +241,23 @@ void dv3d::TextRenderer::PostRendererInit()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
+	//	VAO for ASCII atlas drawing
+	glGenVertexArrays(1, &asciiQuadVertexArray);
+	glBindVertexArray(asciiQuadVertexArray);
+	glGenBuffers(1, &asciiQuadVertexBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, asciiQuadVertexBuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 4 * stride, nullptr, GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, strideSz, nullptr);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, strideSz, reinterpret_cast<void*>(sizeof(float) * 3));
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glGenBuffers(1, &asciiQuadIndexBuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, asciiQuadIndexBuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * 6, nullptr, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
 	//	Load shaders
 	h2dTextShader = _shdrManager->NewProgram();
 	_shdrManager->AttachAndCompileShader(h2dTextShader, SHDR_2D_TEXT_VERT);
@@ -299,7 +316,6 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 	glUniform4f(2, red, green, blue, alpha);
 	glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(projView));
 	glActiveTexture(GL_TEXTURE0);
-	glBindVertexArray(quadVertexArray);
 
 	GLfloat tracking = 0;
 	if (options.flags & TEXTOPTION_TRACKING)
@@ -309,10 +325,15 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 
 	if (!hasMultibyte)
 	{
+		glBindVertexArray(asciiQuadVertexArray);
 		//	Text consists only of the first 128 characters (0-127)
 		//	Use ASCII texture atlas
 		std::string::const_iterator c;
 		glBindTexture(GL_TEXTURE_2D, fontSz.asciiAtlasTex);
+		std::vector<GLfloat> vertexData(0);
+		std::vector<GLushort> indices(0);
+		size_t numQuads = 0;
+		size_t vertexNumber = 0;
 		for (c = text.begin(); c != text.end(); ++c)
 		{
 			Character ch = fontSz.asciiChars[uint32_t(*c) & 0xFFu];
@@ -331,33 +352,39 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 			GLfloat vSz = h / float(fontSz.asciiAtlasTexSize);
 			GLfloat uEnd = uStart + uSz;
 			GLfloat vStart = vEnd - vSz;
-			GLfloat verts[4][3 + 2] = {
-				{
-					xPos, yPos , z, 
-					uStart, vStart
-				},
-				{
-					xPos, yPos + h, z, 
-					uStart, vEnd
-				},
-				{
-					xPos + w, yPos + h, z, 
-					uEnd, vEnd
-				},
-				{
-					xPos + w, yPos, z, 
-					uEnd, vStart 
-				}
+			GLfloat verts[4 * (3 + 2)] = {
+				xPos, yPos , z, 
+				uStart, vStart,
+
+				xPos, yPos + h, z, 
+				uStart, vEnd,
+
+				xPos + w, yPos + h, z, 
+				uEnd, vEnd,
+
+				xPos + w, yPos, z, 
+				uEnd, vStart
 			};
-			glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
-			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
-			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+			vertexData.insert(vertexData.end(), verts, verts + (4 * (3 + 2)));
+			GLfloat vertIndex[6] = {
+				vertexNumber, vertexNumber + 1, vertexNumber + 2,
+				vertexNumber, vertexNumber + 2, vertexNumber + 3
+			};
+			indices.insert(indices.end(), vertIndex, vertIndex + 6);
 			x += (ch.pxAdvance >> 6) + tracking;
+			++numQuads;
+			vertexNumber += 4;
 		}
+		glBindBuffer(GL_ARRAY_BUFFER, asciiQuadVertexBuffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertexData.size(), vertexData.data(), GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, asciiQuadIndexBuffer);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLushort), indices.data(), GL_DYNAMIC_DRAW);
+		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, nullptr);
 	}
 	else
 	{
+		glBindVertexArray(quadVertexArray);
 		std::vector<uint32_t> asUtf32;
 		size_t len = text.length();
 		utf8::unchecked::utf8to32(text.data(), text.data() + len, std::back_inserter(asUtf32));
@@ -438,7 +465,6 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 			x += (ch.pxAdvance >> 6) + tracking;
 		}
-
 	}
 	glBindVertexArray(0);
 	glUseProgram(0);
