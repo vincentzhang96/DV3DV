@@ -113,8 +113,8 @@ namespace dv3d
 		GLPROGHANDLE h2dTextShader = 0;
 
 
-		void InitFont(FontEntry* entry, FONTSIZE fontSize);
-		void CreateAsciiAtlas(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize);
+		static void InitFont(FontEntry* entry, FONTSIZE fontSize);
+		static void CreateAsciiAtlas(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize);
 		void LoadExtGlyph(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize, uint32_t codepoint);
 		static bool IsGlyphLoaded(FontEntry* fontEntry, FONTSIZE fontSize, uint32_t codepoint);
 
