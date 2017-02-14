@@ -353,9 +353,6 @@ dv3d::FONTHANDLE dv3d::TextRenderer::LoadFont(const resman::ResourceRequest& req
 
 dv3d::STATICTEXTHANDLE dv3d::TextRenderer::CreateStaticText(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, TextOptions options)
 {
-	auto font = _fonts[hFont].get();
-	InitFont(font, fontSize);
-	auto fontSz = font->sizes[fontSize];
 	GLfloat tracking = 0;
 	if (options.flags & TEXTOPTION_TRACKING)
 	{
@@ -363,14 +360,16 @@ dv3d::STATICTEXTHANDLE dv3d::TextRenderer::CreateStaticText(FONTHANDLE hFont, co
 	}
 	GLfloat x = 0;
 	GLfloat y = 0;
-	GLfloat width = GetDynamicTextWidth(hFont, text, fontSize, options);
+	GLfloat width = GetDynamicTextWidth(hFont, text, fontSize, options) + 1.0F;	//	Add padding pixel
+	auto font = _fonts[hFont].get();
+	InitFont(font, fontSize);
+	auto fontSz = &font->sizes[fontSize];
 	StaticText stext;
 	stext.textHeight = fontSize * 2.0F;
 	stext.textWidth = width;
 	stext.textOptions = options;
 	glGenTextures(1, &stext.textTexture);
 	glBindTexture(GL_TEXTURE_2D, stext.textTexture);
-	std::vector<uint8_t> empty(stext.textWidth * stext.textHeight, 0);
 	glTexImage2D(GL_TEXTURE_2D,
 		0,
 		GL_RED,
@@ -379,40 +378,72 @@ dv3d::STATICTEXTHANDLE dv3d::TextRenderer::CreateStaticText(FONTHANDLE hFont, co
 		0,
 		GL_RED,
 		GL_UNSIGNED_BYTE,
-		empty.data()
+		nullptr
 	);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	//	Optimize for the common case, single byte UTF8 means we don't need to expand to UTF32
-	bool hasMultibyte = hasMultiByteUTF8(text);
-	if (!hasMultibyte)
+	std::vector<uint32_t> asUtf32;
+	size_t len = text.length();
+	utf8::unchecked::utf8to32(text.data(), text.data() + len, std::back_inserter(asUtf32));
+	for (auto codepoint : asUtf32)
 	{
+		Character ch;
 
-		std::string::const_iterator c;
-		for (c = text.begin(); c != text.end(); ++c)
+		bool isExt = codepoint > 0x7F;
+		if (!isExt)
 		{
-			Character ch = fontSz.asciiChars[uint32_t(*c) & 0xFFu];
-			if (ch.pxDimensions.x != 0)
-			{
-				GLfloat asciiAtlasTexSize = GLfloat(fontSz.asciiAtlasTexSize);
-				GLint srcXStart = ch.asciiUVAtlasStart.x;
-				GLint srcYStart = (asciiAtlasTexSize - ch.asciiUVAtlasStart.y);
-				GLint destXStart = x + ch.pxBearing.x;
-				GLint destYStart = y + (fontSize - ch.pxBearing.y);
-				//	TODO fix these calculations to properly align with baseline with no clipping
-				glCopyImageSubData(
-					fontSz.asciiAtlasTex, GL_TEXTURE_2D, 0,
-					srcXStart, srcYStart, 0,
-					stext.textTexture, GL_TEXTURE_2D, 0,
-					destXStart, destYStart, 0,
-					ch.pxDimensions.x, ch.pxDimensions.y, 1
-				);
-			}
-			x += (ch.pxAdvance >> 6) + tracking;
+			ch = fontSz->asciiChars[codepoint];
 		}
+		else
+		{
+			auto it = fontSz->extChars.find(codepoint);
+			if (it != fontSz->extChars.end())
+			{
+				ch = it->second;
+			}
+			else
+			{
+				LOG(WARNING) << "GetDynamicTextWidth should have loaded any unloaded glyphs for CreateStaticText!";
+				throw "Glyph not loaded";
+			}
+		}
+		if (ch.pxDimensions.x != 0)
+		{
+			GLint srcXStart = 0;
+			GLint srcYStart = 0;
+			GLint destXStart;
+			GLint destYStart;
+			GLuint textureId;
+			if (!isExt)
+			{
+				GLfloat asciiAtlasTexSize = GLfloat(fontSz->asciiAtlasTexSize);
+				srcXStart = ch.asciiUVAtlasStart.x;
+				srcYStart = (asciiAtlasTexSize - ch.asciiUVAtlasStart.y);
+				textureId = fontSz->asciiAtlasTex;
+			}
+			else
+			{
+				textureId = ch.extTexture;
+			}
+			destXStart = x + ch.pxBearing.x;
+			destYStart = y + (fontSize - ch.pxBearing.y);
+			if (destXStart + ch.pxDimensions.x > stext.textWidth)
+			{
+				LOG(WARNING) << "codepoint " << codepoint << " will go past bounds " << stext.textWidth << ": " << (destXStart + ch.pxDimensions.x);
+				continue;
+			}
+			glCopyImageSubData(
+				textureId, GL_TEXTURE_2D, 0,
+				srcXStart, srcYStart, 0,
+				stext.textTexture, GL_TEXTURE_2D, 0,
+				destXStart, destYStart, 0,
+				ch.pxDimensions.x, ch.pxDimensions.y, 1
+			);
+		}
+		x += (ch.pxAdvance >> 6) + tracking;
 	}
 	return _staticText.insert(stext);
 }
@@ -468,7 +499,7 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 {
 	auto font = _fonts[hFont].get();
 	InitFont(font, fontSize);
-	auto fontSz = font->sizes[fontSize];
+	auto fontSz = &font->sizes[fontSize];
 	//	Optimize for the common case, single byte UTF8 means we don't need to expand to UTF32 and can also take advantage of the ASCII texture atlas.
 	bool hasMultibyte = hasMultiByteUTF8(text);
 	GLfloat red = GLfloat((color >> 16) & 0xFF) / 255.0F;
@@ -513,15 +544,15 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 		size_t vertexNumber = 0;
 		for (c = text.begin(); c != text.end(); ++c)
 		{
-			Character ch = fontSz.asciiChars[uint32_t(*c) & 0xFFu];
-			if (BufferASCIICharacter(x, y, z, &fontSz, &ch, &vertexData, &indices, vertexNumber))
+			Character ch = fontSz->asciiChars[uint32_t(*c) & 0xFFu];
+			if (BufferASCIICharacter(x, y, z, fontSz, &ch, &vertexData, &indices, vertexNumber))
 			{
 				++numQuads;
 				vertexNumber += 4;
 			}
 			x += (ch.pxAdvance >> 6) + tracking;
 		}
-		glBindTexture(GL_TEXTURE_2D, fontSz.asciiAtlasTex);
+		glBindTexture(GL_TEXTURE_2D, fontSz->asciiAtlasTex);
 		RenderASCIICharacterBuffer(&vertexData, &indices);
 	}
 	else
@@ -542,19 +573,19 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 			bool isExt = codepoint > 0x7F;
 			if (!isExt)
 			{
-				ch = fontSz.asciiChars[codepoint];
+				ch = fontSz->asciiChars[codepoint];
 			}
 			else
 			{
-				auto it = fontSz.extChars.find(codepoint);
-				if (it != fontSz.extChars.end())
+				auto it = fontSz->extChars.find(codepoint);
+				if (it != fontSz->extChars.end())
 				{
 					ch = it->second;
 				}
 				else
 				{
-					LoadExtGlyph(font, &font->sizes.at(fontSize), fontSize, codepoint);
-					ch = fontSz.extChars[codepoint];
+					LoadExtGlyph(font, fontSz, fontSize, codepoint);
+					ch = fontSz->extChars[codepoint];
 				}
 			}
 			if (ch.pxDimensions.x == 0 || isExt)
@@ -562,35 +593,31 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 				asciiX += (ch.pxAdvance >> 6) + tracking;
 				continue;
 			}
-			if (BufferASCIICharacter(asciiX, y, z, &fontSz, &ch, &vertexData, &indices, vertexNumber))
+			if (BufferASCIICharacter(asciiX, y, z, fontSz, &ch, &vertexData, &indices, vertexNumber))
 			{
 				++numQuads;
 				vertexNumber += 4;
 			}
 			asciiX += (ch.pxAdvance >> 6) + tracking;
 		}
-		glBindTexture(GL_TEXTURE_2D, fontSz.asciiAtlasTex);
+		glBindTexture(GL_TEXTURE_2D, fontSz->asciiAtlasTex);
 		RenderASCIICharacterBuffer(&vertexData, &indices);
 		glBindTexture(GL_TEXTURE_2D, 0);
-
-
-
-
 		glBindVertexArray(quadVertexArray);
 		for (auto codepoint : asUtf32)
 		{
 			Character ch;
 			if (codepoint < 128)
 			{
-				ch = fontSz.asciiChars[codepoint];
+				ch = fontSz->asciiChars[codepoint];
 			}
 			else
 			{
-				auto it = fontSz.extChars.find(codepoint);
-				if (it == fontSz.extChars.end())
+				auto it = fontSz->extChars.find(codepoint);
+				if (it == fontSz->extChars.end())
 				{
-					LoadExtGlyph(font, &font->sizes.at(fontSize), fontSize, codepoint);
-					ch = fontSz.extChars[codepoint];
+					LoadExtGlyph(font, fontSz, fontSize, codepoint);
+					ch = fontSz->extChars[codepoint];
 				}
 				else
 				{
@@ -628,10 +655,10 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 
 GLfloat dv3d::TextRenderer::GetDynamicTextWidth(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, TextOptions options)
 {
-	double x = 0;
+	GLfloat x = 0;
 	auto font = _fonts[hFont].get();
 	InitFont(font, fontSize);
-	auto fontSz = font->sizes[fontSize];
+	auto fontSz = &font->sizes[fontSize];
 	GLfloat tracking = 0;
 	if (options.flags & TEXTOPTION_TRACKING)
 	{
@@ -647,7 +674,7 @@ GLfloat dv3d::TextRenderer::GetDynamicTextWidth(FONTHANDLE hFont, const std::str
 		std::string::const_iterator c;
 		for (c = text.begin(); c != text.end(); ++c)
 		{
-			Character ch = fontSz.asciiChars[uint32_t(*c) & 0xFFu];
+			Character ch = fontSz->asciiChars[uint32_t(*c) & 0xFFu];
 			x += (ch.pxAdvance >> 6) + tracking;
 		}
 	}
@@ -661,22 +688,21 @@ GLfloat dv3d::TextRenderer::GetDynamicTextWidth(FONTHANDLE hFont, const std::str
 		for (auto codepoint : asUtf32)
 		{
 			Character ch;
-			bool isExt = codepoint > 0x7F;
-			if (!isExt)
+			if (codepoint < 128)
 			{
-				ch = fontSz.asciiChars[codepoint];
+				ch = fontSz->asciiChars[codepoint];
 			}
 			else
 			{
-				auto it = fontSz.extChars.find(codepoint);
-				if (it != fontSz.extChars.end())
+				auto it = fontSz->extChars.find(codepoint);
+				if (it == fontSz->extChars.end())
 				{
-					ch = it->second;
+					LoadExtGlyph(font, fontSz, fontSize, codepoint);
+					ch = fontSz->extChars[codepoint];
 				}
 				else
 				{
-					LoadExtGlyph(font, &font->sizes.at(fontSize), fontSize, codepoint);
-					ch = fontSz.extChars[codepoint];
+					ch = it->second;
 				}
 			}
 			x += (ch.pxAdvance >> 6) + tracking;
