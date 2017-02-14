@@ -135,11 +135,6 @@ void dv3d::TextRenderer::CreateAsciiAtlas(FontEntry* fontEntry, FontSizeEntry* e
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glBindTexture(GL_TEXTURE_2D, 0);
-//	//	TODO Naive
-	for (uint32_t i = 0; i < 128; ++i)
-	{
-		LoadExtGlyph(fontEntry, entry, fontSize, i);
-	}
 }
 
 void dv3d::TextRenderer::LoadExtGlyph(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize, uint32_t codepoint)
