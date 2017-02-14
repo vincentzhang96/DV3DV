@@ -207,6 +207,55 @@ bool dv3d::TextRenderer::hasMultiByteUTF8(const std::string& text)
 	return false;
 }
 
+bool dv3d::TextRenderer::BufferASCIICharacter(GLfloat x, GLfloat y, GLfloat z, FontSizeEntry* fontSz, Character* ch, std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices, size_t vertexNumber)
+{
+	if (ch->pxDimensions.x == 0)
+	{
+		return false;
+	}
+	GLfloat xPos = x + ch->pxBearing.x;
+	GLfloat yPos = y - (ch->pxDimensions.y - ch->pxBearing.y);
+	GLfloat w = ch->pxDimensions.x;
+	GLfloat h = ch->pxDimensions.y;
+	GLfloat uStart = ch->asciiUVAtlasStart.x;
+	GLfloat vEnd = ch->asciiUVAtlasStart.y;
+	GLfloat uSz = w / float(fontSz->asciiAtlasTexSize);
+	GLfloat vSz = h / float(fontSz->asciiAtlasTexSize);
+	GLfloat uEnd = uStart + uSz;
+	GLfloat vStart = vEnd - vSz;
+	GLfloat verts[4 * (3 + 2)] = {
+		xPos, yPos , z,
+		uStart, vStart,
+
+		xPos, yPos + h, z,
+		uStart, vEnd,
+
+		xPos + w, yPos + h, z,
+		uEnd, vEnd,
+
+		xPos + w, yPos, z,
+		uEnd, vStart
+	};
+	vertexData->insert(vertexData->end(), verts, verts + (4 * (3 + 2)));
+	GLfloat vertIndex[6] = {
+		vertexNumber, vertexNumber + 1, vertexNumber + 2,
+		vertexNumber, vertexNumber + 2, vertexNumber + 3
+	};
+	indices->insert(indices->end(), vertIndex, vertIndex + 6);
+	return true;
+}
+
+void dv3d::TextRenderer::RenderASCIICharacterBuffer(std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices)
+{
+	glBindVertexArray(asciiQuadVertexArray);
+	glBindBuffer(GL_ARRAY_BUFFER, asciiQuadVertexBuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertexData->size(), vertexData->data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, asciiQuadIndexBuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices->size() * sizeof(GLushort), indices->data(), GL_DYNAMIC_DRAW);
+	glDrawElements(GL_TRIANGLES, indices->size(), GL_UNSIGNED_SHORT, nullptr);
+}
+
 dv3d::TextRenderer::TextRenderer(resman::ResourceManager* resMan, ShaderManager* shdrManager) : _fonts(16)
 {
 	_resManager = resMan;
@@ -325,7 +374,6 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 
 	if (!hasMultibyte)
 	{
-		glBindVertexArray(asciiQuadVertexArray);
 		//	Text consists only of the first 128 characters (0-127)
 		//	Use ASCII texture atlas
 		std::string::const_iterator c;
@@ -337,50 +385,14 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 		for (c = text.begin(); c != text.end(); ++c)
 		{
 			Character ch = fontSz.asciiChars[uint32_t(*c) & 0xFFu];
-			if (ch.pxDimensions.x == 0)
+			if (BufferASCIICharacter(x, y, z, &fontSz, &ch, &vertexData, &indices, vertexNumber))
 			{
-				x += (ch.pxAdvance >> 6);
-				continue;
+				++numQuads;
+				vertexNumber += 4;
 			}
-			GLfloat xPos = x + ch.pxBearing.x;
-			GLfloat yPos = y - (ch.pxDimensions.y - ch.pxBearing.y);
-			GLfloat w = ch.pxDimensions.x;
-			GLfloat h = ch.pxDimensions.y;
-			GLfloat uStart = ch.asciiUVAtlasStart.x;
-			GLfloat vEnd = ch.asciiUVAtlasStart.y;
-			GLfloat uSz = w / float(fontSz.asciiAtlasTexSize);
-			GLfloat vSz = h / float(fontSz.asciiAtlasTexSize);
-			GLfloat uEnd = uStart + uSz;
-			GLfloat vStart = vEnd - vSz;
-			GLfloat verts[4 * (3 + 2)] = {
-				xPos, yPos , z, 
-				uStart, vStart,
-
-				xPos, yPos + h, z, 
-				uStart, vEnd,
-
-				xPos + w, yPos + h, z, 
-				uEnd, vEnd,
-
-				xPos + w, yPos, z, 
-				uEnd, vStart
-			};
-			vertexData.insert(vertexData.end(), verts, verts + (4 * (3 + 2)));
-			GLfloat vertIndex[6] = {
-				vertexNumber, vertexNumber + 1, vertexNumber + 2,
-				vertexNumber, vertexNumber + 2, vertexNumber + 3
-			};
-			indices.insert(indices.end(), vertIndex, vertIndex + 6);
 			x += (ch.pxAdvance >> 6) + tracking;
-			++numQuads;
-			vertexNumber += 4;
 		}
-		glBindBuffer(GL_ARRAY_BUFFER, asciiQuadVertexBuffer);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertexData.size(), vertexData.data(), GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, asciiQuadIndexBuffer);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLushort), indices.data(), GL_DYNAMIC_DRAW);
-		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, nullptr);
+		RenderASCIICharacterBuffer(&vertexData, &indices);
 	}
 	else
 	{

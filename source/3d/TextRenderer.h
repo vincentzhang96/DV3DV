@@ -119,6 +119,13 @@ namespace dv3d
 		static bool IsGlyphLoaded(FontEntry* fontEntry, FONTSIZE fontSize, uint32_t codepoint);
 
 		static bool hasMultiByteUTF8(const std::string &text);
+
+		bool BufferASCIICharacter(GLfloat x, GLfloat y, GLfloat z, 
+			FontSizeEntry* fontSz, Character* ch, 
+			std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices, 
+			size_t vertexNumber
+		);
+		void RenderASCIICharacterBuffer(std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices);
 	public:
 		explicit TextRenderer(resman::ResourceManager* resMan, ShaderManager* shdrManager);
 		~TextRenderer();
