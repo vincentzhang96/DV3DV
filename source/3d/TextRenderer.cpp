@@ -133,8 +133,8 @@ void dv3d::TextRenderer::CreateAsciiAtlas(FontEntry* fontEntry, FontSizeEntry* e
 			GL_UNSIGNED_BYTE,
 			face->glyph->bitmap.buffer
 		);
-		ch->asciiUVAtlasStart.x = float(colNum * maxSize.x) / entry->asciiAtlasTexSize;
-		ch->asciiUVAtlasStart.y = 1.0 - float(rowNum * fontSize) / entry->asciiAtlasTexSize;
+		ch->asciiUVAtlasStart.x = float(colNum * maxSize.x);
+		ch->asciiUVAtlasStart.y = minReqForTwelve - float(rowNum * fontSize);
 	}
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
@@ -219,8 +219,8 @@ bool dv3d::TextRenderer::BufferASCIICharacter(GLfloat x, GLfloat y, GLfloat z, F
 	GLfloat yPos = y - (ch->pxDimensions.y - ch->pxBearing.y);
 	GLfloat w = ch->pxDimensions.x;
 	GLfloat h = ch->pxDimensions.y;
-	GLfloat uStart = ch->asciiUVAtlasStart.x;
-	GLfloat vEnd = ch->asciiUVAtlasStart.y;
+	GLfloat uStart = ch->asciiUVAtlasStart.x / float(fontSz->asciiAtlasTexSize);
+	GLfloat vEnd = ch->asciiUVAtlasStart.y / float(fontSz->asciiAtlasTexSize);
 	GLfloat uSz = w / float(fontSz->asciiAtlasTexSize);
 	GLfloat vSz = h / float(fontSz->asciiAtlasTexSize);
 	GLfloat uEnd = uStart + uSz;
@@ -362,7 +362,7 @@ dv3d::STATICTEXTHANDLE dv3d::TextRenderer::CreateStaticText(FONTHANDLE hFont, co
 		tracking = (options.tracking / 1000.0F) * fontSize;
 	}
 	GLfloat x = 0;
-	GLfloat y = fontSize * 0.1F;
+	GLfloat y = 0;
 	GLfloat width = GetDynamicTextWidth(hFont, text, fontSize, options);
 	StaticText stext;
 	stext.textHeight = fontSize * 2.0F;
@@ -398,8 +398,8 @@ dv3d::STATICTEXTHANDLE dv3d::TextRenderer::CreateStaticText(FONTHANDLE hFont, co
 			if (ch.pxDimensions.x != 0)
 			{
 				GLfloat asciiAtlasTexSize = GLfloat(fontSz.asciiAtlasTexSize);
-				GLint srcXStart = ch.asciiUVAtlasStart.x * asciiAtlasTexSize;
-				GLint srcYStart = (1.0F - ch.asciiUVAtlasStart.y) * asciiAtlasTexSize;
+				GLint srcXStart = ch.asciiUVAtlasStart.x;
+				GLint srcYStart = (asciiAtlasTexSize - ch.asciiUVAtlasStart.y);
 				GLint destXStart = x + ch.pxBearing.x;
 				GLint destYStart = y + (fontSize - ch.pxBearing.y);
 				//	TODO fix these calculations to properly align with baseline with no clipping
@@ -452,10 +452,10 @@ void dv3d::TextRenderer::DrawStaticText2D(STATICTEXTHANDLE hStaticText, GLfloat 
 		}
 	}
 	GLfloat verts[4][3 + 2] = {
-		{ x, y , z, 0.0F, 0.0F },
-		{ x, y + text.textHeight, z, 0.0F, 1.0F },
-		{ x + text.textWidth, y + text.textHeight, z, 1.0F, 1.0F },
-		{ x + text.textWidth, y, z, 1.0F, 0.0F }
+		{ x, y - text.textHeight / 2.0F, z, 0.0F, 0.0F },
+		{ x, y + text.textHeight / 2.0F, z, 0.0F, 1.0F },
+		{ x + text.textWidth, y + text.textHeight / 2.0F, z, 1.0F, 1.0F },
+		{ x + text.textWidth, y - text.textHeight / 2.0F, z, 1.0F, 0.0F }
 	};
 	glBindVertexArray(quadVertexArray);
 	glBindBuffer(GL_ARRAY_BUFFER, quadVertexBuffer);
