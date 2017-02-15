@@ -25,3 +25,15 @@ OUTPUT=../runtime/data/core.ppac
 
 # Jun Pro (Japanese) font
 0x0501,0x0001,0x00000400=core/font/otf/Jun Pro/a-otf jun pro 34.otf
+
+
+
+# Core UI
+# Menu background
+0x0206,0x1001,0x00000001=core/ui/shared/background/background_icedragon.dds
+0x0206,0x1001,0x00000002=core/ui/shared/background/vignette.dds
+0x0206,0x1001,0x00000003=core/ui/shared/background/focusdimmer.dds
+
+# Big spinner
+0x0206,0x0800,0x00000001=core/ui/shared/spinner/spinner_big_rotator.dds
+0x0206,0x0800,0x00000002=core/ui/shared/spinner/spinner_big_center.dds
