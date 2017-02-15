@@ -131,6 +131,8 @@ namespace dv3d
 			size_t vertexNumber
 		);
 		void RenderASCIICharacterBuffer(std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices) const;
+
+		static size_t CountNewlines(const std::string &text);
 	public:
 		explicit TextRenderer(resman::ResourceManager* resMan, ShaderManager* shdrManager);
 		~TextRenderer();

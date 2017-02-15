@@ -258,6 +258,17 @@ void dv3d::TextRenderer::RenderASCIICharacterBuffer(std::vector<GLfloat>* vertex
 	glDrawElements(GL_TRIANGLES, indices->size(), GL_UNSIGNED_SHORT, nullptr);
 }
 
+size_t dv3d::TextRenderer::CountNewlines(const std::string &text)
+{
+	size_t ret = 1;
+	std::string::const_iterator iter;
+	for (iter = text.begin(); iter != text.end(); ++iter)
+	{
+		ret += (*iter == '\n');
+	}
+	return ret;
+}
+
 dv3d::TextRenderer::TextRenderer(resman::ResourceManager* resMan, ShaderManager* shdrManager) : _fonts(64), _staticText(8192)
 {
 	_resManager = resMan;
@@ -661,6 +672,7 @@ GLfloat dv3d::TextRenderer::GetStaticTextWidth(STATICTEXTHANDLE hStaticText) con
 
 GLfloat dv3d::TextRenderer::GetDynamicTextWidth(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, TextOptions options)
 {
+	GLfloat max = 0;
 	GLfloat x = 0;
 	auto font = _fonts[hFont].get();
 	InitFont(font, fontSize);
@@ -670,7 +682,6 @@ GLfloat dv3d::TextRenderer::GetDynamicTextWidth(FONTHANDLE hFont, const std::str
 	{
 		tracking = (options.tracking / 1000.0F) * fontSize;
 	}
-
 	//	Optimize for the common case, single byte UTF8 means we don't need to expand to UTF32 and can also take advantage of the ASCII texture atlas.
 	bool hasMultibyte = hasMultiByteUTF8(text);
 	if (!hasMultibyte)
@@ -680,6 +691,14 @@ GLfloat dv3d::TextRenderer::GetDynamicTextWidth(FONTHANDLE hFont, const std::str
 		std::string::const_iterator c;
 		for (c = text.begin(); c != text.end(); ++c)
 		{
+			if (*c == 0x0A)	//	newline
+			{
+				if (x > max)
+				{
+					max = x;
+					x = 0;
+				}
+			}
 			Character ch = fontSz->asciiChars[uint32_t(*c) & 0xFFu];
 			x += (ch.pxAdvance >> 6) + tracking;
 		}
@@ -693,6 +712,14 @@ GLfloat dv3d::TextRenderer::GetDynamicTextWidth(FONTHANDLE hFont, const std::str
 		utf8::unchecked::utf8to32(text.data(), text.data() + len, std::back_inserter(asUtf32));
 		for (auto codepoint : asUtf32)
 		{
+			if (codepoint == 0x0A)	//	newline
+			{
+				if (x > max)
+				{
+					max = x;
+				}
+				x = 0;
+			}
 			Character ch;
 			if (codepoint < 128)
 			{
@@ -714,7 +741,7 @@ GLfloat dv3d::TextRenderer::GetDynamicTextWidth(FONTHANDLE hFont, const std::str
 			x += (ch.pxAdvance >> 6) + tracking;
 		}
 	}
-	return x;
+	return max;
 }
 
 void dv3d::TextRenderer::ReleaseStaticText(STATICTEXTHANDLE hStaticText)
