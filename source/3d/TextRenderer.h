@@ -120,7 +120,7 @@ namespace dv3d
 
 		static void InitFont(FontEntry* entry, FONTSIZE fontSize);
 		static void CreateAsciiAtlas(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize);
-		void LoadExtGlyph(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize, uint32_t codepoint);
+		static void LoadExtGlyph(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize, uint32_t codepoint);
 		static bool IsGlyphLoaded(FontEntry* fontEntry, FONTSIZE fontSize, uint32_t codepoint);
 
 		static bool hasMultiByteUTF8(const std::string &text);
