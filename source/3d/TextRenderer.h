@@ -74,16 +74,24 @@ namespace dv3d
 	};
 
 
+//	Text alignment set flag
 #define TEXTOPTION_ALIGNMENT 1
+//	Tracking set flag
 #define TEXTOPTION_TRACKING 2
 
 	struct TextOptions
 	{
+		//	Bitmask of which options are active. See TEXTOPTION_* macros
 		uint8_t flags = 0;
+		//	Text alignment
 		TEXTALIGNMENT alignment = TXTA_LEFT;
+		//	Text tracking
 		int tracking = 0;
 
+		//	Default constructor. Initializes to no settings set with 0 tracking and left aligned.
 		TextOptions();
+
+		//	Constructs with the given flags with 0 tracking and left aligned.
 		TextOptions(int f);
 	};
 
@@ -93,59 +101,125 @@ namespace dv3d
 	//	Static text is text rendered to a texture and drawn on a single quad
 	struct StaticText
 	{
+		//	Width of the text quad
 		GLfloat textWidth;
+		//	Height of the text quad
 		GLfloat textHeight;
+		//	Quad texture ID
 		GLuint textTexture;
+		//	Text options used to create this StaticText
 		TextOptions textOptions;
 	};
 
 	class TextRenderer
 	{
+		//	Loaded fonts
 		packed_freelist<std::unique_ptr<FontEntry>> _fonts;
+		//	Resource manager to load fonts from
 		resman::ResourceManager* _resManager;
+		//	Shader manager to use
 		ShaderManager* _shdrManager;
+		//	FreeType library instance
 		FT_Library ft;
+		//	Width of the screen, for 2D drawing
 		int screenWidth;
+		//	Height of the screen, for 2D drawing
 		int screenHeight;
+		//	Projection matrix for 2D drawing
 		glm::fmat4 projView;
+		//	VAO for single quad
 		GLuint quadVertexArray = 0;
+		//	VBO for single quad
 		GLuint quadVertexBuffer = 0;
+		//	VAO for ASCII drawing
 		GLuint asciiQuadVertexArray = 0;
+		//	VBO for ASCII drawing
 		GLuint asciiQuadVertexBuffer = 0;
+		//	Index buffer for ASCII drawing
 		GLuint asciiQuadIndexBuffer = 0;
-
+		//	Shader handle for 2D drawing
 		GLPROGHANDLE h2dTextShader = 0;
-
+		//	Constructed static text instances
 		packed_freelist<StaticText> _staticText;
 
-		static void InitFont(FontEntry* entry, FONTSIZE fontSize);
-		static void CreateAsciiAtlas(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize);
-		static void LoadExtGlyph(FontEntry* fontEntry, FontSizeEntry* entry, FONTSIZE fontSize, uint32_t codepoint);
-		static bool IsGlyphLoaded(FontEntry* fontEntry, FONTSIZE fontSize, uint32_t codepoint);
+		//	Initializes a font for a given fontsize, creating its data structures and the ASCII atlas
+		static void InitFont(FontEntry* entry,
+			FONTSIZE fontSize
+		);
+		//	Creates an ASCII atlas for a given font size
+		static void CreateAsciiAtlas(FontEntry* fontEntry, 
+			FontSizeEntry* entry, 
+			FONTSIZE fontSize
+		);
 
+		//	Loads an ext glyph (codepoint > 127) for a given font size
+		static void LoadExtGlyph(FontEntry* fontEntry, 
+			FontSizeEntry* entry, 
+			FONTSIZE fontSize, 
+			uint32_t codepoint
+		);
+
+		//	Checks if the glyph for the given codepoint is loaded
+		static bool IsGlyphLoaded(FontEntry* fontEntry, 
+			FONTSIZE fontSize, 
+			uint32_t codepoint
+		);
+
+		//	Checks if the string contains multibyte UTF8 characters
 		static bool hasMultiByteUTF8(const std::string &text);
 
+		//	Buffers an ASCII character into the given buffer at the given position
 		static bool BufferASCIICharacter(GLfloat x, GLfloat y, GLfloat z, 
 			FontSizeEntry* fontSz, Character* ch, 
 			std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices, 
 			size_t vertexNumber
 		);
+
+		//	Renders the ASCII VAO with the given vertex data populated by BufferASCIICharacter calls
 		void RenderASCIICharacterBuffer(std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices) const;
 
+		//	Counts the number of newlines in a given string
 		static size_t CountNewlines(const std::string &text);
 	public:
+		//	Constructor
 		explicit TextRenderer(resman::ResourceManager* resMan, ShaderManager* shdrManager);
+
+		//	Destructor
 		~TextRenderer();
+
+		//	Creates various internal OpenGL objects. Should be called once the OpenGL context is created (BUT NOT BEFORE)
 		void PostRendererInit();
+
+		//	Loads a given font
 		FONTHANDLE LoadFont(const resman::ResourceRequest &request);
+
+		//	Creates a static text instance that can be drawn by passing the returned STATICTEXTHANDLE to DrawStaticText2D()
+		//	Be sure to destroy it after it is no longer needed using ReleaseStaticText()
 		STATICTEXTHANDLE CreateStaticText(FONTHANDLE handle, const std::string &text, FONTSIZE fontSize, TextOptions options = 0);
+		
+		//	Update the screen size. Call after viewport resize
 		void UpdateScreenSize(int width, int height);
+
+		//	Draws a static text instance at the given position with the optionally specified color (defaults to white)
 		void DrawStaticText2D(STATICTEXTHANDLE hStaticText, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF);
+
+		//	Draws the given text at the given position with the optionally specified color and text options. Defaults to white, 0 leading, left aligned.
 		void DrawDynamicText2D(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF, TextOptions options = 0);
+
+		//	Gets the pixel width of the given static text instance
 		GLfloat GetStaticTextWidth(STATICTEXTHANDLE hStaticText) const;
+		
+		//	Gets the pixel width of the given text with the optionally specified text options. Defaults to 0 leading, left aligned.
 		GLfloat GetDynamicTextWidth(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, TextOptions options = 0) const;
+
+		//	Gets the pixel width of the given text per line with the optionall specified text options. The 0th entry in the out vector will be the maximum width of the text (max of all the lines), 
+		//	and each subsequent entry is the width of the corresponding line. Defaults to 0 leading, left aligned (alignment does not affect text width).
 		void GetDynamicTextWidthPerLine(OUT std::vector<GLfloat> &out, FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, TextOptions options = 0) const;
+		
+		//	Releases a given static text instance. The STATICTEXTHANDLE should be discarded and should not be passed to other StaticText methods.
 		void ReleaseStaticText(STATICTEXTHANDLE hStaticText);
+
+		//	Unloads a given loaded font.
 		void UnloadFont(FONTHANDLE hFont);
 	};
 
