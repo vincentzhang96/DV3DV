@@ -373,12 +373,31 @@ dv3d::STATICTEXTHANDLE dv3d::TextRenderer::CreateStaticText(FONTHANDLE hFont, co
 	}
 	GLfloat x = 0;
 	GLfloat y = 0;
-	GLfloat width = GetDynamicTextWidth(hFont, text, fontSize, options) + 1.0F;	//	Add padding pixel
+	GLfloat xOrigin = 0;
 	auto font = _fonts[hFont].get();
 	InitFont(font, fontSize);
 	auto fontSz = &font->sizes[fontSize];
+	GLfloat width = GetDynamicTextWidth(hFont, text, fontSize, options) + 1.0F;	//	Add padding pixel
+	
+	if (options.flags & TEXTOPTION_ALIGNMENT)
+	{
+		switch (options.alignment)
+		{
+		case TXTA_RIGHT:
+			xOrigin = width;
+			break;
+		case TXTA_CENTER:
+			xOrigin = width / 2.0F;
+			break;
+		case TXTA_LEFT:
+		default:
+			break;
+		}
+	}
+	size_t numLines = CountNewlines(text);
+	GLfloat height = (numLines + 1) * fontSize;
 	StaticText stext;
-	stext.textHeight = fontSize * 2.0F;
+	stext.textHeight = height;
 	stext.textWidth = width;
 	stext.textOptions = options;
 	glGenTextures(1, &stext.textTexture);
@@ -400,11 +419,21 @@ dv3d::STATICTEXTHANDLE dv3d::TextRenderer::CreateStaticText(FONTHANDLE hFont, co
 	glBindTexture(GL_TEXTURE_2D, 0);
 	std::vector<uint32_t> asUtf32;
 	size_t len = text.length();
+	std::vector<GLfloat> lineWidths;
+	GLfloat maxWidth = GetDynamicTextWidthPerLine(lineWidths, hFont, text, fontSize, options);
+	size_t lineNum = 0;
+	x = GetLineOffset(options, xOrigin, lineWidths, lineNum);
 	utf8::unchecked::utf8to32(text.data(), text.data() + len, std::back_inserter(asUtf32));
 	for (auto codepoint : asUtf32)
 	{
+		if (codepoint == 0x0A)
+		{
+			y += fontSize;
+			++lineNum;
+			x = GetLineOffset(options, xOrigin, lineWidths, lineNum);
+			continue;
+		}
 		Character ch;
-
 		bool isExt = codepoint > 0x7F;
 		if (!isExt)
 		{
@@ -480,21 +509,8 @@ void dv3d::TextRenderer::DrawStaticText2D(STATICTEXTHANDLE hStaticText, GLfloat 
 	glUniformMatrix4fv(3, 1, GL_FALSE, glm::value_ptr(projView));
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, text.textTexture);
-	if (text.textOptions.flags & TEXTOPTION_ALIGNMENT)
-	{
-		switch (text.textOptions.alignment)
-		{
-		case TXTA_RIGHT:
-			x -= text.textWidth;
-			break;
-		case TXTA_CENTER:
-			x -= text.textWidth / 2.0F;
-			break;
-		case TXTA_LEFT:
-		default:
-			break;
-		}
-	}
+	std::vector<GLfloat> vec = { text.textWidth };
+	x = GetLineOffset(text.textOptions, x, vec, 0);
 	GLfloat verts[4][3 + 2] = {
 		{ x, y - text.textHeight / 2.0F, z, 0.0F, 0.0F },
 		{ x, y + text.textHeight / 2.0F, z, 0.0F, 1.0F },
