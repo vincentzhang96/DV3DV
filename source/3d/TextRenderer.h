@@ -180,6 +180,9 @@ namespace dv3d
 
 		//	Counts the number of newlines in a given string
 		static size_t CountNewlines(const std::string &text);
+		
+		//	Sets the line offset for the current line
+		static GLfloat GetLineOffset(TextOptions options, GLfloat xOrigin, std::vector<GLfloat> &lineWidths, size_t lineNum);
 	public:
 		//	Constructor
 		explicit TextRenderer(resman::ResourceManager* resMan, ShaderManager* shdrManager);
@@ -212,9 +215,9 @@ namespace dv3d
 		//	Gets the pixel width of the given text with the optionally specified text options. Defaults to 0 leading, left aligned.
 		GLfloat GetDynamicTextWidth(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, TextOptions options = 0) const;
 
-		//	Gets the pixel width of the given text per line with the optionall specified text options. The 0th entry in the out vector will be the maximum width of the text (max of all the lines), 
-		//	and each subsequent entry is the width of the corresponding line. Defaults to 0 leading, left aligned (alignment does not affect text width).
-		void GetDynamicTextWidthPerLine(OUT std::vector<GLfloat> &out, FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, TextOptions options = 0) const;
+		//	Gets the pixel width of the given text per line with the optionall specified text options. The return value will be the maximum width of the text (max of all the lines), 
+		//	and each vector entry is the width of the corresponding line. Defaults to 0 leading, left aligned (alignment does not affect text width).
+		GLfloat GetDynamicTextWidthPerLine(OUT std::vector<GLfloat> &out, FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, TextOptions options = 0) const;
 		
 		//	Releases a given static text instance. The STATICTEXTHANDLE should be discarded and should not be passed to other StaticText methods.
 		void ReleaseStaticText(STATICTEXTHANDLE hStaticText);

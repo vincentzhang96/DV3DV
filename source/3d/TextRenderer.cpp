@@ -278,6 +278,8 @@ dv3d::TextRenderer::TextRenderer(resman::ResourceManager* resMan, ShaderManager*
 		LOG(WARNING) << "Failed to init freetype";
 		throw "Failed to init FT";
 	}
+	screenWidth = 0;
+	screenHeight = 0;
 }
 
 dv3d::TextRenderer::~TextRenderer()
@@ -506,6 +508,27 @@ void dv3d::TextRenderer::DrawStaticText2D(STATICTEXTHANDLE hStaticText, GLfloat 
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 }
 
+GLfloat dv3d::TextRenderer::GetLineOffset(dv3d::TextOptions options, GLfloat xOrigin, std::vector<GLfloat> &lineWidths, size_t lineNum)
+{
+	if (options.flags & TEXTOPTION_ALIGNMENT)
+	{
+		switch (options.alignment)
+		{
+		case TXTA_RIGHT:
+			return xOrigin - lineWidths[lineNum];
+			break;
+		case TXTA_CENTER:
+			return xOrigin - (lineWidths[lineNum] / 2.0F);
+			break;
+		case TXTA_LEFT:
+		default:
+			return xOrigin;
+			break;
+		}
+	}
+	return xOrigin;
+}
+
 void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& text, const FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z, uint32_t color, TextOptions options)
 {
 	GLfloat xOrigin = x;
@@ -530,24 +553,10 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 		tracking = (options.tracking / 1000.0F) * fontSize;
 	}
 
-
-	if (options.flags & TEXTOPTION_ALIGNMENT)
-	{
-		switch (options.alignment)
-		{
-		case TXTA_RIGHT:
-			x -= GetDynamicTextWidth(hFont, text, fontSize, options);
-			break;
-		case TXTA_CENTER:
-			x -= GetDynamicTextWidth(hFont, text, fontSize, options) / 2.0F;
-			break;
-		case TXTA_LEFT:
-		default:
-			break;
-		}
-	}
-
-
+	std::vector<GLfloat> lineWidths;
+	GLfloat maxWidth = GetDynamicTextWidthPerLine(lineWidths, hFont, text, fontSize, options);
+	size_t lineNum = 0;
+	x = GetLineOffset(options, xOrigin, lineWidths, lineNum);
 	if (!hasMultibyte)
 	{
 		//	Text consists only of the first 128 characters (0-127)
@@ -559,6 +568,13 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 		size_t vertexNumber = 0;
 		for (c = text.begin(); c != text.end(); ++c)
 		{
+			if (*c == 0x0A)
+			{
+				y -= fontSize;
+				++lineNum;
+				x = GetLineOffset(options, xOrigin, lineWidths, lineNum);
+				continue;
+			}
 			Character ch = fontSz->asciiChars[uint32_t(*c) & 0xFFu];
 			if (BufferASCIICharacter(x, y, z, fontSz, &ch, &vertexData, &indices, vertexNumber))
 			{
@@ -584,6 +600,13 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 		GLfloat asciiX = x;
 		for (auto codepoint : asUtf32)
 		{
+			if (codepoint == 0x0A)
+			{
+				y += fontSize;
+				++lineNum;
+				x = GetLineOffset(options, xOrigin, lineWidths, lineNum);
+				continue;
+			}
 			Character ch;
 			bool isExt = codepoint > 0x7F;
 			if (!isExt)
@@ -621,6 +644,13 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 		glBindVertexArray(quadVertexArray);
 		for (auto codepoint : asUtf32)
 		{
+			if (codepoint == 0x0A)
+			{
+				y += fontSize;
+				++lineNum;
+				x = GetLineOffset(options, xOrigin, lineWidths, lineNum);
+				continue;
+			}
 			Character ch;
 			if (codepoint < 128)
 			{
@@ -677,11 +707,10 @@ GLfloat dv3d::TextRenderer::GetStaticTextWidth(STATICTEXTHANDLE hStaticText) con
 GLfloat dv3d::TextRenderer::GetDynamicTextWidth(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, TextOptions options) const
 {
 	std::vector<GLfloat> ret(2);
-	GetDynamicTextWidthPerLine(ret, hFont, text, fontSize, options);
-	return ret.at(0);
+	return GetDynamicTextWidthPerLine(ret, hFont, text, fontSize, options);
 }
 
-void dv3d::TextRenderer::GetDynamicTextWidthPerLine(std::vector<GLfloat> &out, FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, TextOptions options) const
+GLfloat dv3d::TextRenderer::GetDynamicTextWidthPerLine(std::vector<GLfloat> &out, FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, TextOptions options) const
 {
 	GLfloat max = 0;
 	GLfloat x = 0;
@@ -693,7 +722,6 @@ void dv3d::TextRenderer::GetDynamicTextWidthPerLine(std::vector<GLfloat> &out, F
 	{
 		tracking = (options.tracking / 1000.0F) * fontSize;
 	}
-	out.push_back(0);	//	placeholder for max width
 	//	Optimize for the common case, single byte UTF8 means we don't need to expand to UTF32 and can also take advantage of the ASCII texture atlas.
 	bool hasMultibyte = hasMultiByteUTF8(text);
 	if (!hasMultibyte)
@@ -711,6 +739,7 @@ void dv3d::TextRenderer::GetDynamicTextWidthPerLine(std::vector<GLfloat> &out, F
 					max = x;
 				}
 				x = 0;
+				continue;
 			}
 			Character ch = fontSz->asciiChars[uint32_t(*c) & 0xFFu];
 			x += (ch.pxAdvance >> 6) + tracking;
@@ -733,6 +762,7 @@ void dv3d::TextRenderer::GetDynamicTextWidthPerLine(std::vector<GLfloat> &out, F
 					max = x;
 				}
 				x = 0;
+				continue;
 			}
 			Character ch;
 			if (codepoint < 128)
@@ -755,10 +785,13 @@ void dv3d::TextRenderer::GetDynamicTextWidthPerLine(std::vector<GLfloat> &out, F
 			x += (ch.pxAdvance >> 6) + tracking;
 		}
 	}
+	if (x > max)
+	{
+		max = x;
+	}
 	//	Final line
 	out.push_back(x);
-	//	Update max
-	out[0] = max;
+	return max;
 }
 
 void dv3d::TextRenderer::ReleaseStaticText(STATICTEXTHANDLE hStaticText)
