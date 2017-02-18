@@ -143,7 +143,8 @@ namespace dv3d
 		void DrawStaticText2D(STATICTEXTHANDLE hStaticText, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF);
 		void DrawDynamicText2D(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, GLfloat x, GLfloat y, GLfloat z = 0, uint32_t color = 0xFFFFFFFF, TextOptions options = 0);
 		GLfloat GetStaticTextWidth(STATICTEXTHANDLE hStaticText) const;
-		GLfloat GetDynamicTextWidth(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, TextOptions options = 0);
+		GLfloat GetDynamicTextWidth(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, TextOptions options = 0) const;
+		void GetDynamicTextWidthPerLine(OUT std::vector<GLfloat> &out, FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, TextOptions options = 0) const;
 		void ReleaseStaticText(STATICTEXTHANDLE hStaticText);
 		void UnloadFont(FONTHANDLE hFont);
 	};
