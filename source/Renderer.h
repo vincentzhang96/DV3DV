@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Scene.h"
+#include "3d/ShaderManager.h"
+#include "3d/TextureManager.h"
 
 class Renderer
 {
@@ -13,8 +15,10 @@ private:
 
 	GLuint finalOutputFbo;
 
+	Scene* _currentScene;
 
 public:
+
 	Renderer();
 	~Renderer();
 

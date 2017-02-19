@@ -130,6 +130,7 @@ bool OpenGLContext::CreateContext(HWND hWnd)
 		return false;
 	}
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	wglSwapIntervalEXT(0);
 	return true;
 }
 

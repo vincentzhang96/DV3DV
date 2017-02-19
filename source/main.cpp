@@ -5,9 +5,8 @@
 #include "ppac/PhoenixPAC.h"
 #include "dn/pak/DnPak.h"
 #include "ResourceManager.h"
-#include "3d/TextureManager.h"
-#include "3d/ShaderManager.h"
 #include "3d/TextRenderer.h"
+#include "Application.h"
 
 INITIALIZE_EASYLOGGINGPP
 INIT_PPAC_LOGGER
@@ -30,16 +29,7 @@ using json = nlohmann::json;
 
 std::unique_ptr<resman::ResourceManager> mResManager;
 
-std::unique_ptr<dv3d::TextureManager> dv3dmTexManager;
-std::unique_ptr<dv3d::ShaderManager> dv3dmShaderManager;
-
-//	TODO TEMP
-std::unique_ptr<dv3d::TextRenderer> dv3drTextRenderer;
-dv3d::FONTHANDLE hFont;
-dv3d::FONTHANDLE hFontGeo;
-dv3d::FONTHANDLE hFontKR;
-dv3d::FONTHANDLE hFontJP;
-dv3d::STATICTEXTHANDLE hStaticText;
+std::unique_ptr<DivinitorApp> mApp;
 
 #define TPUID_ICON ppac::TPUID(0x0205, 0x0000, 0x00000001)
 #define TPUID_SPLASH ppac::TPUID(0x0206, 0x0000, 0x00000001)
@@ -79,8 +69,10 @@ void OnWindowResize(int newWidth, int newHeight)
 	LOG(TRACE) << "Window resized to " << newWidth << "x" << newHeight;
 
 	//	TODO resetup stuff
-	//	TODO TEMP
-	dv3drTextRenderer->UpdateScreenSize(newWidth, newHeight);
+	if (mApp)
+	{
+		mApp->OnViewportResized(newWidth, newHeight);
+	}
 }
 
 void OnKeyDown(int keyCode)
@@ -136,37 +128,8 @@ inline bool _DoMainLoop()
 	{
 		//	Inner loop
 		oglContext->PreRender();
-		//	TODO Render stuff
-		dv3drTextRenderer->DrawDynamicText2D(hFontGeo, "Font: Geomanist", 24, 200, 600, 0, 0xFF98BCD4);
-		dv3drTextRenderer->DrawDynamicText2D(hFontGeo, "DIVINITOR FONT RENDERER TEST", 12, 200, 580, 0, 0xFF3B6E96);
-		dv3drTextRenderer->DrawDynamicText2D(hFontGeo, "divinitor font renderer test", 12, 200, 560, 0, 0xFFA6AEB3);
-
-		dv3drTextRenderer->DrawDynamicText2D(hFont, "Font: Lato", 24, 200, 500, 0, 0xFF98BCD4);
-		dv3drTextRenderer->DrawDynamicText2D(hFont, "DIVINITOR FONT RENDERER TEST", 12, 200, 480, 0, 0xFF3B6E96);
-		dv3drTextRenderer->DrawDynamicText2D(hFont, "divinitor font renderer test", 12, 200, 460, 0, 0xFFA6AEB3);
-		dv3drTextRenderer->DrawDynamicText2D(hFont, u8"divinitor DIVINITOR FONT R\u0204ND\u0204R\u0204R T\u0204ST", 18, 200, 440, 0, 0xFFA6AEB3);
-		dv3drTextRenderer->DrawDynamicText2D(hFont, u8"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\u0204", 18, 200, 420, 0, 0xFFA6AEB3);
-
-		std::string testText = u8"CENTER ALIGNED TEXT";
-		dv3drTextRenderer->DrawDynamicText2D(hFont, testText, 18, 200, 400, 0, 0xFFA6AEB3, dv3d::textOptionAlignment(dv3d::TXTA_CENTER));
-		std::string testText2 = u8"RIGHT ALIGNED TEXT";
-		dv3drTextRenderer->DrawDynamicText2D(hFont, testText2, 18, 200, 380, 0, 0xFFA6AEB3, dv3d::textOptionAlignment(dv3d::TXTA_RIGHT));
-
-		dv3drTextRenderer->DrawStaticText2D(hStaticText, 300, 360, 0, 0xFFA6AEB3);
-
-
-		dv3drTextRenderer->DrawDynamicText2D(hFontKR, "Font: Nanum (KR)", 24, 200, 300, 0, 0xFF98BCD4);
-		dv3drTextRenderer->DrawDynamicText2D(hFontKR, "DIVINITOR FONT RENDERER TEST", 12, 200, 280, 0, 0xFF3B6E96);
-		dv3drTextRenderer->DrawDynamicText2D(hFontKR, u8"divinitor DIVINITOR \uAE00\uAF34 \uB80C\uB354\uB7EC \uD14C\uC2A4\uD2B8", 18, 200, 260, 0, 0xFFA6AEB3);
-
-		dv3drTextRenderer->DrawDynamicText2D(hFontJP, "Font: Jun Pro (JP)", 24, 200, 200, 0, 0xFF98BCD4);
-		dv3drTextRenderer->DrawDynamicText2D(hFontJP,
-			u8"divinitor DIVINITOR\u65E5\u672C\u8A9E\u304C\u5927\u597D\u304D\u3060\uFF01\u30B3\u30FC\u30D2\u30FC\u304C\u8FFD\u3044\u3057\u3067\u3059\u3002",
-			14, 200, 180, 0, 0xFF3B6E96);
-
+		mApp->Draw();
 		oglContext->PostRender();
-		//	TODO Clock this
-		Sleep(10);
 	}
 	return false;
 }
@@ -339,11 +302,11 @@ void _ParseCommandLineFlag(DV3DVConfig& config, LPWSTR* argv, int argc, int i)
 
 void _drawSplash()
 {
-	auto splashTex = dv3dmTexManager->LoadAndGet(TPUID_SPLASH);
-	auto hSplashShdr = dv3dmShaderManager->NewProgram();
-	dv3dmShaderManager->AttachAndCompileShader(hSplashShdr, TPUID_SPLASH_VERT_SHDR);
-	dv3dmShaderManager->AttachAndCompileShader(hSplashShdr, TPUID_SPLASH_FRAG_SHDR);
-	bool shdrOk = dv3dmShaderManager->LinkAndFinishProgram(hSplashShdr);
+	auto splashTex = mApp->_textureManager->LoadAndGet(TPUID_SPLASH);
+	auto hSplashShdr = mApp->_shaderManager->NewProgram();
+	mApp->_shaderManager->AttachAndCompileShader(hSplashShdr, TPUID_SPLASH_VERT_SHDR);
+	mApp->_shaderManager->AttachAndCompileShader(hSplashShdr, TPUID_SPLASH_FRAG_SHDR);
+	bool shdrOk = mApp->_shaderManager->LinkAndFinishProgram(hSplashShdr);
 	if (splashTex.first && shdrOk)
 	{
 		//	Textured quad
@@ -387,7 +350,7 @@ void _drawSplash()
 		oglContext->PreRender();
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		auto prog = dv3dmShaderManager->Get(hSplashShdr);
+		auto prog = mApp->_shaderManager->Get(hSplashShdr);
 		glUseProgram(prog);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, splashTex.second);
@@ -402,8 +365,8 @@ void _drawSplash()
 
 		glDeleteVertexArrays(1, &vao);
 		glDeleteBuffers(2, vbo);
-		dv3dmTexManager->Unload(splashTex.first);
-		dv3dmShaderManager->Unload(hSplashShdr);
+		mApp->_textureManager->Unload(splashTex.first);
+		mApp->_shaderManager->Unload(hSplashShdr);
 	}
 	else
 	{
@@ -462,10 +425,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	LOG(INFO) << "Starting...";
 	//	Init asset manager
 	mResManager = std::make_unique<resman::ResourceManager>();
-	dv3dmTexManager = std::make_unique<dv3d::TextureManager>(mResManager.get());
-	dv3dmShaderManager = std::make_unique<dv3d::ShaderManager>(mResManager.get());
-	//	TODO TEMPORARY
-	dv3drTextRenderer = std::make_unique<dv3d::TextRenderer>(mResManager.get(), dv3dmShaderManager.get());
+	//	Init application
+	mApp = std::make_unique<DivinitorApp>(mResManager.get());
 	//	Load init
 	mResManager->_ppacManager.LoadPPAC(L"init.ppac");
 	//	Create the window
@@ -478,17 +439,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	_drawSplash();
 	//	Load data directory
 	mResManager->_ppacManager.LoadDir(L"data");
-
-
-	dv3drTextRenderer->PostRendererInit();
-	hFont = dv3drTextRenderer->LoadFont(ppac::TPUID(0x0500, 0x0001, 0x00000100));
-	hFontGeo = dv3drTextRenderer->LoadFont(ppac::TPUID(0x0501, 0x0001, 0x00000200));
-	hFontKR = dv3drTextRenderer->LoadFont(ppac::TPUID(0x0500, 0x0001, 0x00000300));
-	hFontJP = dv3drTextRenderer->LoadFont(ppac::TPUID(0x0501, 0x0001, 0x00000400));
-	hStaticText = dv3drTextRenderer->CreateStaticText(hFont, "Divinitor font renderer test", 24, dv3d::textOptionTracking(200));
-
 	//	Prep for main loop
 	auto exitLoop = false;
+	mApp->FirstFrameInit();
 	//	Main loop
 	LOG(INFO) << "Entering main loop";
 	while (!exitLoop)
@@ -499,9 +452,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	KillOGLWindow();
 	//	Shut down managers
 	//	TODO TEMP
-	dv3drTextRenderer.reset();
-	dv3dmTexManager.reset();
-	dv3dmShaderManager.reset();
+	mApp.reset();
 	mResManager.reset();
 
 	LOG(INFO) << "Shutdown complete";

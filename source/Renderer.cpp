@@ -12,6 +12,9 @@ Renderer::~Renderer()
 
 void Renderer::Init(Scene* scene)
 {
+	_currentScene = scene;
+
+	//	TODO process
 }
 
 void Renderer::Resize(int width, int height)

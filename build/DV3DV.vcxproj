@@ -157,6 +157,7 @@
     <ClCompile Include="..\source\3d\ShaderManager.cpp" />
     <ClCompile Include="..\source\3d\TextRenderer.cpp" />
     <ClCompile Include="..\source\3d\TextureManager.cpp" />
+    <ClCompile Include="..\source\Application.cpp" />
     <ClCompile Include="..\source\dn\pak\DnPak.cpp" />
     <ClCompile Include="..\source\main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
@@ -171,11 +172,13 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\source\UserInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\source\3d\ShaderManager.h" />
     <ClInclude Include="..\source\3d\TextRenderer.h" />
     <ClInclude Include="..\source\3d\TextureManager.h" />
+    <ClInclude Include="..\source\Application.h" />
     <ClInclude Include="..\source\dn\pak\DnPak.h" />
     <ClInclude Include="..\source\main.h" />
     <ClInclude Include="..\source\OpenGLContext.h" />
@@ -185,6 +188,7 @@
     <ClInclude Include="..\source\Scene.h" />
     <ClInclude Include="..\source\stdafx.h" />
     <ClInclude Include="..\source\targetver.h" />
+    <ClInclude Include="..\source\UserInterface.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
