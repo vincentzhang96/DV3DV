@@ -618,9 +618,9 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 		{
 			if (codepoint == 0x0A)
 			{
-				y += fontSize;
+				y -= fontSize;
 				++lineNum;
-				x = GetLineOffset(options, xOrigin, lineWidths, lineNum);
+				asciiX = GetLineOffset(options, xOrigin, lineWidths, lineNum);
 				continue;
 			}
 			Character ch;
@@ -662,7 +662,7 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 		{
 			if (codepoint == 0x0A)
 			{
-				y += fontSize;
+				y -= fontSize;
 				++lineNum;
 				x = GetLineOffset(options, xOrigin, lineWidths, lineNum);
 				continue;
