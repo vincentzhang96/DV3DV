@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Application.h"
 #include "UserInterface.h"
+#include "ui/UiBootstrap.h"
 
 UserInterface::UserInterface(DivinitorApp* app)
 	: _app(app), _size(0, 0)
@@ -10,6 +11,7 @@ UserInterface::UserInterface(DivinitorApp* app)
 	_screenFboColorTex = 0;
 	_screenRbo = 0;
 	_screenQuadVao = 0;
+	_activeScreen = nullptr;
 }
 
 UserInterface::~UserInterface()
@@ -61,6 +63,11 @@ void UserInterface::Init()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+
+	//	Bootstrap UI
+	
+	_activeScreen = new UiBootstrap(_app);
+
 }
 
 void UserInterface::Draw(float deltaTime)
@@ -71,9 +78,10 @@ void UserInterface::Draw(float deltaTime)
 	glEnable(GL_DEPTH_TEST);
 	glViewport(0, 0, _size.x, _size.y);
 	//	Draw screen
-
-
-
+	if (_activeScreen)
+	{
+		_activeScreen->Draw(deltaTime);
+	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	auto prog = _app->_shaderManager->Get(_screenFboProg);
 	glUseProgram(prog);
@@ -133,4 +141,9 @@ void UserInterface::Resize(int width, int height)
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
+}
+
+glm::ivec2 UserInterface::GetScreenSize() const
+{
+	return _size;
 }

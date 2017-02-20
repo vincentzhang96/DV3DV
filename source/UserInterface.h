@@ -1,5 +1,6 @@
 #pragma once
 #include "3d/ShaderManager.h"
+#include "ui/UIScreen.h"
 
 class DivinitorApp;
 
@@ -16,6 +17,8 @@ class UserInterface
 
 	glm::ivec2 _size;
 
+	UIScreen* _activeScreen;
+
 public:
 	explicit UserInterface(DivinitorApp* app);
 	~UserInterface();
@@ -25,4 +28,6 @@ public:
 	void Draw(float deltaTime);
 
 	void Resize(int width, int height);
+
+	glm::ivec2 GetScreenSize() const;
 };

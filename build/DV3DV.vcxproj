@@ -172,6 +172,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\source\ui\UiBootstrap.cpp" />
     <ClCompile Include="..\source\UserInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -188,6 +189,8 @@
     <ClInclude Include="..\source\Scene.h" />
     <ClInclude Include="..\source\stdafx.h" />
     <ClInclude Include="..\source\targetver.h" />
+    <ClInclude Include="..\source\ui\UiBootstrap.h" />
+    <ClInclude Include="..\source\ui\UIScreen.h" />
     <ClInclude Include="..\source\UserInterface.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
