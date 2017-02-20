@@ -68,6 +68,9 @@ void DivinitorApp::FirstFrameInit()
 
 	//	Fudge our time
 	UpdateTime();
+
+	//	Init UI
+	_userInterface->Init();
 }
 
 void DivinitorApp::Draw()

@@ -5,7 +5,6 @@
 #include "ppac/PhoenixPAC.h"
 #include "dn/pak/DnPak.h"
 #include "ResourceManager.h"
-#include "3d/TextRenderer.h"
 #include "Application.h"
 
 INITIALIZE_EASYLOGGINGPP

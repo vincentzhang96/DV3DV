@@ -4,7 +4,6 @@
 #include "Renderer.h"
 #include "3d/TextRenderer.h"
 
-
 class DivinitorApp
 {
 	resman::ResourceManager* _resMan;

@@ -37,3 +37,12 @@ OUTPUT=../runtime/data/core.ppac
 # Big spinner
 0x0206,0x0800,0x00000001=core/ui/shared/spinner/spinner_big_rotator.dds
 0x0206,0x0800,0x00000002=core/ui/shared/spinner/spinner_big_center.dds
+
+
+# Default Shaders
+# Vertex shader for vertices in NDC, with texture coords
+0x0107,0x0100,0x00000001=core/shader/ndc_textured.vert.glsl
+
+
+# Fragment shader for UI FBO
+0x0108,0x0101,0x00000001=core/shader/ui_fbo.frag.glsl
