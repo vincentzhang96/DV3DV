@@ -3,10 +3,8 @@
 
 
 UiBootstrap::UiBootstrap(DivinitorApp* app) :
-	_app(app)
-{
-	_ui = _app->_userInterface;
-	_text = _app->_textRenderer;
+	UIScreen(app)
+{;
 }
 
 UiBootstrap::~UiBootstrap()

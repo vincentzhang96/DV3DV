@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "Application.h"
-
+#include "UserInterface.h"
 
 float DivinitorApp::UpdateTime()
 {

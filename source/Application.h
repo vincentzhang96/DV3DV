@@ -1,8 +1,9 @@
 #pragma once
-#include "UserInterface.h"
 #include "ResourceManager.h"
 #include "Renderer.h"
 #include "3d/TextRenderer.h"
+
+class UserInterface;
 
 class DivinitorApp
 {

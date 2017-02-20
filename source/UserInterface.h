@@ -1,8 +1,24 @@
 #pragma once
+#include "Application.h"
 #include "3d/ShaderManager.h"
-#include "ui/UIScreen.h"
+#include "3d/TextRenderer.h"
 
-class DivinitorApp;
+class UserInterface;
+
+class UIScreen
+{
+
+public:
+	DivinitorApp* _app;
+	UserInterface* _ui;
+	dv3d::TextRenderer* _text;
+	explicit UIScreen(DivinitorApp* app);
+
+	virtual ~UIScreen() {}
+
+	virtual void Draw(float deltaT) = 0;
+};
+
 
 class UserInterface
 {

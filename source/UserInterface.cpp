@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include "Application.h"
 #include "UserInterface.h"
 #include "ui/UiBootstrap.h"
 
@@ -146,4 +145,10 @@ void UserInterface::Resize(int width, int height)
 glm::ivec2 UserInterface::GetScreenSize() const
 {
 	return _size;
+}
+
+UIScreen::UIScreen(DivinitorApp* app) : _app(app)
+{
+	_ui = _app->_userInterface;
+	_text = _app->_textRenderer;
 }

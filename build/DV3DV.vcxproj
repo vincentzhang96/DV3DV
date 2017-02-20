@@ -190,7 +190,6 @@
     <ClInclude Include="..\source\stdafx.h" />
     <ClInclude Include="..\source\targetver.h" />
     <ClInclude Include="..\source\ui\UiBootstrap.h" />
-    <ClInclude Include="..\source\ui\UIScreen.h" />
     <ClInclude Include="..\source\UserInterface.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
