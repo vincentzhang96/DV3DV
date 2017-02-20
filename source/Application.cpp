@@ -4,28 +4,25 @@
 
 float DivinitorApp::UpdateTime()
 {
-	uint64_t deltaTMs = 0;
-	uint64_t nowMs;
-	do
-	{
-		nowMs = GetSystemTimeMillis();
-		deltaTMs = nowMs - _lastFrameTimeMs;
-	} while (deltaTMs < 1);
+	uint64_t deltaNs = 0;
+	uint64_t nowNs;
+	nowNs = GetSystemTimeNanos();
+	deltaNs = nowNs - _lastFrameTimeNs;
 	//	Calculate deltaT
-	_lastFrameTimeMs = nowMs;
-	_lastFrameDrawTimeMs = deltaTMs;
-	uint64_t timeSinceFPSUpdate = nowMs - _lastFPSUpdateTime;
+	_lastFrameTimeNs = nowNs;
+	_lastFrameDrawTimeMs = deltaNs / 1e6F;
+	uint64_t timeSinceFPSUpdate = nowNs - _lastFPSUpdateTime;
 	++_fpsFrameCounter;
-	if (timeSinceFPSUpdate >= 1000)
+	if (timeSinceFPSUpdate >= 1e9)
 	{
-		_lastFps = float(_fpsFrameCounter) / (timeSinceFPSUpdate / 1000.0F);
+		_lastFps = float(_fpsFrameCounter) / (timeSinceFPSUpdate / 1e9F);
 		_fpsFrameCounter = 0;
-		_lastFPSUpdateTime = nowMs;
+		_lastFPSUpdateTime = nowNs;
 	}
-	return deltaTMs / 1000.0F;
+	return deltaNs / 1e9F;
 }
 
-uint64_t DivinitorApp::GetSystemTimeMillis()
+uint64_t DivinitorApp::GetSystemTimeNanos()
 {
 	SYSTEMTIME currTime;
 	GetSystemTime(&currTime);
@@ -34,7 +31,7 @@ uint64_t DivinitorApp::GetSystemTimeMillis()
 	ULARGE_INTEGER uTime;
 	uTime.HighPart = currFTime.dwHighDateTime;
 	uTime.LowPart = currFTime.dwLowDateTime;
-	return uTime.QuadPart / 10000;
+	return uTime.QuadPart * 100;
 }
 
 DivinitorApp::DivinitorApp(resman::ResourceManager* resman) 
@@ -46,7 +43,7 @@ DivinitorApp::DivinitorApp(resman::ResourceManager* resman)
 	_textRenderer = new dv3d::TextRenderer(_resMan, _shaderManager);
 	_scene = nullptr;
 	_userInterface = new UserInterface(this);
-	_lastFrameTimeMs = 0;
+	_lastFrameTimeNs = 0;
 	_lastFPSUpdateTime = 0;
 
 }

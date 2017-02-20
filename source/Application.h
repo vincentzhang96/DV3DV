@@ -11,19 +11,19 @@ class DivinitorApp
 
 	Scene* _scene;
 
-	uint64_t _lastFrameTimeMs;
+	uint64_t _lastFrameTimeNs;
 
 	inline float UpdateTime();
 
 	uint64_t _lastFPSUpdateTime;
 	uint32_t _fpsFrameCounter;
 	uint32_t _lastFps;
-	uint64_t _lastFrameDrawTimeMs;
+	float _lastFrameDrawTimeMs;
 
 	int viewportWidth;
 	int viewportHeight;
 
-	inline uint64_t GetSystemTimeMillis();
+	static inline uint64_t GetSystemTimeNanos();
 
 public:
 	Renderer* _renderer;
