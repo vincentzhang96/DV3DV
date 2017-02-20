@@ -11,6 +11,11 @@ UiBootstrap::~UiBootstrap()
 {
 }
 
+void UiBootstrap::Init()
+{
+	_ui->InvalidateOldScreen();
+}
+
 void UiBootstrap::Draw(float deltaT)
 {
 

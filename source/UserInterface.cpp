@@ -11,6 +11,8 @@ UserInterface::UserInterface(DivinitorApp* app)
 	_screenRbo = 0;
 	_screenQuadVao = 0;
 	_activeScreen = nullptr;
+	_prevScreen = nullptr;
+	_newScreen = false;
 }
 
 UserInterface::~UserInterface()
@@ -64,13 +66,12 @@ void UserInterface::Init()
 	glBindVertexArray(0);
 
 	//	Bootstrap UI
-	
-	_activeScreen = new UiBootstrap(_app);
-
+	SetActiveScreen(new UiBootstrap(_app));
 }
 
 void UserInterface::Draw(float deltaTime)
 {
+	
 	glBindFramebuffer(GL_FRAMEBUFFER, _screenFbo);
 	glClearColor(19.0F / 255.0F, 19.0F / 255.0F, 21.0F / 255.0F, 1.0F);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -79,6 +80,11 @@ void UserInterface::Draw(float deltaTime)
 	//	Draw screen
 	if (_activeScreen)
 	{
+		if (_newScreen)
+		{
+			_activeScreen->Init();
+			_newScreen = false;
+		}
 		_activeScreen->Draw(deltaTime);
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -145,6 +151,21 @@ void UserInterface::Resize(int width, int height)
 glm::ivec2 UserInterface::GetScreenSize() const
 {
 	return _size;
+}
+
+void UserInterface::SetActiveScreen(UIScreen* newScreen)
+{
+	_prevScreen = _activeScreen;
+	_activeScreen = newScreen;
+}
+
+void UserInterface::InvalidateOldScreen()
+{
+	if (_prevScreen != nullptr)
+	{
+		delete _prevScreen;
+		_prevScreen = nullptr;
+	}
 }
 
 UIScreen::UIScreen(DivinitorApp* app) : _app(app)

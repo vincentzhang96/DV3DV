@@ -16,6 +16,8 @@ public:
 
 	virtual ~UIScreen() {}
 
+	virtual void Init() = 0;
+
 	virtual void Draw(float deltaT) = 0;
 };
 
@@ -34,6 +36,9 @@ class UserInterface
 	glm::ivec2 _size;
 
 	UIScreen* _activeScreen;
+	UIScreen* _prevScreen;
+
+	bool _newScreen;
 
 public:
 	explicit UserInterface(DivinitorApp* app);
@@ -46,4 +51,8 @@ public:
 	void Resize(int width, int height);
 
 	glm::ivec2 GetScreenSize() const;
+
+	void SetActiveScreen(UIScreen* newScreen);
+
+	void InvalidateOldScreen();
 };
