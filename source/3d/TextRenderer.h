@@ -113,8 +113,11 @@ namespace dv3d
 
 	class TextRenderer
 	{
+		typedef std::unordered_map<resman::ResourceRequest, FONTHANDLE, resman::RESOURCEREQUESTHASH> ResRequestFontCache;
 		//	Loaded fonts
 		packed_freelist<std::unique_ptr<FontEntry>> _fonts;
+		//	Cache already loaded ResourceRequests
+		ResRequestFontCache _resourceToFontCache;
 		//	Resource manager to load fonts from
 		resman::ResourceManager* _resManager;
 		//	Shader manager to use

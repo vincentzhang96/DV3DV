@@ -335,6 +335,13 @@ void dv3d::TextRenderer::PostRendererInit()
 
 dv3d::FONTHANDLE dv3d::TextRenderer::LoadFont(const resman::ResourceRequest& request)
 {
+	//	Check for cached first
+	auto it = _resourceToFontCache.find(request);
+	if (it != _resourceToFontCache.end())
+	{
+		return it->second;
+	}
+
 	auto data = _resManager->GetResource(request);
 	if (!data._present)
 	{
@@ -361,6 +368,7 @@ dv3d::FONTHANDLE dv3d::TextRenderer::LoadFont(const resman::ResourceRequest& req
 	{
 		InitFont(entry, sz);
 	}
+	_resourceToFontCache.emplace(request, hFont);
 	return hFont;
 }
 
@@ -820,4 +828,6 @@ void dv3d::TextRenderer::ReleaseStaticText(STATICTEXTHANDLE hStaticText)
 void dv3d::TextRenderer::UnloadFont(FONTHANDLE hFont)
 {
 	_fonts.erase(hFont);
+	//	TODO invalidate cache entries
+	//	Not really too important right now since this only gets destroyed at program exit
 }
