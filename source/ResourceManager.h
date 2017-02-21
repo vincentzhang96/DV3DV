@@ -31,6 +31,30 @@ namespace resman
 		~ResourceRequest();
 	} ResourceRequest;
 
+	bool operator==(const ResourceRequest& lhs, const ResourceRequest& rhs);
+	bool operator!=(const ResourceRequest& lhs, const ResourceRequest& rhs);
+//	bool operator<(const ResourceRequest& lhs, const ResourceRequest& rhs);
+//	bool operator>(const ResourceRequest& lhs, const ResourceRequest& rhs);
+//	bool operator>=(const ResourceRequest& lhs, const ResourceRequest& rhs);
+//	bool operator<=(const ResourceRequest& lhs, const ResourceRequest& rhs);
+
+	struct RESOURCEREQUESTHASH
+	{
+		size_t operator()(const ResourceRequest& req) const
+		{
+			switch (req.type)
+			{
+			case REQ_PAKPATH:
+				return std::hash<std::string>()(req.resPakPath);
+			case REQ_TPUID:
+				return ppac::PPACTPUIDHASH()(req.resTpuid);
+			default:
+				break;
+			}
+			return 0;
+		}
+	};
+
 	typedef struct ResourceResponse
 	{
 		bool _present;
