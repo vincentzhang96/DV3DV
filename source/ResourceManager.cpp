@@ -19,6 +19,22 @@ resman::ResourceRequest::ResourceRequest(const std::string& pakPath)
 	resPakPath = pakPath;
 }
 
+resman::ResourceRequest::ResourceRequest(const ResourceRequest& other)
+{
+	type = other.type;
+	switch(type)
+	{
+	case REQ_NONE:
+		break;
+	case REQ_PAKPATH:
+		resPakPath = other.resPakPath;
+		break;
+	case REQ_TPUID:
+		resTpuid = other.resTpuid;
+		break;
+	}
+}
+
 resman::ResourceRequest::~ResourceRequest()
 {
 	switch(type)

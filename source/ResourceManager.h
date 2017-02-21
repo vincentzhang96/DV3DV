@@ -28,6 +28,7 @@ namespace resman
 		ResourceRequest();
 		ResourceRequest(const ppac::TPUID& tpuid);
 		ResourceRequest(const std::string& pakPath);
+		ResourceRequest(const ResourceRequest& other);
 		~ResourceRequest();
 	} ResourceRequest;
 

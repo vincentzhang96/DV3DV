@@ -368,7 +368,7 @@ dv3d::FONTHANDLE dv3d::TextRenderer::LoadFont(const resman::ResourceRequest& req
 	{
 		InitFont(entry, sz);
 	}
-	_resourceToFontCache.emplace(request, hFont);
+	_resourceToFontCache[request] = hFont;
 	return hFont;
 }
 
