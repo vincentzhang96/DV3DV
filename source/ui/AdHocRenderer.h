@@ -6,6 +6,9 @@ namespace dv3d
 	{
 		class Renderer
 		{
+			GLuint _vao;
+			GLuint _vbo;
+
 			bool _drawStarted;
 			size_t _numVerts;
 			GLenum _drawingMode;

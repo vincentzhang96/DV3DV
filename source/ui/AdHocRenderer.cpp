@@ -208,6 +208,16 @@ void dv3d::adhoc::Renderer::AddVertexColorNormTexCoordfv(glm::fvec3 vert, glm::f
 	_AddVert(vert.x, vert.y, vert.z);
 }
 
+void dv3d::adhoc::Renderer::EndDraw()
+{
+
+	glBindVertexArray(_vao);
+	glBindBuffer(GL_ARRAY_BUFFER, _vbo);
+	glBufferData(GL_ARRAY_BUFFER, _numVerts * 48 * sizeof(GLfloat), _data.data(), GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDrawArrays(_drawingMode, 0, _numVerts);
+}
+
 
 
 
