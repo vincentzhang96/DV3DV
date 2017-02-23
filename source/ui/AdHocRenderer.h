@@ -7,7 +7,7 @@ namespace dv3d
 
 		class Renderer
 		{
-			const size_t STRIDE = 48;
+			const size_t STRIDE = 12;
 			const size_t STRIDE_BYTES = sizeof(GLfloat) * STRIDE;
 			const void* VERT_OFFSET = GLBUFFEROFFSET_F(0);
 			const void* COLOR_OFFSET = GLBUFFEROFFSET_F(3);

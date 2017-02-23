@@ -22,6 +22,8 @@ class UiBootstrap : public UIScreen
 	typedef std::shared_ptr<MainMenuSharedResources> MainMenuSharedResourcesPtr;
 	MainMenuSharedResourcesPtr _sharedResources;
 
+	GLfloat _elapsedTime;
+
 public:
 	explicit UiBootstrap(DivinitorApp* app);
 

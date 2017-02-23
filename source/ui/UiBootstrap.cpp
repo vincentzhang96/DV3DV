@@ -21,6 +21,7 @@ MainMenuSharedResources::~MainMenuSharedResources()
 
 void MainMenuSharedResources::RenderBackground(UIScreen* ui, GLfloat vigStr, glm::fvec4 color)
 {
+	auto adHoc = &ui->_app->_adHocRenderer;
 	auto screenSz = ui->_ui->GetScreenSize();
 	bool widthIsMax = screenSz.x > screenSz.y;
 	GLfloat u0, u1, v0, v1;
@@ -32,7 +33,7 @@ void MainMenuSharedResources::RenderBackground(UIScreen* ui, GLfloat vigStr, glm
 		u1 = 1;
 		GLfloat xRescale = screenSz.x / texW;
 		GLfloat yRescaled = screenSz.y / xRescale;
-		GLfloat yPartial = texH / yRescaled;
+		GLfloat yPartial = texH / yRescaled - 1.0;
 		GLfloat halfPartial = yPartial / 2.0;
 		v0 = halfPartial;
 		v1 = 1.0 - halfPartial;
@@ -43,40 +44,47 @@ void MainMenuSharedResources::RenderBackground(UIScreen* ui, GLfloat vigStr, glm
 		v1 = 1;
 		GLfloat yRescale = screenSz.y / texH;
 		GLfloat xRescaled = screenSz.x / yRescale;
-		GLfloat xPartial = texW / xRescaled;
+		GLfloat xPartial = texW / xRescaled - 1.0;
 		GLfloat halfPartial = xPartial / 2.0;
 		u0 = halfPartial;
 		u1 = 1.0 - halfPartial;
 	}
 
-	auto adHoc = &ui->_app->_adHocRenderer;
-	glDisable(GL_CULL_FACE);
-	adHoc->BeginDraw(GL_TRIANGLE_FAN);
-	adHoc->SetColorfv4(color);
-	adHoc->AddVertexTexCoordf(0, 0, 0, u0, v0);
-	adHoc->AddVertexTexCoordf(0, screenSz.y, 0, u0, v1);
-	adHoc->AddVertexTexCoordf(screenSz.x, screenSz.y, 0, u1, v1);
-	adHoc->AddVertexTexCoordf(screenSz.x, 0, 0, u1, v0);
-
 	auto prog = ui->_app->_shaderManager->Get(backgroundShaderProg);
 	glUseProgram(prog);
 	glUniformMatrix4fv(4, 1, GL_FALSE, ui->_ui->GetProjViewMatrixPtr());
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, backgroundTex);
 	glProgramUniform1i(prog, 5, 0);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, vignetteTex);
-	glProgramUniform1i(prog, 6, 1);
-	glProgramUniform1f(prog, 7, vigStr);
+
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glBindTexture(GL_TEXTURE_2D, backgroundTex);
+	adHoc->BeginDraw(GL_TRIANGLE_FAN);
+	adHoc->SetColorfv4(color);
+	adHoc->AddVertexTexCoordf(0, 0, 0, u0, v1);
+	adHoc->AddVertexTexCoordf(0, screenSz.y, 0, u0, v0);
+	adHoc->AddVertexTexCoordf(screenSz.x, screenSz.y, 0, u1, v0);
+	adHoc->AddVertexTexCoordf(screenSz.x, 0, 0, u1, v1);
 	adHoc->EndDraw();
+
+	glBlendFunc(GL_DST_COLOR, GL_ZERO);
+	glBindTexture(GL_TEXTURE_2D, vignetteTex);
+	adHoc->BeginDraw(GL_TRIANGLE_FAN);
+	adHoc->SetColorf(1.0, 1.0, 1.0, vigStr);
+	adHoc->AddVertexTexCoordf(0, 0, 0, 0, 1);
+	adHoc->AddVertexTexCoordf(0, screenSz.y, 0, 0, 0);
+	adHoc->AddVertexTexCoordf(screenSz.x, screenSz.y, 0, 1, 0);
+	adHoc->AddVertexTexCoordf(screenSz.x, 0, 0, 1, 1);
+	adHoc->EndDraw();
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	glUseProgram(0);
-	glActiveTexture(GL_TEXTURE0);
 }
 
 
 UiBootstrap::UiBootstrap(DivinitorApp* app) :
 	UIScreen(app)
 {
+	_elapsedTime = 0;
 	_sharedResources = std::make_shared<MainMenuSharedResources>(app->_textureManager);
 }
 
@@ -104,7 +112,7 @@ void UiBootstrap::Init()
 		_sharedResources->backgroundShaderProg = _app->_shaderManager->NewProgram();
 		auto prog = _sharedResources->backgroundShaderProg;
 		_app->_shaderManager->AttachAndCompileShader(prog, ppac::TPUID(0x0107, 0x0100, 0x00000002));	//	ui_adhoc_ortho_pt vertex shader
-		_app->_shaderManager->AttachAndCompileShader(prog, ppac::TPUID(0x0108, 0x1001, 0x00000001));	//	ui_mm_background fragment shader
+		_app->_shaderManager->AttachAndCompileShader(prog, ppac::TPUID(0x0108, 0x0101, 0x00000003));	//	ui_adhoc_tex_pt fragment shader
 		if (!_app->_shaderManager->LinkAndFinishProgram(prog))
 		{
 			LOG(WARNING) << "Main menu background shader load failed";
@@ -116,7 +124,10 @@ void UiBootstrap::Init()
 
 void UiBootstrap::Draw(float deltaT)
 {
-	_sharedResources->RenderBackground(this, 0.0, glm::fvec4(1.0, 1.0, 1.0, 1.0));
+	_elapsedTime += deltaT;
+	GLfloat pow = std::min(1.0F, _elapsedTime / 1.0F);
+	GLfloat exp = std::max(0.0F, std::min(1.0F, (_elapsedTime - 0.5F) / 1.0F));
+	_sharedResources->RenderBackground(this, exp, glm::fvec4(pow, pow, pow, 1.0));
 
 
 	_text->DrawDynamicText2D(

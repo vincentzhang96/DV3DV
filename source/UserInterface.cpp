@@ -77,6 +77,7 @@ void UserInterface::Draw(float deltaTime)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	glViewport(0, 0, _size.x, _size.y);
+	glDepthFunc(GL_LEQUAL);
 	//	Draw screen
 	if (_activeScreen)
 	{
