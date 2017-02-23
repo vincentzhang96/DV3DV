@@ -47,6 +47,19 @@ dv3d::adhoc::Renderer::Renderer(size_t maxVerts) :
 	_maxVerts(maxVerts)
 {
 	_data.reserve(maxVerts);
+	_vao = 0;
+	_vbo = 0;
+	_drawStarted = false;
+	_drawingMode = 0;
+	_numVerts = 0;
+	_totalPolysDrawnThisFrame = 0;
+	_drawCalls = 0;
+}
+
+dv3d::adhoc::Renderer::~Renderer()
+{
+	glDeleteBuffers(1, &_vbo);
+	glDeleteVertexArrays(1, &_vao);
 }
 
 void dv3d::adhoc::Renderer::PostRendererInit()
@@ -99,6 +112,8 @@ void dv3d::adhoc::Renderer::BeginDraw(GLenum drawMode)
 	case GL_TRIANGLE_FAN:
 	case GL_TRIANGLE_STRIP:
 	case GL_LINES:
+	case GL_LINE_STRIP:
+	case GL_LINE_LOOP:
 	case GL_POINTS:
 		break;
 	default:
@@ -256,15 +271,47 @@ void dv3d::adhoc::Renderer::AddVertexColorNormTexCoordfv(glm::fvec3 vert, glm::f
 
 void dv3d::adhoc::Renderer::EndDraw()
 {
-	glBindVertexArray(_vao);
-	glBindBuffer(GL_ARRAY_BUFFER, _vbo);
-	glBufferData(GL_ARRAY_BUFFER, _numVerts * STRIDE_BYTES, _data.data(), GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glDrawArrays(_drawingMode, 0, _numVerts);
-	glBindVertexArray(0);
+	if (_numVerts > 0)
+	{
+		glBindVertexArray(_vao);
+		glBindBuffer(GL_ARRAY_BUFFER, _vbo);
+		glBufferData(GL_ARRAY_BUFFER, _numVerts * STRIDE_BYTES, _data.data(), GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glDrawArrays(_drawingMode, 0, _numVerts);
+		glBindVertexArray(0);
+		switch (_drawingMode)
+		{
+		case GL_TRIANGLES:
+			_totalPolysDrawnThisFrame += _numVerts / 3;
+			break;
+		case GL_TRIANGLE_STRIP:
+		case GL_TRIANGLE_FAN:
+			_totalPolysDrawnThisFrame += _numVerts - 2;
+			break;
+		case GL_LINES:
+			_totalPolysDrawnThisFrame += _numVerts / 2;
+			break;
+		case GL_LINE_STRIP:
+			_totalPolysDrawnThisFrame += _numVerts - 1;
+			break;
+		case GL_LINE_LOOP:
+		case GL_POINTS:
+			_totalPolysDrawnThisFrame += _numVerts;
+			break;
+		default:
+			break;
+		}
+		++_drawCalls;
+	}
 	_drawStarted = false;
 	_drawingMode = 0;
 	_numVerts = 0;
+}
+
+void dv3d::adhoc::Renderer::FinishFrame()
+{
+	_totalPolysDrawnThisFrame = 0;
+	_drawCalls = 0;
 }
 
 

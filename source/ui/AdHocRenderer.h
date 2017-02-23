@@ -27,6 +27,7 @@ namespace dv3d
 			glm::fvec4 _color;
 			glm::fvec2 _texCoords;
 
+
 			void _PushBack(GLfloat f);
 
 			void _AddVert(
@@ -34,6 +35,9 @@ namespace dv3d
 			);
 
 		public:
+			size_t _totalPolysDrawnThisFrame;
+			size_t _drawCalls;
+
 			explicit Renderer(size_t maxVerts);
 			~Renderer();
 
