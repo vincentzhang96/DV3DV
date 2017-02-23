@@ -62,6 +62,10 @@ dv3d::GLTEXHANDLE dv3d::TextureManager::LoadDDS(std::vector<uint8_t>& data)
 		return INVALID_GLTEXHANDLE;
 	}
 	size_t bufSize = (header.dwMipMapCount > 1) ? header.dwPitchOrLinearSize * 2 : header.dwPitchOrLinearSize;
+	if (bufSize > data.size() - 128)
+	{
+		bufSize = data.size() - 128;
+	}
 	std::unique_ptr<uint8_t[]> buf(new uint8_t[bufSize]);
 	std::copy_n(&data[128], bufSize, stdext::checked_array_iterator<uint8_t*>(buf.get(), bufSize));
 	GLuint glTexFormat;

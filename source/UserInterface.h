@@ -40,6 +40,8 @@ class UserInterface
 
 	bool _newScreen;
 
+	glm::fmat4 projView;
+
 public:
 	explicit UserInterface(DivinitorApp* app);
 	~UserInterface();
@@ -55,4 +57,6 @@ public:
 	void SetActiveScreen(UIScreen* newScreen);
 
 	void InvalidateOldScreen();
+
+	const float* GetProjViewMatrixPtr();
 };

@@ -21,8 +21,8 @@ namespace dv3d
 			bool _drawStarted;
 			size_t _numVerts;
 			GLenum _drawingMode;
-			std::vector<GLfloat> _data;
-			std::vector<GLfloat>::iterator _dataIter;
+			GLfloat* _data;
+			GLfloat* _dataIter;
 			glm::fvec3 _normal;
 			glm::fvec4 _color;
 			glm::fvec2 _texCoords;

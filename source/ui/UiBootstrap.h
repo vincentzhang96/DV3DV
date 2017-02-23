@@ -9,9 +9,12 @@ public:
 	dv3d::GLTEXHANDLE backgroundTex;
 	dv3d::GLTEXHANDLE vignetteTex;
 	dv3d::GLTEXHANDLE invVignetteTex;
+	dv3d::GLPROGHANDLE backgroundShaderProg;
 
 	explicit MainMenuSharedResources(dv3d::TextureManager* texMan);
 	~MainMenuSharedResources();
+
+	void RenderBackground(UIScreen* ui, GLfloat vigStr, glm::fvec4 color);
 };
 
 class UiBootstrap : public UIScreen

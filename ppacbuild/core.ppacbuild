@@ -42,7 +42,10 @@ OUTPUT=../runtime/data/core.ppac
 # Default Shaders
 # Vertex shader for vertices in NDC, with texture coords
 0x0107,0x0100,0x00000001=core/shader/ndc_textured.vert.glsl
-
+# Vertex shader for UI's AdHoc renderer (ortho projection) passthrough
+0x0107,0x0100,0x00000002=core/shader/ui_adhoc_ortho_pt.vert.glsl
 
 # Fragment shader for UI FBO
 0x0108,0x0101,0x00000001=core/shader/ui_fbo.frag.glsl
+# Fragment shader for UI main menu background
+0x0108,0x1001,0x00000001=core/shader/ui_mm_background.frag.glsl

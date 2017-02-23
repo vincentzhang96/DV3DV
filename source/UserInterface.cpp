@@ -108,6 +108,10 @@ void UserInterface::Resize(int width, int height)
 		_size.x = width;
 		_size.y = height;
 		LOG(DEBUG) << "UI resize";
+		//	Update matrix
+
+		projView = glm::ortho(0.0F, float(width), 0.0F, float(height));
+
 		//	Delete old buffers
 		if (_screenFbo)
 		{
@@ -157,6 +161,7 @@ void UserInterface::SetActiveScreen(UIScreen* newScreen)
 {
 	_prevScreen = _activeScreen;
 	_activeScreen = newScreen;
+	_newScreen = true;
 }
 
 void UserInterface::InvalidateOldScreen()
@@ -166,6 +171,11 @@ void UserInterface::InvalidateOldScreen()
 		delete _prevScreen;
 		_prevScreen = nullptr;
 	}
+}
+
+const float* UserInterface::GetProjViewMatrixPtr()
+{
+	return glm::value_ptr(projView);
 }
 
 UIScreen::UIScreen(DivinitorApp* app) : _app(app)

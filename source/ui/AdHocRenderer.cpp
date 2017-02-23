@@ -14,6 +14,11 @@ void dv3d::adhoc::Renderer::_AddVert(GLfloat x, GLfloat y, GLfloat z)
 		LOG(WARNING) << "Attempted to add a vert when not drawing";
 		return;
 	}
+	if (_numVerts >= _maxVerts)
+	{
+		LOG(WARNING) << "Too many verts";
+		return;
+	}
 	//	VBO STRUCTURE
 	//	OFF	SZ	TYPE	DESC
 	//	0	4	FLOAT	x
@@ -46,7 +51,8 @@ void dv3d::adhoc::Renderer::_AddVert(GLfloat x, GLfloat y, GLfloat z)
 dv3d::adhoc::Renderer::Renderer(size_t maxVerts) :
 	_maxVerts(maxVerts)
 {
-	_data.reserve(maxVerts);
+	_data = new GLfloat[maxVerts * (3 + 4 + 3 + 2)];
+	_dataIter = _data;
 	_vao = 0;
 	_vbo = 0;
 	_drawStarted = false;
@@ -60,6 +66,7 @@ dv3d::adhoc::Renderer::~Renderer()
 {
 	glDeleteBuffers(1, &_vbo);
 	glDeleteVertexArrays(1, &_vao);
+	delete[] _data;
 }
 
 void dv3d::adhoc::Renderer::PostRendererInit()
@@ -83,18 +90,15 @@ void dv3d::adhoc::Renderer::PostRendererInit()
 	//	9	36	4	FLOAT	nZ
 	//	10	40	4	FLOAT	u
 	//	11	44	4	FLOAT	v
-	size_t stride = 48;
-	size_t strideSz = sizeof(GLfloat) * stride;
 	glBufferData(GL_ARRAY_BUFFER, STRIDE_BYTES * 4, nullptr, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(0);	//	Position
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, strideSz, VERT_OFFSET);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, STRIDE_BYTES, VERT_OFFSET);
 	glEnableVertexAttribArray(1);	//	Color
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, strideSz, COLOR_OFFSET);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, STRIDE_BYTES, COLOR_OFFSET);
 	glEnableVertexAttribArray(2);	//	Normal
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, strideSz, NORMAL_OFFSET);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, STRIDE_BYTES, NORMAL_OFFSET);
 	glEnableVertexAttribArray(3);	//	TexCoord
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, strideSz, TEXCOORD_OFFSET);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, STRIDE_BYTES, TEXCOORD_OFFSET);
 	glBindVertexArray(0);
 }
 
@@ -123,7 +127,7 @@ void dv3d::adhoc::Renderer::BeginDraw(GLenum drawMode)
 	_drawingMode = drawMode;
 	_drawStarted = true;
 	_numVerts = 0;
-	_dataIter = _data.begin();
+	_dataIter = _data;
 }
 
 void dv3d::adhoc::Renderer::SetColorf(GLfloat r, GLfloat g, GLfloat b, GLfloat a)
@@ -275,8 +279,15 @@ void dv3d::adhoc::Renderer::EndDraw()
 	{
 		glBindVertexArray(_vao);
 		glBindBuffer(GL_ARRAY_BUFFER, _vbo);
-		glBufferData(GL_ARRAY_BUFFER, _numVerts * STRIDE_BYTES, _data.data(), GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBufferData(GL_ARRAY_BUFFER, _numVerts * STRIDE_BYTES, _data, GL_DYNAMIC_DRAW);
+		glEnableVertexAttribArray(0);	//	Position
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, STRIDE_BYTES, VERT_OFFSET);
+		glEnableVertexAttribArray(1);	//	Color
+		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, STRIDE_BYTES, COLOR_OFFSET);
+		glEnableVertexAttribArray(2);	//	Normal
+		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, STRIDE_BYTES, NORMAL_OFFSET);
+		glEnableVertexAttribArray(3);	//	TexCoord
+		glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, STRIDE_BYTES, TEXCOORD_OFFSET);
 		glDrawArrays(_drawingMode, 0, _numVerts);
 		glBindVertexArray(0);
 		switch (_drawingMode)

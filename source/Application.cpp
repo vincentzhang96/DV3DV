@@ -59,6 +59,7 @@ DivinitorApp::~DivinitorApp()
 
 void DivinitorApp::FirstFrameInit()
 {
+	_adHocRenderer.PostRendererInit();
 	_textRenderer->PostRendererInit();
 	//	Load fonts
 	fhLatoRegular = _textRenderer->LoadFont(ppac::TPUID(0x0500, 0x0001, 0x00000100));
