@@ -4,8 +4,17 @@ namespace dv3d
 {
 	namespace adhoc
 	{
+
 		class Renderer
 		{
+			const size_t STRIDE = 48;
+			const size_t STRIDE_BYTES = sizeof(GLfloat) * STRIDE;
+			const void* VERT_OFFSET = GLBUFFEROFFSET_F(0);
+			const void* COLOR_OFFSET = GLBUFFEROFFSET_F(3);
+			const void* NORMAL_OFFSET = GLBUFFEROFFSET_F(7);
+			const void* TEXCOORD_OFFSET = GLBUFFEROFFSET_F(10);
+			const size_t _maxVerts;
+
 			GLuint _vao;
 			GLuint _vbo;
 
@@ -25,8 +34,10 @@ namespace dv3d
 			);
 
 		public:
-			Renderer();
+			explicit Renderer(size_t maxVerts);
 			~Renderer();
+
+			void PostRendererInit();
 
 			void BeginDraw(GLenum drawMode);
 

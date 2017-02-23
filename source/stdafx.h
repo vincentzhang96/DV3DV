@@ -90,4 +90,7 @@ typedef struct {
 #pragma pack(pop, def)
 
 
+#define GLBUFFEROFFSET(offset) reinterpret_cast<void*>(offset)
+#define GLBUFFEROFFSET_F(offset) GLBUFFEROFFSET(offset * sizeof(GLfloat))
+
 #endif

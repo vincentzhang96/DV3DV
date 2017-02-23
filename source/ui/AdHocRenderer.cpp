@@ -9,6 +9,11 @@ void dv3d::adhoc::Renderer::_PushBack(GLfloat f)
 
 void dv3d::adhoc::Renderer::_AddVert(GLfloat x, GLfloat y, GLfloat z)
 {
+	if (!_drawStarted)
+	{
+		LOG(WARNING) << "Attempted to add a vert when not drawing";
+		return;
+	}
 	//	VBO STRUCTURE
 	//	OFF	SZ	TYPE	DESC
 	//	0	4	FLOAT	x
@@ -38,12 +43,54 @@ void dv3d::adhoc::Renderer::_AddVert(GLfloat x, GLfloat y, GLfloat z)
 	++_numVerts;
 }
 
+dv3d::adhoc::Renderer::Renderer(size_t maxVerts) :
+	_maxVerts(maxVerts)
+{
+	_data.reserve(maxVerts);
+}
+
+void dv3d::adhoc::Renderer::PostRendererInit()
+{
+	//	Set up VAO
+	glGenVertexArrays(1, &_vao);
+	glGenBuffers(1, &_vbo);
+	glBindVertexArray(_vao);
+	glBindBuffer(GL_ARRAY_BUFFER, _vbo);
+	//	VBO STRUCTURE
+	//	ID	OFF	SZ	TYPE	DESC
+	//	0	0	4	FLOAT	x
+	//	1	4	4	FLOAT	y
+	//	2	8	4	FLOAT	z
+	//	3	12	4	FLOAT	r
+	//	4	16	4	FLOAT	g
+	//	5	20	4	FLOAT	b
+	//	6	24	4	FLOAT	a
+	//	7	28	4	FLOAT	nX
+	//	8	32	4	FLOAT	nY
+	//	9	36	4	FLOAT	nZ
+	//	10	40	4	FLOAT	u
+	//	11	44	4	FLOAT	v
+	size_t stride = 48;
+	size_t strideSz = sizeof(GLfloat) * stride;
+	glBufferData(GL_ARRAY_BUFFER, STRIDE_BYTES * 4, nullptr, GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(0);	//	Position
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, strideSz, VERT_OFFSET);
+	glEnableVertexAttribArray(1);	//	Color
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, strideSz, COLOR_OFFSET);
+	glEnableVertexAttribArray(2);	//	Normal
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, strideSz, NORMAL_OFFSET);
+	glEnableVertexAttribArray(3);	//	TexCoord
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, strideSz, TEXCOORD_OFFSET);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
 void dv3d::adhoc::Renderer::BeginDraw(GLenum drawMode)
 {
 	if (_drawStarted)
 	{
 		LOG(WARNING) << "Attempting to begin drawcall without previous drawcall finished";
-		throw "Already drawing";
+		return;
 	}
 	//	Validate out drawing mode
 	switch(drawMode)
@@ -55,13 +102,12 @@ void dv3d::adhoc::Renderer::BeginDraw(GLenum drawMode)
 	case GL_POINTS:
 		break;
 	default:
-		LOG(WARNING) << "Unsupported drawing mode";
-		throw "Unsupported drawMode";
+		LOG(WARNING) << "Unsupported drawing mode " << drawMode;
+		return;
 	}
 	_drawingMode = drawMode;
 	_drawStarted = true;
 	_numVerts = 0;
-	_data.clear();
 	_dataIter = _data.begin();
 }
 
@@ -210,12 +256,15 @@ void dv3d::adhoc::Renderer::AddVertexColorNormTexCoordfv(glm::fvec3 vert, glm::f
 
 void dv3d::adhoc::Renderer::EndDraw()
 {
-
 	glBindVertexArray(_vao);
 	glBindBuffer(GL_ARRAY_BUFFER, _vbo);
-	glBufferData(GL_ARRAY_BUFFER, _numVerts * 48 * sizeof(GLfloat), _data.data(), GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, _numVerts * STRIDE_BYTES, _data.data(), GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glDrawArrays(_drawingMode, 0, _numVerts);
+	glBindVertexArray(0);
+	_drawStarted = false;
+	_drawingMode = 0;
+	_numVerts = 0;
 }
 
 
