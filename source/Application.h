@@ -2,6 +2,7 @@
 #include "ResourceManager.h"
 #include "Renderer.h"
 #include "3d/TextRenderer.h"
+#include "ui/AdHocRenderer.h"
 
 class UserInterface;
 
@@ -27,6 +28,7 @@ class DivinitorApp
 
 public:
 	Renderer* _renderer;
+	dv3d::adhoc::Renderer _adHocRenderer;
 	dv3d::ShaderManager* _shaderManager;
 	dv3d::TextureManager* _textureManager;
 	dv3d::TextRenderer* _textRenderer;

@@ -34,7 +34,8 @@ uint64_t DivinitorApp::GetSystemTimeNanos()
 	return uTime.QuadPart * 100;
 }
 
-DivinitorApp::DivinitorApp(resman::ResourceManager* resman) 
+DivinitorApp::DivinitorApp(resman::ResourceManager* resman) : 
+_adHocRenderer(0xFFFF)
 {
 	_resMan = resman;
 	_shaderManager = new dv3d::ShaderManager(_resMan);
@@ -83,8 +84,9 @@ void DivinitorApp::Draw()
 	_userInterface->Draw(deltaT);
 
 	std::stringstream fmt;
-	fmt << _lastFps << " FPS, " << _lastFrameDrawTimeMs << "ms/frame";
+	fmt << _lastFps << " FPS, " << _lastFrameDrawTimeMs << "ms/frame\nAdHoc " << _adHocRenderer._drawCalls << " calls, " << _adHocRenderer._totalPolysDrawnThisFrame << " polys";
 	_textRenderer->DrawDynamicText2D(fhLatoRegular, fmt.str(), 18, viewportWidth - 10, viewportHeight - 20, 0, 0xFF0088FF, dv3d::textOptionAlignment(dv3d::TXTA_RIGHT));
+	_adHocRenderer.FinishFrame();
 }
 
 void DivinitorApp::OnViewportResized(int width, int height)
