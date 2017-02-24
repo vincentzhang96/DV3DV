@@ -24,7 +24,6 @@ public:
 
 class UserInterface
 {
-	DivinitorApp* _app;
 
 	GLuint _screenFbo;
 	GLuint _screenFboColorTex;
@@ -43,6 +42,8 @@ class UserInterface
 	glm::fmat4 projView;
 
 public:
+	DivinitorApp* _app;
+
 	explicit UserInterface(DivinitorApp* app);
 	~UserInterface();
 
@@ -60,3 +61,20 @@ public:
 
 	const float* GetProjViewMatrixPtr();
 };
+
+class UiElement
+{
+public:
+	const UIScreen* _ui;
+	glm::fvec2 _pos;
+	glm::fvec2 _size;
+	explicit UiElement(UIScreen* parent) :
+		_ui(parent)
+	{
+	}
+
+	virtual ~UiElement() {}
+
+	virtual void Draw(float deltaT) = 0;
+};
+
