@@ -10,11 +10,11 @@ float DivinitorApp::UpdateTime()
 	deltaNs = nowNs - _lastFrameTimeNs;
 	//	Calculate deltaT
 	_lastFrameTimeNs = nowNs;
-	_lastFrameDrawTimeMs = deltaNs / 1e6F;
 	uint64_t timeSinceFPSUpdate = nowNs - _lastFPSUpdateTime;
 	++_fpsFrameCounter;
 	if (timeSinceFPSUpdate >= 1e9)
 	{
+		_lastFrameDrawTimeMs = timeSinceFPSUpdate / _fpsFrameCounter / 1e6F;
 		_lastFps = float(_fpsFrameCounter) / (timeSinceFPSUpdate / 1e9F);
 		_fpsFrameCounter = 0;
 		_lastFPSUpdateTime = nowNs;
@@ -85,6 +85,8 @@ void DivinitorApp::Draw()
 	_userInterface->Draw(deltaT);
 
 	std::stringstream fmt;
+	fmt.precision(2);
+	fmt.setf(std::ios::fixed, std::ios::floatfield);
 	fmt << _lastFps << " FPS, " << _lastFrameDrawTimeMs << "ms/frame\nAdHoc " << _adHocRenderer._drawCalls << " calls, " << _adHocRenderer._totalPolysDrawnThisFrame << " polys";
 	_textRenderer->DrawDynamicText2D(fhLatoRegular, fmt.str(), 18, viewportWidth - 10, viewportHeight - 20, 0, 0xFF0088FF, dv3d::textOptionAlignment(dv3d::TXTA_RIGHT));
 	_adHocRenderer.FinishFrame();
