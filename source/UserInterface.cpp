@@ -84,6 +84,7 @@ void UserInterface::Draw(float deltaTime)
 		if (_newScreen)
 		{
 			_activeScreen->Init();
+			_activeScreen->Resize(_size.x, _size.y);
 			_newScreen = false;
 		}
 		_activeScreen->Draw(deltaTime);
@@ -150,6 +151,11 @@ void UserInterface::Resize(int width, int height)
 			throw "UI framebuffer incomplete";
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		if (_activeScreen)
+		{
+			_activeScreen->Resize(width, height);
+		}
 	}
 }
 
@@ -158,7 +164,7 @@ glm::ivec2 UserInterface::GetScreenSize() const
 	return _size;
 }
 
-void UserInterface::SetActiveScreen(UIScreen* newScreen)
+void UserInterface::SetActiveScreen(UiScreen* newScreen)
 {
 	_prevScreen = _activeScreen;
 	_activeScreen = newScreen;
@@ -179,8 +185,84 @@ const float* UserInterface::GetProjViewMatrixPtr()
 	return glm::value_ptr(projView);
 }
 
-UIScreen::UIScreen(DivinitorApp* app) : _app(app)
+glm::fvec2 UiElementAlignment::Position(AnchorX xAnchor, AnchorY yAnchor, glm::fvec2 pos, glm::fvec2 size, glm::fvec2 parentSize)
+{
+	return { PositionX(xAnchor, pos.x, size.x, parentSize.x), PositionY(yAnchor, pos.y, size.y, parentSize.y) };
+}
+
+glm::fvec2 UiElementAlignment::Position(AnchorX xAnchor, AnchorY yAnchor, glm::fvec2 pos, glm::fvec2 size, UiScreen* parent)
+{
+	return Position(xAnchor, yAnchor, pos, size, parent->_screenSize);
+}
+
+glm::fvec2 UiElementAlignment::Position(AnchorX xAnchor, AnchorY yAnchor, glm::fvec2 pos, UiElement* element, UiScreen* parent)
+{
+	auto ret = Position(xAnchor, yAnchor, pos, element->_size, parent);
+	element->_pos = ret;
+	return ret;
+}
+
+float UiElementAlignment::PositionX(AnchorX xAnchor, float xPos, float xSize, float xParentSize)
+{
+	switch (xAnchor)
+	{
+	case XCENTER:
+		return (xParentSize / 2.0) - (xSize / 2.0) + xPos;
+	case XRIGHT:
+		return xParentSize - xSize - xPos;
+	case XLEFT:
+	default:
+		return xPos;
+	}
+}
+
+float UiElementAlignment::PositionX(AnchorX xAnchor, float xPos, UiElement* element, UiScreen* parent)
+{
+	auto ret = PositionX(xAnchor, xPos, element->_size.x, parent->_screenSize.x);
+	element->_pos.x = ret;
+	return ret;
+}
+
+float UiElementAlignment::PositionY(AnchorY yAnchor, float yPos, float ySize, float yParentSize)
+{
+	switch (yAnchor)
+	{
+	case YCENTER:
+		return (yParentSize / 2.0) - (ySize / 2.0) + yPos;
+	case YTOP:
+		return yParentSize - yPos - ySize;
+	case YBOTTOM:
+	default:
+		return yPos;
+	}
+}
+
+float UiElementAlignment::PositionY(AnchorY yAnchor, float yPos, UiElement* element, UiScreen* parent)
+{
+	auto ret = PositionY(yAnchor, yPos, element->_size.y, parent->_screenSize.y);
+	element->_pos.y = ret;
+	return ret;
+}
+
+UiScreen::UiScreen(DivinitorApp* app) : _app(app)
 {
 	_ui = _app->_userInterface;
 	_text = _app->_textRenderer;
+}
+
+void UiScreen::DrawUiElements(float deltaT)
+{
+	for (auto iter = _elements.begin(); iter != _elements.end(); ++iter)
+	{
+		iter->get()->Draw(deltaT);
+	}
+}
+
+void UiScreen::ProcessUiElements()
+{
+	typedef std::unique_ptr<UiElement> UEPTR;
+	std::sort(_elements.begin(), _elements.end(), [](UEPTR &a, UEPTR &b)
+	{
+		return a->_zLevel < b->_zLevel;
+	});
 }

@@ -174,6 +174,8 @@
     </ClCompile>
     <ClCompile Include="..\source\ui\AdHocRenderer.cpp" />
     <ClCompile Include="..\source\ui\UiBootstrap.cpp" />
+    <ClCompile Include="..\source\ui\uielement\UiBigSpinner.cpp" />
+    <ClCompile Include="..\source\ui\uielement\UiLabel.cpp" />
     <ClCompile Include="..\source\UserInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -192,6 +194,8 @@
     <ClInclude Include="..\source\targetver.h" />
     <ClInclude Include="..\source\ui\AdHocRenderer.h" />
     <ClInclude Include="..\source\ui\UiBootstrap.h" />
+    <ClInclude Include="..\source\ui\uielement\UiBigSpinner.h" />
+    <ClInclude Include="..\source\ui\uielement\UiLabel.h" />
     <ClInclude Include="..\source\UserInterface.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

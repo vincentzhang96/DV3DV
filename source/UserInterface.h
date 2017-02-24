@@ -4,21 +4,55 @@
 #include "3d/TextRenderer.h"
 
 class UserInterface;
+class UiElement;
+class UiScreen;
 
-class UIScreen
+class UiElement
+{
+public:
+	const UiScreen* _ui;
+	glm::fvec2 _pos;
+	glm::fvec2 _size;
+	GLfloat _zLevel;
+	explicit UiElement(UiScreen* parent) :
+		_ui(parent)
+	{
+		_zLevel = 0;
+	}
+
+	virtual ~UiElement() {}
+
+	virtual void Draw(float deltaT) = 0;
+};
+
+class UiScreen
 {
 
 public:
+	typedef std::vector<std::unique_ptr<UiElement>> ElementList;
 	DivinitorApp* _app;
 	UserInterface* _ui;
 	dv3d::TextRenderer* _text;
-	explicit UIScreen(DivinitorApp* app);
+	glm::fvec2 _screenSize;
+	ElementList _elements;
 
-	virtual ~UIScreen() {}
+	explicit UiScreen(DivinitorApp* app);
+
+	virtual ~UiScreen() {}
 
 	virtual void Init() = 0;
 
+	virtual void Resize(int width, int height)
+	{
+		_screenSize.x = width;
+		_screenSize.y = height;
+	}
+
 	virtual void Draw(float deltaT) = 0;
+
+	void DrawUiElements(float deltaT);
+
+	void ProcessUiElements();
 };
 
 
@@ -34,8 +68,8 @@ class UserInterface
 
 	glm::ivec2 _size;
 
-	UIScreen* _activeScreen;
-	UIScreen* _prevScreen;
+	UiScreen* _activeScreen;
+	UiScreen* _prevScreen;
 
 	bool _newScreen;
 
@@ -55,26 +89,33 @@ public:
 
 	glm::ivec2 GetScreenSize() const;
 
-	void SetActiveScreen(UIScreen* newScreen);
+	void SetActiveScreen(UiScreen* newScreen);
 
 	void InvalidateOldScreen();
 
 	const float* GetProjViewMatrixPtr();
 };
 
-class UiElement
+namespace UiElementAlignment
 {
-public:
-	const UIScreen* _ui;
-	glm::fvec2 _pos;
-	glm::fvec2 _size;
-	explicit UiElement(UIScreen* parent) :
-		_ui(parent)
+	enum AnchorX
 	{
-	}
+		XLEFT,
+		XCENTER,
+		XRIGHT
+	};
+	enum AnchorY
+	{
+		YTOP,
+		YCENTER,
+		YBOTTOM
+	};
 
-	virtual ~UiElement() {}
-
-	virtual void Draw(float deltaT) = 0;
-};
-
+	glm::fvec2 Position(AnchorX xAnchor, AnchorY yAnchor, glm::fvec2 pos, glm::fvec2 size, glm::fvec2 parentSize);
+	glm::fvec2 Position(AnchorX xAnchor, AnchorY yAnchor, glm::fvec2 pos, glm::fvec2 size, UiScreen* parent);
+	glm::fvec2 Position(AnchorX xAnchor, AnchorY yAnchor, glm::fvec2 pos, UiElement* element, UiScreen* parent);
+	float PositionX(AnchorX xAnchor, float xPos, float xSize,float xParentSize);
+	float PositionX(AnchorX xAnchor, float xPos, UiElement* element, UiScreen* parent);
+	float PositionY(AnchorY yAnchor, float yPos, float ySize, float yParentSize);
+	float PositionY(AnchorY yAnchor, float yPos, UiElement* element, UiScreen* parent);
+}

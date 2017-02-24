@@ -14,10 +14,10 @@ public:
 	explicit MainMenuSharedResources(dv3d::TextureManager* texMan);
 	~MainMenuSharedResources();
 
-	void RenderBackground(UIScreen* ui, GLfloat vigStr, glm::fvec4 color);
+	void RenderBackground(UiScreen* ui, GLfloat vigStr, glm::fvec4 color);
 };
 
-class UiBootstrap : public UIScreen
+class UiBootstrap : public UiScreen
 {
 	typedef std::shared_ptr<MainMenuSharedResources> MainMenuSharedResourcesPtr;
 	MainMenuSharedResourcesPtr _sharedResources;
@@ -30,5 +30,6 @@ public:
 	~UiBootstrap() override;
 	void Init() override;
 	void Draw(float deltaT) override;
+	void Resize(int width, int height) override;
 };
 
