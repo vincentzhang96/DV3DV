@@ -77,6 +77,10 @@ void OnWindowResize(int newWidth, int newHeight)
 void OnKeyDown(int keyCode)
 {
 	//	TODO
+	if (mApp)
+	{
+		mApp->OnKeyPressed(keyCode);
+	}
 }
 
 void OnKeyUp(int keyCode)
@@ -86,8 +90,11 @@ void OnKeyUp(int keyCode)
 	{
 		PostQuitMessage(0);
 	}
-
 	//	TODO
+	if (mApp)
+	{
+		mApp->OnKeyReleased(keyCode);
+	}
 }
 
 ///	Allocates a windows console

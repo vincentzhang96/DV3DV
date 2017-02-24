@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Application.h"
 #include "UserInterface.h"
+#include "ui/UiBootstrap.h"
 
 float DivinitorApp::UpdateTime()
 {
@@ -46,6 +47,7 @@ _adHocRenderer(0xFFFF)
 	_userInterface = new UserInterface(this);
 	_lastFrameTimeNs = 0;
 	_lastFPSUpdateTime = 0;
+	_displayDebug = false;
 
 }
 
@@ -84,14 +86,20 @@ void DivinitorApp::Draw()
 	}
 	_userInterface->Draw(deltaT);
 
-	std::stringstream fmt;
-	fmt.precision(2);
-	fmt.setf(std::ios::fixed, std::ios::floatfield);
-	fmt << _lastFps << " FPS, " << _lastFrameDrawTimeMs << "ms/frame\n";
-	fmt << "AHR " << _adHocRenderer._drawCalls << " calls, " << _adHocRenderer._totalPolysDrawnThisFrame << " polys\n";
-	auto txtStats = _textRenderer->_statistics;
-	fmt << "TXT " << txtStats.dynamicTextsDrawn << " dynamic, " <<  txtStats.staticTextsDrawn << " static, " << txtStats.extGlyphsDrawn << " EXT, " << txtStats.asciiBatchesDrawn << " ABTCH\n";
-	_textRenderer->DrawDynamicText2D(fhLatoRegular, fmt.str(), 18, viewportWidth - 10.0F, viewportHeight - 20.0F, 0, 0xFF0088FF, dv3d::textOptionAlignment(dv3d::TXTA_RIGHT));
+
+	if (_displayDebug)
+	{
+		std::stringstream fmt;
+		fmt.precision(2);
+		fmt.setf(std::ios::fixed, std::ios::floatfield);
+		fmt << "VP " << viewportWidth << "x" << viewportHeight << "\n";
+		fmt << _lastFps << " FPS, " << _lastFrameDrawTimeMs << "ms/frame\n";
+		fmt << "AHR " << _adHocRenderer._drawCalls << " calls, " << _adHocRenderer._totalPolysDrawnThisFrame << " polys\n";
+		auto txtStats = _textRenderer->_statistics;
+		fmt << "TXT " << txtStats.dynamicTextsDrawn << " dynamic, " << txtStats.staticTextsDrawn << " static, " << txtStats.extGlyphsDrawn << " EXT, " << txtStats.asciiBatchesDrawn << " ABTCH\n";
+		glm::fvec2 pos = Position(UiElementAlignment::XRIGHT, UiElementAlignment::YTOP, { 10, 20 }, { 0, 0 }, { viewportWidth, viewportHeight });
+		_textRenderer->DrawDynamicText2D(fhLatoRegular, fmt.str(), 18, pos.x, pos.y, 0, 0xFF5AA9E5, dv3d::textOptionAlignment(dv3d::TXTA_RIGHT));
+	}
 	_adHocRenderer.FinishFrame();
 	_textRenderer->FinishFrame();
 }
@@ -102,4 +110,31 @@ void DivinitorApp::OnViewportResized(int width, int height)
 	viewportHeight = height;
 	_textRenderer->UpdateScreenSize(width, height);
 	_userInterface->Resize(width, height);
+}
+
+void DivinitorApp::OnKeyPressed(int keyCode)
+{
+
+}
+
+void DivinitorApp::OnKeyReleased(int keyCode)
+{
+	//	Debug hook
+	if (keyCode == VK_F12)
+	{
+		_displayDebug = !_displayDebug;
+		return;
+	}
+}
+
+void DivinitorApp::OnMouseMoved(int x, int y)
+{
+}
+
+void DivinitorApp::OnMouseButtonPressed(int x, int y, int buttonCode)
+{
+}
+
+void DivinitorApp::OnMouseButtonReleased(int x, int y, int buttonCode)
+{
 }

@@ -24,6 +24,8 @@ class DivinitorApp
 	int viewportWidth;
 	int viewportHeight;
 
+	bool _displayDebug;
+	
 	static inline uint64_t GetSystemTimeNanos();
 
 public:
