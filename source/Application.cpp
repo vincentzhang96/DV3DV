@@ -87,9 +87,13 @@ void DivinitorApp::Draw()
 	std::stringstream fmt;
 	fmt.precision(2);
 	fmt.setf(std::ios::fixed, std::ios::floatfield);
-	fmt << _lastFps << " FPS, " << _lastFrameDrawTimeMs << "ms/frame\nAdHoc " << _adHocRenderer._drawCalls << " calls, " << _adHocRenderer._totalPolysDrawnThisFrame << " polys";
-	_textRenderer->DrawDynamicText2D(fhLatoRegular, fmt.str(), 18, viewportWidth - 10, viewportHeight - 20, 0, 0xFF0088FF, dv3d::textOptionAlignment(dv3d::TXTA_RIGHT));
+	fmt << _lastFps << " FPS, " << _lastFrameDrawTimeMs << "ms/frame\n";
+	fmt << "AHR " << _adHocRenderer._drawCalls << " calls, " << _adHocRenderer._totalPolysDrawnThisFrame << " polys\n";
+	auto txtStats = _textRenderer->_statistics;
+	fmt << "TXT " << txtStats.dynamicTextsDrawn << " dynamic, " <<  txtStats.staticTextsDrawn << " static, " << txtStats.extGlyphsDrawn << " EXT, " << txtStats.asciiBatchesDrawn << " ABTCH\n";
+	_textRenderer->DrawDynamicText2D(fhLatoRegular, fmt.str(), 18, viewportWidth - 10.0F, viewportHeight - 20.0F, 0, 0xFF0088FF, dv3d::textOptionAlignment(dv3d::TXTA_RIGHT));
 	_adHocRenderer.FinishFrame();
+	_textRenderer->FinishFrame();
 }
 
 void DivinitorApp::OnViewportResized(int width, int height)

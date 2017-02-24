@@ -247,7 +247,7 @@ bool dv3d::TextRenderer::BufferASCIICharacter(GLfloat x, GLfloat y, GLfloat z, F
 	return true;
 }
 
-void dv3d::TextRenderer::RenderASCIICharacterBuffer(std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices) const
+void dv3d::TextRenderer::RenderASCIICharacterBuffer(std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices)
 {
 	glBindVertexArray(asciiQuadVertexArray);
 	glBindBuffer(GL_ARRAY_BUFFER, asciiQuadVertexBuffer);
@@ -256,9 +256,10 @@ void dv3d::TextRenderer::RenderASCIICharacterBuffer(std::vector<GLfloat>* vertex
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, asciiQuadIndexBuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices->size() * sizeof(GLushort), indices->data(), GL_DYNAMIC_DRAW);
 	glDrawElements(GL_TRIANGLES, indices->size(), GL_UNSIGNED_SHORT, nullptr);
+	++_statistics.asciiBatchesDrawn;
 }
 
-size_t dv3d::TextRenderer::CountNewlines(const std::string &text)
+size_t dv3d::TextRenderer::CountLines(const std::string &text)
 {
 	size_t ret = 1;
 	std::string::const_iterator iter;
@@ -402,9 +403,10 @@ dv3d::STATICTEXTHANDLE dv3d::TextRenderer::CreateStaticText(FONTHANDLE hFont, co
 			break;
 		}
 	}
-	size_t numLines = CountNewlines(text);
+	size_t numLines = CountLines(text);
 	GLfloat height = (numLines + 1) * fontSize;
 	StaticText stext;
+	stext.size = fontSize;
 	stext.textHeight = height;
 	stext.textWidth = width;
 	stext.textOptions = options;
@@ -530,6 +532,7 @@ void dv3d::TextRenderer::DrawStaticText2D(STATICTEXTHANDLE hStaticText, GLfloat 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+	++_statistics.staticTextsDrawn;
 }
 
 GLfloat dv3d::TextRenderer::GetLineOffset(dv3d::TextOptions options, GLfloat xOrigin, std::vector<GLfloat> &lineWidths, size_t lineNum)
@@ -715,11 +718,13 @@ void dv3d::TextRenderer::DrawDynamicText2D(FONTHANDLE hFont, const std::string& 
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 			x += (ch.pxAdvance >> 6) + tracking;
+			++_statistics.extGlyphsDrawn;
 		}
 	}
 	glBindVertexArray(0);
 	glUseProgram(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+	++_statistics.dynamicTextsDrawn;
 }
 
 GLfloat dv3d::TextRenderer::GetStaticTextWidth(STATICTEXTHANDLE hStaticText) const
@@ -818,6 +823,30 @@ GLfloat dv3d::TextRenderer::GetDynamicTextWidthPerLine(std::vector<GLfloat> &out
 	return max;
 }
 
+GLfloat dv3d::TextRenderer::GetStaticTextHeight(STATICTEXTHANDLE hStaticText) const
+{
+	auto text = _staticText[hStaticText];
+	return text.textHeight - text.size;	//	Remove the padding
+}
+
+GLfloat dv3d::TextRenderer::GetDynamicTextHeight(FONTHANDLE hFont, const std::string& text, FONTSIZE fontSize, TextOptions options)
+{
+	size_t numNewlines = CountLines(text) + 1;
+	return fontSize * numNewlines;
+}
+
+dv3d::TextOptions dv3d::TextRenderer::GetStaticTextOptions(STATICTEXTHANDLE hStaticText) const
+{
+	auto text = _staticText[hStaticText];
+	return text.textOptions;
+}
+
+dv3d::FONTSIZE dv3d::TextRenderer::GetStaticTextSize(STATICTEXTHANDLE hStaticText) const
+{
+	auto text = _staticText[hStaticText];
+	return text.size;
+}
+
 void dv3d::TextRenderer::ReleaseStaticText(STATICTEXTHANDLE hStaticText)
 {
 	StaticText text = _staticText[hStaticText];
@@ -830,4 +859,9 @@ void dv3d::TextRenderer::UnloadFont(FONTHANDLE hFont)
 	_fonts.erase(hFont);
 	//	TODO invalidate cache entries
 	//	Not really too important right now since this only gets destroyed at program exit
+}
+
+void dv3d::TextRenderer::FinishFrame()
+{
+	_statistics.Reset();
 }

@@ -101,6 +101,8 @@ namespace dv3d
 	//	Static text is text rendered to a texture and drawn on a single quad
 	struct StaticText
 	{
+		//	Text size
+		FONTSIZE size;
 		//	Width of the text quad
 		GLfloat textWidth;
 		//	Height of the text quad
@@ -109,6 +111,22 @@ namespace dv3d
 		GLuint textTexture;
 		//	Text options used to create this StaticText
 		TextOptions textOptions;
+	};
+
+	struct TextRendererStatistics
+	{
+		size_t extGlyphsDrawn;
+		size_t asciiBatchesDrawn;
+		size_t staticTextsDrawn;
+		size_t dynamicTextsDrawn;
+
+		void Reset()
+		{
+			extGlyphsDrawn = 0;
+			asciiBatchesDrawn = 0;
+			staticTextsDrawn = 0;
+			dynamicTextsDrawn = 0;
+		}
 	};
 
 	class TextRenderer
@@ -179,14 +197,15 @@ namespace dv3d
 		);
 
 		//	Renders the ASCII VAO with the given vertex data populated by BufferASCIICharacter calls
-		void RenderASCIICharacterBuffer(std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices) const;
+		void RenderASCIICharacterBuffer(std::vector<GLfloat>* vertexData, std::vector<GLushort>* indices);
 
 		//	Counts the number of newlines in a given string
-		static size_t CountNewlines(const std::string &text);
+		static size_t CountLines(const std::string &text);
 		
 		//	Sets the line offset for the current line
 		static GLfloat GetLineOffset(TextOptions options, GLfloat xOrigin, std::vector<GLfloat> &lineWidths, size_t lineNum);
 	public:
+
 		//	Constructor
 		explicit TextRenderer(resman::ResourceManager* resMan, ShaderManager* shdrManager);
 
@@ -222,11 +241,27 @@ namespace dv3d
 		//	and each vector entry is the width of the corresponding line. Defaults to 0 leading, left aligned (alignment does not affect text width).
 		GLfloat GetDynamicTextWidthPerLine(OUT std::vector<GLfloat> &out, FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, TextOptions options = 0) const;
 		
+
+		GLfloat GetStaticTextHeight(STATICTEXTHANDLE hStaticText) const;
+
+
+		static GLfloat GetDynamicTextHeight(FONTHANDLE hFont, const std::string &text, FONTSIZE fontSize, TextOptions options = 0);
+
+
+		TextOptions GetStaticTextOptions(STATICTEXTHANDLE hStaticText) const;
+
+		FONTSIZE GetStaticTextSize(STATICTEXTHANDLE hStaticText) const;
+
 		//	Releases a given static text instance. The STATICTEXTHANDLE should be discarded and should not be passed to other StaticText methods.
 		void ReleaseStaticText(STATICTEXTHANDLE hStaticText);
 
 		//	Unloads a given loaded font.
 		void UnloadFont(FONTHANDLE hFont);
+
+		void FinishFrame();
+
+		//	Per frame statistics
+		TextRendererStatistics _statistics;
 	};
 
 }
