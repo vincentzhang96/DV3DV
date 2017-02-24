@@ -3,7 +3,7 @@
 #include "ui/UiBootstrap.h"
 
 UserInterface::UserInterface(DivinitorApp* app)
-	: _app(app), _size(0, 0)
+	: _size(0, 0), _app(app)
 {
 	_screenFbo = 0;
 	_screenFboProg = 0;
