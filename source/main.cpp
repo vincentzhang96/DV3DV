@@ -424,8 +424,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	LOG(INFO) << "Starting...";
 	//	Init asset manager
 	mResManager = std::make_unique<resman::ResourceManager>();
-	//	Init application
-	mApp = std::make_unique<DivinitorApp>(mResManager.get());
 	//	Load init
 	mResManager->_ppacManager.LoadPPAC(L"init.ppac");
 	//	Create the window
@@ -434,6 +432,10 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		LOG(ERROR) << "Failed to create window, stopping";
 		return 0;
 	}
+	//	Init application
+	mApp = std::make_unique<DivinitorApp>(mResManager.get());
+	//	Fire off a resize since we missed the window resize
+	mApp->OnViewportResized(oglContext->GetWindowWidth(), oglContext->GetWindowHeight());
 	//	Render splash screen
 	_drawSplash();
 	//	Load data directory
