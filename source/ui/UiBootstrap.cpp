@@ -28,6 +28,7 @@ void MainMenuSharedResources::RenderBackground(UiScreen* ui, GLfloat vigStr, glm
 	GLfloat u0, u1, v0, v1;
 	constexpr GLfloat texW = 1280;
 	constexpr GLfloat texH = 768;
+	//	TODO redo this cuz it doesnt work
 	if (widthIsMax)
 	{
 		u0 = 0;
