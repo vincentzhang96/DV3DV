@@ -29,29 +29,10 @@ void MainMenuSharedResources::RenderBackground(UiScreen* ui, GLfloat vigStr, glm
 	constexpr GLfloat texW = 1280;
 	constexpr GLfloat texH = 768;
 	//	TODO redo this cuz it doesnt work
-	if (widthIsMax)
-	{
-		u0 = 0;
-		u1 = 1;
-		GLfloat xRescale = screenSz.x / texW;
-		GLfloat yRescaled = screenSz.y / xRescale;
-		GLfloat yPartial = texH / yRescaled - 1.0F;
-		GLfloat halfPartial = yPartial / 2.0F;
-		v0 = halfPartial;
-		v1 = 1.0 - halfPartial;
-	}
-	else
-	{
-		v0 = 0;
-		v1 = 1;
-		GLfloat yRescale = screenSz.y / texH;
-		GLfloat xRescaled = screenSz.x / yRescale;
-		GLfloat xPartial = texW / xRescaled - 1.0F;
-		GLfloat halfPartial = xPartial / 2.0F;
-		u0 = halfPartial;
-		u1 = 1.0 - halfPartial;
-	}
-
+	u0 = 0;
+	u1 = 1;
+	v0 = 0;
+	v1 = 1;
 	auto prog = ui->_app->_shaderManager->Get(backgroundShaderProg);
 	glUseProgram(prog);
 	glUniformMatrix4fv(4, 1, GL_FALSE, ui->_ui->GetProjViewMatrixPtr());
