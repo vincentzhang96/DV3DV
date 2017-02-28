@@ -185,6 +185,46 @@ const float* UserInterface::GetProjViewMatrixPtr()
 	return glm::value_ptr(projView);
 }
 
+bool UserInterface::HandleKeyPress(int keycode)
+{
+	//	TODO
+	if (_activeScreen)
+	{
+		return _activeScreen->HandleKeyPress(keycode);
+	}
+	return false;
+}
+
+bool UserInterface::HandleKeyRelease(int keycode)
+{
+	//	TODO
+	if (_activeScreen)
+	{
+		return _activeScreen->HandleKeyRelease(keycode);
+	}
+	return false;
+}
+
+bool UserInterface::HandleMouseClick(int x, int y, int mousebutton)
+{
+	//	TODO
+	if (_activeScreen)
+	{
+		return _activeScreen->HandleMouseClick(x, y, mousebutton);
+	}
+	return false;
+}
+
+bool UserInterface::HandleMouseRelease(int x, int y, int mousebutton)
+{
+	//	TODO
+	if (_activeScreen)
+	{
+		return _activeScreen->HandleMouseRelease(x, y, mousebutton);
+	}
+	return false;
+}
+
 glm::fvec2 UiElementAlignment::Position(AnchorX xAnchor, AnchorY yAnchor, glm::fvec2 pos, glm::fvec2 size, glm::fvec2 parentSize)
 {
 	return { PositionX(xAnchor, pos.x, size.x, parentSize.x), PositionY(yAnchor, pos.y, size.y, parentSize.y) };

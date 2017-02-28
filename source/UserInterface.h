@@ -53,6 +53,26 @@ public:
 	void DrawUiElements(float deltaT);
 
 	void ProcessUiElements();
+
+	virtual bool HandleKeyPress(int keycode)
+	{
+		return false;
+	}
+
+	virtual bool HandleKeyRelease(int keycode)
+	{
+		return false;
+	}
+
+	virtual bool HandleMouseClick(int x, int y, int mousebutton)
+	{
+		return false;
+	}
+
+	virtual bool HandleMouseRelease(int x, int y, int mousebutton)
+	{
+		return false;
+	}
 };
 
 
@@ -94,6 +114,14 @@ public:
 	void InvalidateOldScreen();
 
 	const float* GetProjViewMatrixPtr();
+
+	bool HandleKeyPress(int keycode);
+
+	bool HandleKeyRelease(int keycode);
+
+	bool HandleMouseClick(int x, int y, int mousebutton);
+
+	bool HandleMouseRelease(int x, int y, int mousebutton);
 };
 
 namespace UiElementAlignment

@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "UserInterface.h"
 #include "ui/UiBootstrap.h"
+#include "main.h"
 
 float DivinitorApp::UpdateTime()
 {
@@ -48,7 +49,7 @@ _adHocRenderer(0xFFFF)
 	_lastFrameTimeNs = 0;
 	_lastFPSUpdateTime = 0;
 	_displayDebug = false;
-
+	_mouseCoords = { 0, 0 };
 }
 
 DivinitorApp::~DivinitorApp()
@@ -61,6 +62,7 @@ DivinitorApp::~DivinitorApp()
 
 void DivinitorApp::FirstFrameInit()
 {
+	wglSwapIntervalEXT(config.vsync);
 	_adHocRenderer.PostRendererInit();
 	_textRenderer->PostRendererInit();
 	//	Load fonts
@@ -93,10 +95,16 @@ void DivinitorApp::Draw()
 		fmt.precision(2);
 		fmt.setf(std::ios::fixed, std::ios::floatfield);
 		fmt << "VP " << viewportWidth << "x" << viewportHeight << "\n";
-		fmt << _lastFps << " FPS, " << _lastFrameDrawTimeMs << "ms/frame\n";
+		fmt << _lastFps << " FPS, " << _lastFrameDrawTimeMs << "ms/frame";
+		if (config.vsync)
+		{
+			fmt << " VSYNC";
+		}
+		fmt << "\n";
 		fmt << "AHR " << _adHocRenderer._drawCalls << " calls, " << _adHocRenderer._totalPolysDrawnThisFrame << " polys\n";
 		auto txtStats = _textRenderer->_statistics;
 		fmt << "TXT " << txtStats.dynamicTextsDrawn << " dynamic, " << txtStats.staticTextsDrawn << " static, " << txtStats.extGlyphsDrawn << " EXT, " << txtStats.asciiBatchesDrawn << " ABTCH\n";
+		fmt << "MOUSE (" << _mouseCoords.x << ", " << _mouseCoords.y << ")\n";
 		glm::fvec2 pos = Position(UiElementAlignment::XRIGHT, UiElementAlignment::YTOP, { 10, 20 }, { 0, 0 }, { viewportWidth, viewportHeight });
 		_textRenderer->DrawDynamicText2D(fhLatoRegular, fmt.str(), 18, pos.x, pos.y, 0, 0xFF5AA9E5, dv3d::textOptionAlignment(dv3d::TXTA_RIGHT));
 	}
@@ -114,27 +122,80 @@ void DivinitorApp::OnViewportResized(int width, int height)
 
 void DivinitorApp::OnKeyPressed(int keyCode)
 {
+	if (!_userInterface->HandleKeyPress(keyCode)) {
 
+	}
 }
 
 void DivinitorApp::OnKeyReleased(int keyCode)
 {
-	//	Debug hook
-	if (keyCode == VK_F12)
-	{
-		_displayDebug = !_displayDebug;
-		return;
+	if (!_userInterface->HandleKeyRelease(keyCode)) {
+		//	Debug hook
+		if (keyCode == 'D')
+		{
+			_displayDebug = !_displayDebug;
+			return;
+		}
+		if (keyCode == 'V')
+		{
+			config.vsync = !config.vsync;
+			wglSwapIntervalEXT(config.vsync);
+			_WriteConfig(config);
+			return;
+		}
 	}
 }
 
-void DivinitorApp::OnMouseMoved(int x, int y)
+void DivinitorApp::OnMouseMoved(int x, int y, int buttonCode)
 {
+	if (x < 0) x = 0;
+	if (y < 0) y = 0;
+	if (x > viewportWidth) x = viewportWidth;
+	if (y > viewportHeight) y = viewportHeight;
+	_mouseCoords.x = x;
+	_mouseCoords.y = y;
 }
 
 void DivinitorApp::OnMouseButtonPressed(int x, int y, int buttonCode)
 {
+	if (buttonCode & MK_LBUTTON)
+	{
+		//	Left mouse
+		if (!_userInterface->HandleMouseClick(x, y, MK_LBUTTON))
+		{
+			//	Not handled by UI, propogate to underlying layers
+
+		}
+	}
+	if (buttonCode & MK_RBUTTON)
+	{
+		//	Right mouse
+		if (!_userInterface->HandleMouseClick(x, y, MK_RBUTTON))
+		{
+			//	Not handled by UI, propogate to underlying layers
+
+		}
+	}
 }
 
 void DivinitorApp::OnMouseButtonReleased(int x, int y, int buttonCode)
 {
+	if (buttonCode & MK_LBUTTON)
+	{
+		//	Left mouse
+		if (!_userInterface->HandleMouseRelease(x, y, MK_LBUTTON))
+		{
+			//	Not handled by UI, propogate to underlying layers
+
+		}
+	}
+	if (buttonCode & MK_RBUTTON)
+	{
+		//	Right mouse
+		if (!_userInterface->HandleMouseRelease(x, y, MK_RBUTTON))
+		{
+			//	Not handled by UI, propogate to underlying layers
+
+		}
+	}
 }

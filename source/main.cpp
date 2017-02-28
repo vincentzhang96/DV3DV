@@ -11,12 +11,14 @@ INITIALIZE_EASYLOGGINGPP
 INIT_PPAC_LOGGER
 INIT_DNPAK_LOGGER
 
+DV3DVConfig config;
 OpenGLContext* oglContext = nullptr;
 HWND hWnd = nullptr;
 HINSTANCE hInstance = nullptr;
 MSG msg;
 LPSTR userDataDir;
 
+glm::ivec2 _mouseCoords;
 
 #define USER_DATA_DIRW L"./userdata/"
 #define USER_DATA_DIR_FILEW(SUBPATH) USER_DATA_DIRW SUBPATH
@@ -94,6 +96,32 @@ void OnKeyUp(int keyCode)
 	if (mApp)
 	{
 		mApp->OnKeyReleased(keyCode);
+	}
+}
+
+void OnMouseMove(int x, int y, int mouseButton)
+{
+	_mouseCoords.x = x;
+	_mouseCoords.y = oglContext->GetWindowHeight() - y;
+	if (mApp)
+	{
+		mApp->OnMouseMoved(_mouseCoords.x, _mouseCoords.y, mouseButton);
+	}
+}
+
+void OnMouseButtonDown(int mouseButton)
+{
+	if (mApp)
+	{
+		mApp->OnMouseButtonPressed(_mouseCoords.x, _mouseCoords.y, mouseButton);
+	}
+}
+
+void OnMouseButtonUp(int mouseButton)
+{
+	if (mApp)
+	{
+		mApp->OnMouseButtonReleased(_mouseCoords.x, _mouseCoords.y, mouseButton);
 	}
 }
 
@@ -200,6 +228,7 @@ bool _LoadConfig(DV3DVConfig& config)
 	config.winHeight = 900;
 	config.console = true;
 	config.fullscreen = false;
+	config.vsync = true;
 	//	Check that the config file exists before attempting to load it
 	auto dwAttrib = GetFileAttributesW(USER_DATA_DIR_FILEW(L"config/config.json"));
 	if (dwAttrib == 0xFFFFFFFF)
@@ -231,6 +260,10 @@ bool _LoadConfig(DV3DVConfig& config)
 	{
 		config.console = cfgJson["console"].get<bool>();
 	}
+	if (cfgJson.count("vsync") == 1)
+	{
+		config.vsync = cfgJson["vsync"].get<bool>();
+	}
 	return true;
 }
 
@@ -256,7 +289,8 @@ bool _WriteConfig(DV3DVConfig& config)
 		{"width", config.winWidth},
 		{"height", config.winHeight},
 		{"fullscreen", config.fullscreen},
-		{"console", config.console}
+		{"console", config.console},
+		{"vsync", config.vsync}
 	};
 	//	Truncate file
 	SetEndOfFile(cfgFile);
@@ -388,7 +422,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	_SetUpLogger();
 	_CreateUserDir();
 	//	Options
-	DV3DVConfig config;
 	ZeroMemory(&config, sizeof(DV3DVConfig));
 	_LoadConfig(config);
 
@@ -515,6 +548,11 @@ LRESULT CALLBACK WndProc(HWND hWnd,
 	case WM_KEYUP:
 		{
 			OnKeyUp(wParam);
+			return 0;
+		}
+	case WM_MOUSEMOVE:
+		{
+			OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), wParam);
 			return 0;
 		}
 	case WM_SIZE:

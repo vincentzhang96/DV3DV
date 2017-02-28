@@ -130,7 +130,6 @@ bool OpenGLContext::CreateContext(HWND hWnd)
 		return false;
 	}
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	wglSwapIntervalEXT(0);
 	return true;
 }
 
@@ -151,6 +150,7 @@ void OpenGLContext::PreRender()
 // ReSharper disable once CppMemberFunctionMayBeConst
 void OpenGLContext::PostRender()
 {
+	glFinish();
 	SwapBuffers(_hDC);
 }
 

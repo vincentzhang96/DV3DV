@@ -13,6 +13,7 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <ShlObj.h>
+#include <windowsx.h>
 #include <iostream>
 #include <Strsafe.h>
 #include <cstdint>

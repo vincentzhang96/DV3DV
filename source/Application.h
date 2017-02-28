@@ -36,6 +36,8 @@ public:
 	dv3d::TextRenderer* _textRenderer;
 	UserInterface* _userInterface;
 
+	glm::ivec2 _mouseCoords;
+
 	//	TODO factor this out into some sort of fontface manager
 	dv3d::FONTHANDLE fhLatoRegular;
 	dv3d::FONTHANDLE fhGeomanistRegular;
@@ -55,7 +57,7 @@ public:
 
 	void OnKeyReleased(int keyCode);
 
-	void OnMouseMoved(int x, int y);
+	void OnMouseMoved(int x, int y, int buttonCode);
 
 	void OnMouseButtonPressed(int x, int y, int buttonCode);
 

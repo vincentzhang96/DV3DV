@@ -8,7 +8,10 @@ struct DV3DVConfig
 	GLint winHeight;
 	bool fullscreen;
 	bool console;
+	bool vsync;
 };
+
+extern DV3DVConfig config;
 
 /// Main entry point
 int WINAPI WinMain(HINSTANCE hInstance,
@@ -43,6 +46,12 @@ void OnKeyDown(int keyCode);
 
 
 void OnKeyUp(int keyCode);
+
+void OnMouseMove(int x, int y, int mouseButton);
+
+void OnMouseButtonDown(int mouseButton);
+
+void OnMouseButtonUp(int mouseButton);
 
 void _TrySetupFullscreen(int winWidth, int winHeight, DWORD& dwExStyle, DWORD& dwStyle);
 
