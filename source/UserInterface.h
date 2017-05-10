@@ -54,6 +54,8 @@ public:
 
 	void ProcessUiElements();
 
+	void ClearUiElements();
+
 	virtual bool HandleKeyPress(int keycode)
 	{
 		return false;

@@ -47,8 +47,5 @@ OUTPUT=../runtime/data/core.ppac
 
 # Fragment shader for UI FBO
 0x0108,0x0101,0x00000001=core/shader/ui_fbo.frag.glsl
-
-# Fragment shader for basic colored quad for UI's AdHoc renderer
-0x0108,0x0101,0x00000002=core/shader/ui_adhoc_color_pt.frag.glsl
-# Fragment shader for basic textured quad for UI's AdHoc renderer
-0x0108,0x0101,0x00000003=core/shader/ui_adhoc_tex_pt.frag.glsl
+# Fragment shader for UI main menu background
+0x0108,0x1001,0x00000001=core/shader/ui_mm_background.frag.glsl

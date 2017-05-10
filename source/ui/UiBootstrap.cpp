@@ -2,68 +2,6 @@
 #include "UiBootstrap.h"
 #include "uielement/UiLabel.h"
 
-
-MainMenuSharedResources::MainMenuSharedResources(dv3d::TextureManager* texMan) :
-_texMan(texMan)
-{
-	backgroundTex = 0;
-	invVignetteTex = 0;
-	vignetteTex = 0;
-	backgroundShaderProg = 0;
-}
-
-MainMenuSharedResources::~MainMenuSharedResources()
-{
-	LOG(DEBUG) << "Unloading shared main menu resources";
-	_texMan->Unload(backgroundTex);
-	_texMan->Unload(invVignetteTex);
-	_texMan->Unload(vignetteTex);
-}
-
-void MainMenuSharedResources::RenderBackground(UiScreen* ui, GLfloat vigStr, glm::fvec4 color)
-{
-	auto adHoc = &ui->_app->_adHocRenderer;
-	auto screenSz = ui->_ui->GetScreenSize();
-	bool widthIsMax = screenSz.x > screenSz.y;
-	GLfloat u0, u1, v0, v1;
-	constexpr GLfloat texW = 1280;
-	constexpr GLfloat texH = 768;
-	//	TODO redo this cuz it doesnt work
-	u0 = 0;
-	u1 = 1;
-	v0 = 0;
-	v1 = 1;
-	auto prog = ui->_app->_shaderManager->Get(backgroundShaderProg);
-	glUseProgram(prog);
-	glUniformMatrix4fv(4, 1, GL_FALSE, ui->_ui->GetProjViewMatrixPtr());
-	glActiveTexture(GL_TEXTURE0);
-	glProgramUniform1i(prog, 5, 0);
-
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glBindTexture(GL_TEXTURE_2D, backgroundTex);
-	adHoc->BeginDraw(GL_TRIANGLE_FAN);
-	adHoc->SetColorfv4(color);
-	adHoc->AddVertexTexCoordf(0, 0, 0, u0, v1);
-	adHoc->AddVertexTexCoordf(0, screenSz.y, 0, u0, v0);
-	adHoc->AddVertexTexCoordf(screenSz.x, screenSz.y, 0, u1, v0);
-	adHoc->AddVertexTexCoordf(screenSz.x, 0, 0, u1, v1);
-	adHoc->EndDraw();
-
-	glBlendFunc(GL_DST_COLOR, GL_ZERO);
-	glBindTexture(GL_TEXTURE_2D, vignetteTex);
-	adHoc->BeginDraw(GL_TRIANGLE_FAN);
-	adHoc->SetColorf(1.0, 1.0, 1.0, vigStr);
-	adHoc->AddVertexTexCoordf(0, 0, 0, 0, 1);
-	adHoc->AddVertexTexCoordf(0, screenSz.y, 0, 0, 0);
-	adHoc->AddVertexTexCoordf(screenSz.x, screenSz.y, 0, 1, 0);
-	adHoc->AddVertexTexCoordf(screenSz.x, 0, 0, 1, 1);
-	adHoc->EndDraw();
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glUseProgram(0);
-}
-
-
 UiBootstrap::UiBootstrap(DivinitorApp* app) :
 	UiScreen(app)
 {
@@ -120,7 +58,7 @@ void UiBootstrap::Draw(float deltaT)
 void UiBootstrap::Resize(int width, int height)
 {
 	UiScreen::Resize(width, height);
-	_elements.clear();
+	ClearUiElements();
 	auto vahrLbl = new UiElements::StaticLabel(this, _app->fhGeomanistRegular, "VAHRHEDRAL", 18, dv3d::textOptionTracking(400));
 	vahrLbl->_color = 0xFFA6AEB3;
 	Position(UiElementAlignment::XLEFT, UiElementAlignment::YTOP, { 20, 20 }, vahrLbl, this);

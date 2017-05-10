@@ -306,3 +306,8 @@ void UiScreen::ProcessUiElements()
 		return a->_zLevel < b->_zLevel;
 	});
 }
+
+void UiScreen::ClearUiElements()
+{
+	_elements.clear();
+}
