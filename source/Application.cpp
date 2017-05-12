@@ -91,9 +91,13 @@ void DivinitorApp::Draw()
 
 	if (_displayDebug)
 	{
+		PROCESS_MEMORY_COUNTERS memCounters;
+		GetProcessMemoryInfo(GetCurrentProcess(), &memCounters, sizeof(PPROCESS_MEMORY_COUNTERS));
+
 		std::stringstream fmt;
 		fmt.precision(2);
 		fmt.setf(std::ios::fixed, std::ios::floatfield);
+		fmt << "Working " << memCounters.WorkingSetSize / 1024.0 / 1024.0 << " MB\n";
 		fmt << "VP " << viewportWidth << "x" << viewportHeight << "\n";
 		fmt << _lastFps << " FPS, " << _lastFrameDrawTimeMs << "ms/frame";
 		if (config.vsync)

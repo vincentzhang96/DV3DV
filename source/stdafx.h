@@ -14,6 +14,7 @@
 #include <shellapi.h>
 #include <ShlObj.h>
 #include <windowsx.h>
+#include <Psapi.h>
 #include <iostream>
 #include <Strsafe.h>
 #include <cstdint>
