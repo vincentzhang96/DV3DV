@@ -93,6 +93,7 @@ typedef struct {
 
 
 #define GLBUFFEROFFSET(offset) reinterpret_cast<void*>(offset)
+#define GLBUFFEROFFSETZERO reinterpret_cast<void*>(0)
 #define GLBUFFEROFFSET_F(offset) GLBUFFEROFFSET(offset * sizeof(GLfloat))
 
 #endif

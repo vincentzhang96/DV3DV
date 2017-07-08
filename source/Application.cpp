@@ -6,13 +6,13 @@
 
 float DivinitorApp::UpdateTime()
 {
-	uint64_t deltaNs = 0;
+	uint64_t deltaNs;
 	uint64_t nowNs;
 	nowNs = GetSystemTimeNanos();
 	deltaNs = nowNs - _lastFrameTimeNs;
 	//	Calculate deltaT
 	_lastFrameTimeNs = nowNs;
-	uint64_t timeSinceFPSUpdate = nowNs - _lastFPSUpdateTime;
+	auto timeSinceFPSUpdate = nowNs - _lastFPSUpdateTime;
 	++_fpsFrameCounter;
 	if (timeSinceFPSUpdate >= 1e9)
 	{
@@ -109,6 +109,7 @@ void DivinitorApp::Draw()
 		auto txtStats = _textRenderer->_statistics;
 		fmt << "TXT " << txtStats.dynamicTextsDrawn << " dynamic, " << txtStats.staticTextsDrawn << " static, " << txtStats.extGlyphsDrawn << " EXT, " << txtStats.asciiBatchesDrawn << " ABTCH\n";
 		fmt << "MOUSE (" << _mouseCoords.x << ", " << _mouseCoords.y << ")\n";
+
 		glm::fvec2 pos = Position(UiElementAlignment::XRIGHT, UiElementAlignment::YTOP, { 10, 20 }, { 0, 0 }, { viewportWidth, viewportHeight });
 		_textRenderer->DrawDynamicText2D(fhLatoRegular, fmt.str(), 18, pos.x, pos.y, 0, 0xFF5AA9E5, dv3d::textOptionAlignment(dv3d::TXTA_RIGHT));
 	}
