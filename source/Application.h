@@ -3,8 +3,12 @@
 #include "3d/Renderer.h"
 #include "3d/TextRenderer.h"
 #include "ui/AdHocRenderer.h"
+#include "audio/AudioManager.h"
 
 class UserInterface;
+
+#define DV_TPS 30
+#define DV_TICK_INTERVAL_NS (1e9 / DV_TPS)
 
 class DivinitorApp
 {
@@ -14,7 +18,7 @@ class DivinitorApp
 
 	uint64_t _lastFrameTimeNs;
 
-	inline float UpdateTime();
+	inline float UpdateFrameTime();
 
 	uint64_t _lastFPSUpdateTime;
 	uint32_t _fpsFrameCounter;
@@ -28,11 +32,14 @@ class DivinitorApp
 	
 	static inline uint64_t GetSystemTimeNanos();
 
+	inline float UpdateTickTime();
 
-	uint64_t _lastSimTickTime;
+	uint64_t _lastSimTickTimeNs;
 	uint32_t _tpsCounter;
 	uint32_t _lastTps;
-	float _lastTickTimeMs;
+	uint64_t _lastTPSUpdateTime;
+	float _lastTickSimTimeMs;
+	bool _shouldTick;
 
 public:
 	Renderer* _renderer;
@@ -41,6 +48,7 @@ public:
 	dv3d::TextureManager* _textureManager;
 	dv3d::TextRenderer* _textRenderer;
 	UserInterface* _userInterface;
+	AudioManager* _audioManager;
 
 	glm::ivec2 _mouseCoords;
 
@@ -57,6 +65,8 @@ public:
 
 	void Draw();
 
+	void Tick();
+
 	void OnViewportResized(int width, int height);
 
 	void OnKeyPressed(int keyCode);
@@ -69,5 +79,4 @@ public:
 
 	void OnMouseButtonReleased(int x, int y, int buttonCode);
 
-	
 };

@@ -162,6 +162,7 @@
     <ClCompile Include="..\source\3d\TextRenderer.cpp" />
     <ClCompile Include="..\source\3d\TextureManager.cpp" />
     <ClCompile Include="..\source\Application.cpp" />
+    <ClCompile Include="..\source\audio\AudioManager.cpp" />
     <ClCompile Include="..\source\dn\pak\DnPak.cpp" />
     <ClCompile Include="..\source\main.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
@@ -189,6 +190,7 @@
     <ClInclude Include="..\source\3d\TextRenderer.h" />
     <ClInclude Include="..\source\3d\TextureManager.h" />
     <ClInclude Include="..\source\Application.h" />
+    <ClInclude Include="..\source\audio\AudioManager.h" />
     <ClInclude Include="..\source\dn\pak\DnPak.h" />
     <ClInclude Include="..\source\main.h" />
     <ClInclude Include="..\source\3d\OpenGLContext.h" />

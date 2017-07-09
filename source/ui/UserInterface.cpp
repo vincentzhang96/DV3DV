@@ -1,6 +1,6 @@
-#include "stdafx.h"
+#include "../stdafx.h"
 #include "UserInterface.h"
-#include "ui/UiBootstrap.h"
+#include "UiBootstrap.h"
 
 UserInterface::UserInterface(DivinitorApp* app)
 	: _size(0, 0), _app(app)

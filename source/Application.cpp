@@ -4,7 +4,7 @@
 #include "ui/UiBootstrap.h"
 #include "main.h"
 
-float DivinitorApp::UpdateTime()
+float DivinitorApp::UpdateFrameTime()
 {
 	uint64_t deltaNs;
 	uint64_t nowNs;
@@ -36,6 +36,34 @@ uint64_t DivinitorApp::GetSystemTimeNanos()
 	return uTime.QuadPart * 100;
 }
 
+float DivinitorApp::UpdateTickTime()
+{
+	uint64_t deltaNs;
+	uint64_t nowNs;
+	nowNs = GetSystemTimeNanos();
+	deltaNs = nowNs - _lastSimTickTimeNs;
+	if (deltaNs >= DV_TICK_INTERVAL_NS)
+	{
+		_shouldTick = true;
+		_lastSimTickTimeNs = nowNs;
+		++_tpsCounter;
+		auto timeSinceTPSUpdate = nowNs - _lastTPSUpdateTime;
+		if (timeSinceTPSUpdate >= 1e9)
+		{
+			_lastTickSimTimeMs = timeSinceTPSUpdate / _tpsCounter / 1e6F;
+			_lastTps = float(_tpsCounter) / (timeSinceTPSUpdate / 1e9F);
+			_tpsCounter = 0;
+			_lastTPSUpdateTime = nowNs;
+		}
+		return deltaNs / 1e9F;
+	}
+	else
+	{
+		_shouldTick = false;
+		return 0;
+	}
+}
+
 DivinitorApp::DivinitorApp(resman::ResourceManager* resman) : 
 _adHocRenderer(0xFFFF)
 {
@@ -46,6 +74,7 @@ _adHocRenderer(0xFFFF)
 	_textRenderer = new dv3d::TextRenderer(_resMan, _shaderManager);
 	_scene = nullptr;
 	_userInterface = new UserInterface(this);
+	_audioManager = new AudioManager();
 	_lastFrameTimeNs = 0;
 	_lastFPSUpdateTime = 0;
 	_displayDebug = false;
@@ -54,6 +83,7 @@ _adHocRenderer(0xFFFF)
 
 DivinitorApp::~DivinitorApp()
 {
+	delete _audioManager;
 	delete _userInterface;
 	delete _textRenderer;
 	delete _textureManager;
@@ -71,9 +101,10 @@ void DivinitorApp::FirstFrameInit()
 	fhNanumSemibold = _textRenderer->LoadFont(ppac::TPUID(0x0500, 0x0001, 0x00000300));
 	fhJunProRegular = _textRenderer->LoadFont(ppac::TPUID(0x0501, 0x0001, 0x00000400));
 
+	_audioManager->Init();
 
 	//	Fudge our time
-	UpdateTime();
+	UpdateFrameTime();
 
 	//	Init UI
 	_userInterface->Init();
@@ -81,13 +112,14 @@ void DivinitorApp::FirstFrameInit()
 
 void DivinitorApp::Draw()
 {
-	float deltaT = UpdateTime();
+	float deltaT = UpdateFrameTime();
 	if (_scene)
 	{
 		_renderer->Draw(deltaT);
 	}
 	_userInterface->Draw(deltaT);
 
+	Tick();
 
 	if (_displayDebug)
 	{
@@ -105,6 +137,7 @@ void DivinitorApp::Draw()
 			fmt << " VSYNC";
 		}
 		fmt << "\n";
+		fmt << _lastTps << " TPS, " << _lastTickSimTimeMs << "ms/tick\n";
 		fmt << "AHR " << _adHocRenderer._drawCalls << " calls, " << _adHocRenderer._totalPolysDrawnThisFrame << " polys\n";
 		auto txtStats = _textRenderer->_statistics;
 		fmt << "TXT " << txtStats.dynamicTextsDrawn << " dynamic, " << txtStats.staticTextsDrawn << " static, " << txtStats.extGlyphsDrawn << " EXT, " << txtStats.asciiBatchesDrawn << " ABTCH\n";
@@ -115,6 +148,18 @@ void DivinitorApp::Draw()
 	}
 	_adHocRenderer.FinishFrame();
 	_textRenderer->FinishFrame();
+}
+
+void DivinitorApp::Tick()
+{
+	auto deltaT = UpdateTickTime();
+	if (!_shouldTick)
+	{
+		return;
+	}
+	_shouldTick = false;
+
+
 }
 
 void DivinitorApp::OnViewportResized(int width, int height)

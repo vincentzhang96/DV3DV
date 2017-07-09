@@ -49,3 +49,7 @@ OUTPUT=../runtime/data/core.ppac
 0x0108,0x0101,0x00000001=core/shader/ui_fbo.frag.glsl
 # Fragment shader for UI main menu background
 0x0108,0x1001,0x00000001=core/shader/ui_mm_background.frag.glsl
+
+
+# Ambient sound
+0x0302,0x1001,0x00000001=core/ui/audio/ambient/snowstorm.ogg
