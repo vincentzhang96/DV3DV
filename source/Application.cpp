@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "Application.h"
-#include "UserInterface.h"
+#include "ui/UserInterface.h"
 #include "ui/UiBootstrap.h"
 #include "main.h"
 

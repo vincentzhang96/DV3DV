@@ -1,7 +1,7 @@
 #pragma once
-#include "Application.h"
-#include "3d/ShaderManager.h"
-#include "3d/TextRenderer.h"
+#include "../Application.h"
+#include "../3d/ShaderManager.h"
+#include "../3d/TextRenderer.h"
 
 class UserInterface;
 class UiElement;

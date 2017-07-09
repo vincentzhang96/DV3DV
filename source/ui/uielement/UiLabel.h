@@ -1,6 +1,6 @@
 #pragma once
 #include "../../3d/TextRenderer.h"
-#include "../../UserInterface.h"
+#include "../UserInterface.h"
 
 namespace UiElements
 {

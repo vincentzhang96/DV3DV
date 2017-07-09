@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Scene.h"
-#include "3d/ShaderManager.h"
-#include "3d/TextureManager.h"
+#include "ShaderManager.h"
+#include "TextureManager.h"
 
 class Renderer
 {

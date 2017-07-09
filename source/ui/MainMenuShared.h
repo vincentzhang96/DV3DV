@@ -15,3 +15,5 @@ public:
 
 	void RenderBackground(UiScreen* ui, GLfloat vigStr, glm::fvec4 color);
 };
+
+typedef std::shared_ptr<MainMenuSharedResources> MainMenuSharedResourcesPtr;

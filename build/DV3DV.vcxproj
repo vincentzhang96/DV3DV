@@ -71,14 +71,16 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\lowlevel\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\lib;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\lowlevel\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\lowlevel\inc;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\inc;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\lib;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\lowlevel\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -95,7 +97,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;lib/glew32.lib;lib/zlib.lib;lib/jpeg.lib;lib/freetype271MT.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;lib/glew32.lib;lib/zlib.lib;lib/jpeg.lib;lib/freetype271MT.lib;fmod_vc.lib;fmodstudio_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\lib;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\lowlevel\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -130,7 +133,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;lib/glew32.lib;lib/zlib.lib;lib/jpeg.lib;lib/freetype271MT.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;lib/glew32.lib;lib/zlib.lib;lib/jpeg.lib;lib/freetype271MT.lib;fmod_vc.lib;fmodstudio_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\studio\lib;C:\Program Files (x86)\FMOD SoundSystem\FMOD Studio API Windows\api\lowlevel\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -163,11 +167,11 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\source\OpenGLContext.cpp" />
+    <ClCompile Include="..\source\3d\OpenGLContext.cpp" />
     <ClCompile Include="..\source\ppac\PhoenixPAC.cpp" />
-    <ClCompile Include="..\source\Renderer.cpp" />
+    <ClCompile Include="..\source\3d\Renderer.cpp" />
     <ClCompile Include="..\source\ResourceManager.cpp" />
-    <ClCompile Include="..\source\Scene.cpp" />
+    <ClCompile Include="..\source\3d\Scene.cpp" />
     <ClCompile Include="..\source\stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -177,7 +181,8 @@
     <ClCompile Include="..\source\ui\UiBootstrap.cpp" />
     <ClCompile Include="..\source\ui\uielement\UiBigSpinner.cpp" />
     <ClCompile Include="..\source\ui\uielement\UiLabel.cpp" />
-    <ClCompile Include="..\source\UserInterface.cpp" />
+    <ClCompile Include="..\source\ui\UiMainMenu.cpp" />
+    <ClCompile Include="..\source\ui\UserInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\source\3d\ShaderManager.h" />
@@ -186,11 +191,11 @@
     <ClInclude Include="..\source\Application.h" />
     <ClInclude Include="..\source\dn\pak\DnPak.h" />
     <ClInclude Include="..\source\main.h" />
-    <ClInclude Include="..\source\OpenGLContext.h" />
+    <ClInclude Include="..\source\3d\OpenGLContext.h" />
     <ClInclude Include="..\source\ppac\PhoenixPAC.h" />
-    <ClInclude Include="..\source\Renderer.h" />
+    <ClInclude Include="..\source\3d\Renderer.h" />
     <ClInclude Include="..\source\ResourceManager.h" />
-    <ClInclude Include="..\source\Scene.h" />
+    <ClInclude Include="..\source\3d\Scene.h" />
     <ClInclude Include="..\source\stdafx.h" />
     <ClInclude Include="..\source\targetver.h" />
     <ClInclude Include="..\source\ui\AdHocRenderer.h" />
@@ -198,7 +203,8 @@
     <ClInclude Include="..\source\ui\UiBootstrap.h" />
     <ClInclude Include="..\source\ui\uielement\UiBigSpinner.h" />
     <ClInclude Include="..\source\ui\uielement\UiLabel.h" />
-    <ClInclude Include="..\source\UserInterface.h" />
+    <ClInclude Include="..\source\ui\UiMainMenu.h" />
+    <ClInclude Include="..\source\ui\UserInterface.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

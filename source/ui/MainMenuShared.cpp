@@ -1,7 +1,7 @@
 #include "../stdafx.h"
 #include "../3d/TextureManager.h"
 #include "../3d/TextRenderer.h"
-#include "../UserInterface.h"
+#include "UserInterface.h"
 #include "MainMenuShared.h"
 
 

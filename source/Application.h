@@ -1,6 +1,6 @@
 #pragma once
 #include "ResourceManager.h"
-#include "Renderer.h"
+#include "3d/Renderer.h"
 #include "3d/TextRenderer.h"
 #include "ui/AdHocRenderer.h"
 
@@ -27,6 +27,12 @@ class DivinitorApp
 	bool _displayDebug;
 	
 	static inline uint64_t GetSystemTimeNanos();
+
+
+	uint64_t _lastSimTickTime;
+	uint32_t _tpsCounter;
+	uint32_t _lastTps;
+	float _lastTickTimeMs;
 
 public:
 	Renderer* _renderer;

@@ -302,7 +302,7 @@ void dv3d::TextRenderer::PostRendererInit()
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, strideSz, nullptr);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, strideSz, reinterpret_cast<void*>(sizeof(float) * 3));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, strideSz, GLBUFFEROFFSET_F(3));
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
@@ -315,7 +315,7 @@ void dv3d::TextRenderer::PostRendererInit()
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, strideSz, nullptr);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, strideSz, reinterpret_cast<void*>(sizeof(float) * 3));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, strideSz, GLBUFFEROFFSET_F(3));
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glGenBuffers(1, &asciiQuadIndexBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, asciiQuadIndexBuffer);

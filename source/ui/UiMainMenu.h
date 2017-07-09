@@ -1,19 +1,18 @@
-#pragma once
+﻿#pragma once
 #include "UserInterface.h"
 #include "MainMenuShared.h"
 
-class UiBootstrap : public UiScreen
+class UiMainMenu : public UiScreen
 {
 	MainMenuSharedResourcesPtr _sharedResources;
 
 	GLfloat _elapsedTime;
 
 public:
-	explicit UiBootstrap(DivinitorApp* app);
+	explicit UiMainMenu(DivinitorApp* app);
 
-	~UiBootstrap() override;
+	~UiMainMenu() override;
 	void Init() override;
 	void Draw(float deltaT) override;
 	void Resize(int width, int height) override;
 };
-

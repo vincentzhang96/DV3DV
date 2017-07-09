@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "main.h"
-#include "OpenGLContext.h"
+#include "3d/OpenGLContext.h"
 
 #include "ppac/PhoenixPAC.h"
 #include "dn/pak/DnPak.h"
