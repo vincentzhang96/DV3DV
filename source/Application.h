@@ -7,7 +7,7 @@
 
 class UserInterface;
 
-#define DV_TPS 30
+const int DV_TPS = 20;
 #define DV_TICK_INTERVAL_NS (1e9 / DV_TPS)
 
 class DivinitorApp
@@ -18,12 +18,13 @@ class DivinitorApp
 
 	uint64_t _lastFrameTimeNs;
 
-	inline float UpdateFrameTime();
+	inline float UpdateFrameTime(uint64_t* nowNsOut = nullptr);
 
 	uint64_t _lastFPSUpdateTime;
 	uint32_t _fpsFrameCounter;
 	uint32_t _lastFps;
 	float _lastFrameDrawTimeMs;
+	uint64_t _frameDrawTimeAccum;
 
 	int viewportWidth;
 	int viewportHeight;
@@ -32,13 +33,14 @@ class DivinitorApp
 	
 	static inline uint64_t GetSystemTimeNanos();
 
-	inline float UpdateTickTime();
+	inline float UpdateTickTime(uint64_t* nowNsOut = nullptr);
 
 	uint64_t _lastSimTickTimeNs;
 	uint32_t _tpsCounter;
 	uint32_t _lastTps;
 	uint64_t _lastTPSUpdateTime;
 	float _lastTickSimTimeMs;
+	uint64_t _tickSimTimeAccum;
 	bool _shouldTick;
 
 public:

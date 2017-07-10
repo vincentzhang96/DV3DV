@@ -1,9 +1,12 @@
 #include "../stdafx.h"
 #include "AudioManager.h"
+#include <minwinbase.h>
 
-AudioManager::AudioManager()
+AudioManager::AudioManager(resman::ResourceManager* resManager) : _sounds(4096)
 {
+	_resManager = resManager;
 	_system = nullptr;
+	_llSystem = nullptr;
 	_audioInitOk = false;
 }
 
@@ -39,6 +42,8 @@ void AudioManager::Init()
 		return;
 	}
 	
+	_system->getLowLevelSystem(&_llSystem);
+
 //	_system->setCallback(FModCallback);
 
 	LOG(INFO) << "FMOD studio initialized";
@@ -50,6 +55,92 @@ void AudioManager::OnTick()
 	if (_audioInitOk)
 	{
 		_system->update();
+	}
+}
+
+SOUNDHANDLE AudioManager::Load(const resman::ResourceRequest& request)
+{
+	if (!_audioInitOk)
+	{
+		return INVALID_SOUNDHANDLE;
+	}
+
+	auto data = _resManager->GetResource(request);
+	if (data)
+	{
+		FMOD::Sound* sound;
+		FMOD_CREATESOUNDEXINFO soundInfo;
+		ZeroMemory(&soundInfo, sizeof(FMOD_CREATESOUNDEXINFO));
+		soundInfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
+		soundInfo.length = data->size();
+
+		//	Determine type if we can
+		FMOD_SOUND_TYPE soundType = FMOD_SOUND_TYPE_UNKNOWN;
+		if (request.type == resman::REQ_TPUID)
+		{
+			switch (request.resTpuid.t)
+			{
+			case 0x0300:
+				soundType = FMOD_SOUND_TYPE_MPEG;
+				break;
+			case 0x0302:
+				soundType = FMOD_SOUND_TYPE_OGGVORBIS;
+				break;
+			case 0x0303:
+				soundType = FMOD_SOUND_TYPE_WAV;
+				break;
+			case 0x0304:
+				soundType = FMOD_SOUND_TYPE_AUDIOQUEUE;
+				break;
+			}
+		}
+		else if (request.type == resman::REQ_PAKPATH)
+		{
+			std::string path = request.resPakPath;
+			//	TODO
+		}
+		
+		soundInfo.suggestedsoundtype = soundType;
+
+		auto result = _llSystem->createSound(
+			reinterpret_cast<const char*>(data->data()), 
+			FMOD_CREATESAMPLE | FMOD_OPENMEMORY, 
+			&soundInfo, 
+			&sound);
+		if (result != FMOD_OK)
+		{
+			LOG(WARNING) << "Failed to load sound: Error " << result << " " << FMOD_ErrorString(result);
+			return INVALID_SOUNDHANDLE;
+		}
+
+		auto handle = _sounds.insert(sound);
+
+		return handle;
+	} 
+	else
+	{
+		return INVALID_SOUNDHANDLE;
+	}
+}
+
+void AudioManager::Play(const SOUNDHANDLE hSound)
+{
+	if (hSound == INVALID_SOUNDHANDLE || !_audioInitOk)
+	{
+		return;
+	}
+
+	if (!_sounds.contains(hSound))
+	{
+		LOG(WARNING) << "No sound with handle " << hSound;
+		return;
+	}
+	auto sound = _sounds[hSound];
+	auto result = _llSystem->playSound(sound, nullptr, false, nullptr);
+	if (result != FMOD_OK)
+	{
+		LOG(WARNING) << "Failed to play sound: Error " << result << " " << FMOD_ErrorString(result);
+		return;
 	}
 }
 

@@ -41,6 +41,11 @@ void UiBootstrap::Init()
 			_sharedResources->backgroundShaderProg = 0;
 		}
 	}
+	if (!_sharedResources->ambienceSound)
+	{
+		_sharedResources->ambienceSound = _app->_audioManager->Load(ppac::TPUID(0x0302, 0x1001, 0x00000001));
+		_app->_audioManager->Play(_sharedResources->ambienceSound);
+	}
 }
 
 

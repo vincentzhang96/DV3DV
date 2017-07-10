@@ -4,7 +4,7 @@
 #include "ui/UiBootstrap.h"
 #include "main.h"
 
-float DivinitorApp::UpdateFrameTime()
+float DivinitorApp::UpdateFrameTime(uint64_t* nowNsOut)
 {
 	uint64_t deltaNs;
 	uint64_t nowNs;
@@ -16,10 +16,15 @@ float DivinitorApp::UpdateFrameTime()
 	++_fpsFrameCounter;
 	if (timeSinceFPSUpdate >= 1e9)
 	{
-		_lastFrameDrawTimeMs = timeSinceFPSUpdate / _fpsFrameCounter / 1e6F;
+		_lastFrameDrawTimeMs = _frameDrawTimeAccum / _fpsFrameCounter / 1e6F;
 		_lastFps = float(_fpsFrameCounter) / (timeSinceFPSUpdate / 1e9F);
 		_fpsFrameCounter = 0;
+		_frameDrawTimeAccum = 0;
 		_lastFPSUpdateTime = nowNs;
+	}
+	if (nowNsOut)
+	{
+		*nowNsOut = nowNs;
 	}
 	return deltaNs / 1e9F;
 }
@@ -36,7 +41,7 @@ uint64_t DivinitorApp::GetSystemTimeNanos()
 	return uTime.QuadPart * 100;
 }
 
-float DivinitorApp::UpdateTickTime()
+float DivinitorApp::UpdateTickTime(uint64_t* nowNsOut)
 {
 	uint64_t deltaNs;
 	uint64_t nowNs;
@@ -50,10 +55,15 @@ float DivinitorApp::UpdateTickTime()
 		auto timeSinceTPSUpdate = nowNs - _lastTPSUpdateTime;
 		if (timeSinceTPSUpdate >= 1e9)
 		{
-			_lastTickSimTimeMs = timeSinceTPSUpdate / _tpsCounter / 1e6F;
+			_lastTickSimTimeMs = _tickSimTimeAccum / _tpsCounter / 1e6F;
 			_lastTps = float(_tpsCounter) / (timeSinceTPSUpdate / 1e9F);
 			_tpsCounter = 0;
+			_tickSimTimeAccum = 0;
 			_lastTPSUpdateTime = nowNs;
+		}
+		if (nowNsOut)
+		{
+			*nowNsOut = nowNs;
 		}
 		return deltaNs / 1e9F;
 	}
@@ -74,9 +84,13 @@ _adHocRenderer(0xFFFF)
 	_textRenderer = new dv3d::TextRenderer(_resMan, _shaderManager);
 	_scene = nullptr;
 	_userInterface = new UserInterface(this);
-	_audioManager = new AudioManager();
+	_audioManager = new AudioManager(_resMan);
 	_lastFrameTimeNs = 0;
 	_lastFPSUpdateTime = 0;
+	_frameDrawTimeAccum = 0;
+	_lastSimTickTimeNs = 0;
+	_lastTPSUpdateTime = 0;
+	_tickSimTimeAccum = 0;
 	_displayDebug = false;
 	_mouseCoords = { 0, 0 };
 }
@@ -105,6 +119,7 @@ void DivinitorApp::FirstFrameInit()
 
 	//	Fudge our time
 	UpdateFrameTime();
+	UpdateTickTime();
 
 	//	Init UI
 	_userInterface->Init();
@@ -112,12 +127,14 @@ void DivinitorApp::FirstFrameInit()
 
 void DivinitorApp::Draw()
 {
-	float deltaT = UpdateFrameTime();
+	uint64_t nowNs;
+	float deltaT = UpdateFrameTime(&nowNs);
 	if (_scene)
 	{
 		_renderer->Draw(deltaT);
 	}
 	_userInterface->Draw(deltaT);
+	_frameDrawTimeAccum += GetSystemTimeNanos() - nowNs;
 
 	Tick();
 
@@ -152,7 +169,8 @@ void DivinitorApp::Draw()
 
 void DivinitorApp::Tick()
 {
-	auto deltaT = UpdateTickTime();
+	uint64_t nowNs;
+	auto deltaT = UpdateTickTime(&nowNs);
 	if (!_shouldTick)
 	{
 		return;
@@ -160,6 +178,7 @@ void DivinitorApp::Tick()
 	_shouldTick = false;
 
 
+	_tickSimTimeAccum = GetSystemTimeNanos() - nowNs;
 }
 
 void DivinitorApp::OnViewportResized(int width, int height)

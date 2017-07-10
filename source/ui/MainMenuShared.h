@@ -9,6 +9,7 @@ public:
 	dv3d::GLTEXHANDLE vignetteTex;
 	dv3d::GLTEXHANDLE invVignetteTex;
 	dv3d::GLPROGHANDLE backgroundShaderProg;
+	SOUNDHANDLE ambienceSound;
 
 	explicit MainMenuSharedResources(dv3d::TextureManager* texMan);
 	~MainMenuSharedResources();

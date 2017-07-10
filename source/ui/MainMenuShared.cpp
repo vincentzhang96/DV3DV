@@ -12,6 +12,7 @@ MainMenuSharedResources::MainMenuSharedResources(dv3d::TextureManager* texMan) :
 	invVignetteTex = 0;
 	vignetteTex = 0;
 	backgroundShaderProg = 0;
+	ambienceSound = 0;
 }
 
 MainMenuSharedResources::~MainMenuSharedResources()
