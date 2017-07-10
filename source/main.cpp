@@ -265,6 +265,7 @@ bool _LoadConfig(DV3DVConfig& config)
 	{
 		config.vsync = cfgJson["vsync"].get<bool>();
 	}
+	LOG(TRACE) << "Config loaded";
 	return true;
 }
 
@@ -314,6 +315,7 @@ bool _WriteConfig(DV3DVConfig& config)
 		return false;
 	}
 	CloseHandle(cfgFile);
+	LOG(TRACE) << "Config saved";
 	return true;
 }
 
@@ -338,6 +340,14 @@ void _ParseCommandLineFlag(DV3DVConfig& config, LPWSTR* argv, int argc, int i)
 	else if (lstrcmpiW(L"/windowed", argv[i]) == 0)
 	{
 		config.fullscreen = false;
+	}
+	else if (lstrcmpiW(L"/vsync", argv[i]) == 0)
+	{
+		config.vsync = true;
+	}
+	else if (lstrcmpiW(L"/novsync", argv[i]) == 0)
+	{
+		config.vsync = false;
 	}
 }
 
@@ -379,9 +389,9 @@ void _drawSplash()
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, GLBUFFEROFFSETZERO);
 		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)(sizeof(GLfloat) * 3));
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, GLBUFFEROFFSET_F(3));
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[1]);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indx), &indx[0], GL_STATIC_DRAW);
 		glBindVertexArray(0);
@@ -398,7 +408,7 @@ void _drawSplash()
 		glProgramUniform1i(prog, 2, 0);
 
 		glBindVertexArray(vao);
-		glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, (void*)0);
+		glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, GLBUFFEROFFSETZERO);
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glUseProgram(0);
@@ -477,6 +487,24 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	mApp = std::make_unique<DivinitorApp>(mResManager.get());
 	//	Fire off a resize since we missed the window resize
 	mApp->OnViewportResized(oglContext->GetWindowWidth(), oglContext->GetWindowHeight());
+
+	// Starting with VSync on does weirdness with CPU usage, so push a few frames through
+	if (config.vsync) {
+		wglSwapIntervalEXT(1);
+		for (auto i = 0; i < 60; ++i)
+		{
+			oglContext->PreRender();
+			oglContext->PostRender();
+		}
+		wglSwapIntervalEXT(0);
+		for (auto i = 0; i < 60; ++i)
+		{
+			oglContext->PreRender();
+			oglContext->PostRender();
+		}
+		wglSwapIntervalEXT(1);
+	}
+
 	//	Render splash screen
 	_drawSplash();
 	//	Load data directory
@@ -484,6 +512,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	//	Prep for main loop
 	auto exitLoop = false;
 	mApp->FirstFrameInit();
+
 	//	Main loop
 	LOG(INFO) << "Entering main loop";
 	while (!exitLoop)
