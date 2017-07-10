@@ -29,7 +29,7 @@ void AudioManager::Init()
 	result = FMOD::Studio::System::create(&_system);
 	if (result != FMOD_OK)
 	{
-		LOG(WARNING) << "Failed to create FMOD: Error " << result << " " << FMOD_ErrorString(result);
+		CLOG(WARNING, FMODLOGGER) << "Failed to create FMOD: Error " << result << " " << FMOD_ErrorString(result);
 		_audioInitOk = false;
 		return;
 	}
@@ -37,16 +37,18 @@ void AudioManager::Init()
 	result = _system->initialize(512, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, 0);
 	if (result != FMOD_OK)
 	{
-		LOG(WARNING) << "Failed to init FMOD: Error " << result << " " << FMOD_ErrorString(result);
+		CLOG(WARNING, FMODLOGGER) << "Failed to init FMOD: Error " << result << " " << FMOD_ErrorString(result);
 		_audioInitOk = false;
 		return;
 	}
 	
 	_system->getLowLevelSystem(&_llSystem);
 
-//	_system->setCallback(FModCallback);
+	_system->setCallback(FModCallback, 
+		FMOD_SYSTEM_CALLBACK_MEMORYALLOCATIONFAILED |
+		FMOD_SYSTEM_CALLBACK_ERROR);
 
-	LOG(INFO) << "FMOD studio initialized";
+	CLOG(INFO, FMODLOGGER) << "FMOD studio initialized";
 	_audioInitOk = true;
 }
 
@@ -109,7 +111,7 @@ SOUNDHANDLE AudioManager::Load(const resman::ResourceRequest& request)
 			&sound);
 		if (result != FMOD_OK)
 		{
-			LOG(WARNING) << "Failed to load sound: Error " << result << " " << FMOD_ErrorString(result);
+			CLOG(WARNING, FMODLOGGER) << "Failed to load sound: Error " << result << " " << FMOD_ErrorString(result);
 			return INVALID_SOUNDHANDLE;
 		}
 
@@ -132,14 +134,14 @@ void AudioManager::Play(const SOUNDHANDLE hSound)
 
 	if (!_sounds.contains(hSound))
 	{
-		LOG(WARNING) << "No sound with handle " << hSound;
+		CLOG(WARNING, FMODLOGGER) << "No sound with handle " << hSound;
 		return;
 	}
 	auto sound = _sounds[hSound];
 	auto result = _llSystem->playSound(sound, nullptr, false, nullptr);
 	if (result != FMOD_OK)
 	{
-		LOG(WARNING) << "Failed to play sound: Error " << result << " " << FMOD_ErrorString(result);
+		CLOG(WARNING, FMODLOGGER) << "Failed to play sound: Error " << result << " " << FMOD_ErrorString(result);
 		return;
 	}
 }
