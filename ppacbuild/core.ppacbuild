@@ -1,1 +1,54 @@
-OUTPUT=out/core.ppac
+OUTPUT=../runtime/data/core.ppac
+
+# Font Shaders
+0x0107,0x0001,0x00000001=core/font/shader/text2d.vert.glsl
+0x0108,0x0001,0x00000001=core/font/shader/text2d.frag.glsl
+#0x0107,0x0001,0x00000002=core/font/shader/text3d.vert.glsl
+#0x0108,0x0001,0x00000002=core/font/shader/text3d.frag.glsl
+
+# Lato font files
+0x0500,0x0001,0x00000100=core/font/ttf/lato/Lato-Regular.ttf
+0x0500,0x0001,0x00000101=core/font/ttf/lato/Lato-Light.ttf
+0x0500,0x0001,0x00000102=core/font/ttf/lato/Lato-Thin.ttf
+0x0500,0x0001,0x00000103=core/font/ttf/lato/Lato-Hairline.ttf
+0x0500,0x0001,0x00000104=core/font/ttf/lato/Lato-Medium.ttf
+0x0500,0x0001,0x00000105=core/font/ttf/lato/Lato-Semibold.ttf
+0x0500,0x0001,0x00000106=core/font/ttf/lato/Lato-Bold.ttf
+0x0500,0x0001,0x00000107=core/font/ttf/lato/Lato-Heavy.ttf
+0x0500,0x0001,0x00000108=core/font/ttf/lato/Lato-Black.ttf
+
+# Geomanist font files
+0x0501,0x0001,0x00000200=core/font/otf/geomanist/Geomanist-Regular_0.otf
+
+# Nanum (Korean) font
+0x0500,0x0001,0x00000300=core/font/ttf/nanum/nanum_semibold.ttf
+
+# Jun Pro (Japanese) font
+0x0501,0x0001,0x00000400=core/font/otf/Jun Pro/a-otf jun pro 34.otf
+
+
+
+# Core UI
+# Menu background
+0x0206,0x1001,0x00000001=core/ui/shared/background/background_icedragon.dds
+0x0206,0x1001,0x00000002=core/ui/shared/background/vignette.dds
+0x0206,0x1001,0x00000003=core/ui/shared/background/focusdimmer.dds
+
+# Big spinner
+0x0206,0x0800,0x00000001=core/ui/shared/spinner/spinner_big_rotator.dds
+0x0206,0x0800,0x00000002=core/ui/shared/spinner/spinner_big_center.dds
+
+
+# Default Shaders
+# Vertex shader for vertices in NDC, with texture coords
+0x0107,0x0100,0x00000001=core/shader/ndc_textured.vert.glsl
+# Vertex shader for UI's AdHoc renderer (ortho projection) passthrough
+0x0107,0x0100,0x00000002=core/shader/ui_adhoc_ortho_pt.vert.glsl
+
+# Fragment shader for UI FBO
+0x0108,0x0101,0x00000001=core/shader/ui_fbo.frag.glsl
+# Fragment shader for AdHoc renderer textured passthrough
+0x0108,0x0101,0x00000003=core/shader/ui_adhoc_tex_pt.frag.glsl
+
+# Ambient sound
+0x0302,0x1001,0x00000001=core/ui/audio/ambient/snowstorm.ogg

@@ -19,6 +19,22 @@ resman::ResourceRequest::ResourceRequest(const std::string& pakPath)
 	resPakPath = pakPath;
 }
 
+resman::ResourceRequest::ResourceRequest(const ResourceRequest& other)
+{
+	type = other.type;
+	switch(type)
+	{
+	case REQ_NONE:
+		break;
+	case REQ_PAKPATH:
+		resPakPath = other.resPakPath;
+		break;
+	case REQ_TPUID:
+		resTpuid = other.resTpuid;
+		break;
+	}
+}
+
 resman::ResourceRequest::~ResourceRequest()
 {
 	switch(type)
@@ -85,3 +101,48 @@ resman::ResourceResponse resman::ResourceManager::GetResource(const ResourceRequ
 }
 
 
+bool resman::operator==(const ResourceRequest& lhs, const ResourceRequest& rhs)
+{
+	if (lhs.type == rhs.type)
+	{
+		if (lhs.type == REQ_NONE)
+		{
+			return true;
+		}
+		if (lhs.type == REQ_PAKPATH)
+		{
+			return lhs.resPakPath == rhs.resPakPath;
+		}
+		if (lhs.type == REQ_TPUID)
+		{
+			return lhs.resTpuid == rhs.resTpuid;
+		}
+	}
+	return false;
+}
+
+bool resman::operator!=(const ResourceRequest& lhs, const ResourceRequest& rhs)
+{
+	//	Checking for inequality is faster than checking for equality so we rewrite == for !=
+	if (lhs.type == rhs.type)
+	{
+		if (lhs.type == REQ_NONE)
+		{
+			return false;
+		}
+		if (lhs.type == REQ_PAKPATH)
+		{
+			return lhs.resPakPath != rhs.resPakPath;
+		}
+		if (lhs.type == REQ_TPUID)
+		{
+			return lhs.resTpuid != rhs.resTpuid;
+		}
+		//	Unknown
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}

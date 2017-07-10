@@ -13,6 +13,8 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <ShlObj.h>
+#include <windowsx.h>
+#include <Psapi.h>
 #include <iostream>
 #include <Strsafe.h>
 #include <cstdint>
@@ -22,6 +24,7 @@
 #include <handleapi.h>
 #include <mutex>
 #include <unordered_map>
+#include <stdio.h>
 
 #include "lib/GL/glew.h"
 #include "lib/GL/wglew.h"
@@ -34,10 +37,20 @@
 #define DV_CLASS_NAME L"DV3DV"
 
 #include "lib/zlib.h"
+#include "lib/jpeglib.h"
+#include "lib/jerror.h"
 
 #include "lib/packed_freelist.h"
 
-#include "lib/glm/glm.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#include <utf8.h>
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_SIZES_H
 
 //	DDS stuff
 #pragma pack(push, def, 4)
@@ -78,5 +91,9 @@ typedef struct {
 
 #pragma pack(pop, def)
 
+
+#define GLBUFFEROFFSET(offset) reinterpret_cast<void*>(offset)
+#define GLBUFFEROFFSETZERO reinterpret_cast<void*>(0)
+#define GLBUFFEROFFSET_F(offset) GLBUFFEROFFSET(offset * sizeof(GLfloat))
 
 #endif

@@ -1,22 +1,25 @@
 #include "stdafx.h"
 #include "main.h"
-#include "OpenGLContext.h"
+#include "3d/OpenGLContext.h"
 
 #include "ppac/PhoenixPAC.h"
 #include "dn/pak/DnPak.h"
 #include "ResourceManager.h"
-#include "3d/TextureManager.h"
+#include "Application.h"
 
 INITIALIZE_EASYLOGGINGPP
 INIT_PPAC_LOGGER
 INIT_DNPAK_LOGGER
+INIT_FMOD_LOGGER
 
+DV3DVConfig config;
 OpenGLContext* oglContext = nullptr;
 HWND hWnd = nullptr;
 HINSTANCE hInstance = nullptr;
 MSG msg;
 LPSTR userDataDir;
 
+glm::ivec2 _mouseCoords;
 
 #define USER_DATA_DIRW L"./userdata/"
 #define USER_DATA_DIR_FILEW(SUBPATH) USER_DATA_DIRW SUBPATH
@@ -28,7 +31,7 @@ using json = nlohmann::json;
 
 std::unique_ptr<resman::ResourceManager> mResManager;
 
-std::unique_ptr<dv3d::TextureManager> dv3dmTexManager;
+std::unique_ptr<DivinitorApp> mApp;
 
 #define TPUID_ICON ppac::TPUID(0x0205, 0x0000, 0x00000001)
 #define TPUID_SPLASH ppac::TPUID(0x0206, 0x0000, 0x00000001)
@@ -68,11 +71,19 @@ void OnWindowResize(int newWidth, int newHeight)
 	LOG(TRACE) << "Window resized to " << newWidth << "x" << newHeight;
 
 	//	TODO resetup stuff
+	if (mApp)
+	{
+		mApp->OnViewportResized(newWidth, newHeight);
+	}
 }
 
 void OnKeyDown(int keyCode)
 {
 	//	TODO
+	if (mApp)
+	{
+		mApp->OnKeyPressed(keyCode);
+	}
 }
 
 void OnKeyUp(int keyCode)
@@ -82,8 +93,37 @@ void OnKeyUp(int keyCode)
 	{
 		PostQuitMessage(0);
 	}
-
 	//	TODO
+	if (mApp)
+	{
+		mApp->OnKeyReleased(keyCode);
+	}
+}
+
+void OnMouseMove(int x, int y, int mouseButton)
+{
+	_mouseCoords.x = x;
+	_mouseCoords.y = oglContext->GetWindowHeight() - y;
+	if (mApp)
+	{
+		mApp->OnMouseMoved(_mouseCoords.x, _mouseCoords.y, mouseButton);
+	}
+}
+
+void OnMouseButtonDown(int mouseButton)
+{
+	if (mApp)
+	{
+		mApp->OnMouseButtonPressed(_mouseCoords.x, _mouseCoords.y, mouseButton);
+	}
+}
+
+void OnMouseButtonUp(int mouseButton)
+{
+	if (mApp)
+	{
+		mApp->OnMouseButtonReleased(_mouseCoords.x, _mouseCoords.y, mouseButton);
+	}
 }
 
 ///	Allocates a windows console
@@ -123,11 +163,8 @@ inline bool _DoMainLoop()
 	{
 		//	Inner loop
 		oglContext->PreRender();
-		//	TODO Render stuff
-
+		mApp->Draw();
 		oglContext->PostRender();
-		//	TODO Clock this
-		Sleep(10);
 	}
 	return false;
 }
@@ -192,6 +229,7 @@ bool _LoadConfig(DV3DVConfig& config)
 	config.winHeight = 900;
 	config.console = true;
 	config.fullscreen = false;
+	config.vsync = true;
 	//	Check that the config file exists before attempting to load it
 	auto dwAttrib = GetFileAttributesW(USER_DATA_DIR_FILEW(L"config/config.json"));
 	if (dwAttrib == 0xFFFFFFFF)
@@ -223,6 +261,11 @@ bool _LoadConfig(DV3DVConfig& config)
 	{
 		config.console = cfgJson["console"].get<bool>();
 	}
+	if (cfgJson.count("vsync") == 1)
+	{
+		config.vsync = cfgJson["vsync"].get<bool>();
+	}
+	LOG(TRACE) << "Config loaded";
 	return true;
 }
 
@@ -248,7 +291,8 @@ bool _WriteConfig(DV3DVConfig& config)
 		{"width", config.winWidth},
 		{"height", config.winHeight},
 		{"fullscreen", config.fullscreen},
-		{"console", config.console}
+		{"console", config.console},
+		{"vsync", config.vsync}
 	};
 	//	Truncate file
 	SetEndOfFile(cfgFile);
@@ -271,6 +315,7 @@ bool _WriteConfig(DV3DVConfig& config)
 		return false;
 	}
 	CloseHandle(cfgFile);
+	LOG(TRACE) << "Config saved";
 	return true;
 }
 
@@ -296,61 +341,25 @@ void _ParseCommandLineFlag(DV3DVConfig& config, LPWSTR* argv, int argc, int i)
 	{
 		config.fullscreen = false;
 	}
+	else if (lstrcmpiW(L"/vsync", argv[i]) == 0)
+	{
+		config.vsync = true;
+	}
+	else if (lstrcmpiW(L"/novsync", argv[i]) == 0)
+	{
+		config.vsync = false;
+	}
 }
 
 void _drawSplash()
 {
-	auto splashTex = dv3dmTexManager->LoadAndGet(TPUID_SPLASH);
-	auto splashVertShader = mResManager->GetResource(TPUID_SPLASH_VERT_SHDR);
-	auto splashFragShader = mResManager->GetResource(TPUID_SPLASH_FRAG_SHDR);
-	if (splashTex.first && splashVertShader && splashFragShader)
+	auto splashTex = mApp->_textureManager->LoadAndGet(TPUID_SPLASH);
+	auto hSplashShdr = mApp->_shaderManager->NewProgram();
+	mApp->_shaderManager->AttachAndCompileShader(hSplashShdr, TPUID_SPLASH_VERT_SHDR);
+	mApp->_shaderManager->AttachAndCompileShader(hSplashShdr, TPUID_SPLASH_FRAG_SHDR);
+	bool shdrOk = mApp->_shaderManager->LinkAndFinishProgram(hSplashShdr);
+	if (splashTex.first && shdrOk)
 	{
-		splashVertShader->push_back(0);
-		splashFragShader->push_back(0);
-		//	Shader
-		std::string vertShaderSrc(reinterpret_cast<char*>(splashVertShader->data()));
-		std::string fragShaderSrc(reinterpret_cast<char*>(splashFragShader->data()));
-		GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
-		const char* vertShaderCstr = vertShaderSrc.c_str();
-		glShaderSource(vertShader, 1, &vertShaderCstr , 0);
-		glCompileShader(vertShader);
-
-		GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
-		const char* fragShaderCstr = fragShaderSrc.c_str();
-		glShaderSource(fragShader, 1, &fragShaderCstr, 0);
-		glCompileShader(fragShader);
-
-		GLint success;
-		glGetShaderiv(vertShader, GL_COMPILE_STATUS, &success);
-		if (!success)
-		{
-			GLchar infoLog[512];
-			glGetShaderInfoLog(vertShader, 512, NULL, infoLog);
-			LOG(WARNING) << "Vertex shader compilation failed: " << infoLog;
-			return;
-		}
-		glGetShaderiv(fragShader, GL_COMPILE_STATUS, &success);
-		if (!success)
-		{
-			GLchar infoLog[512];
-			glGetShaderInfoLog(fragShader, 512, NULL, infoLog);
-			LOG(WARNING) << "Fragment shader compilation failed: " << infoLog;
-			return;
-		}
-		GLuint shaderProgram = glCreateProgram();
-		glAttachShader(shaderProgram, vertShader);
-		glAttachShader(shaderProgram, fragShader);
-		glLinkProgram(shaderProgram);
-		glDeleteShader(vertShader);
-		glDeleteShader(fragShader);
-		glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-		if (!success) {
-			GLchar infoLog[512];
-			glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-			LOG(WARNING) << "Shader linking failed: " << infoLog;
-			return;
-		}
-
 		//	Textured quad
 		GLfloat quadHalfSizeX = 512.0F;
 		GLfloat quadHalfSizeY = 512.0F;
@@ -364,8 +373,6 @@ void _drawSplash()
 			quadHalfSizeX, quadHalfSizeY, 0.0F, 1.0F, 1.0F,
 			-quadHalfSizeX, quadHalfSizeY, 0.0F, 0.0F, 1.0F
 		};
-
-
 		GLuint indx[] = {
 			0, 1, 2, 3
 		};
@@ -382,9 +389,9 @@ void _drawSplash()
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
 		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, GLBUFFEROFFSETZERO);
 		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)(sizeof(GLfloat) * 3));
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, GLBUFFEROFFSET_F(3));
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[1]);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indx), &indx[0], GL_STATIC_DRAW);
 		glBindVertexArray(0);
@@ -394,13 +401,14 @@ void _drawSplash()
 		oglContext->PreRender();
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glUseProgram(shaderProgram);
+		auto prog = mApp->_shaderManager->Get(hSplashShdr);
+		glUseProgram(prog);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, splashTex.second);
-		glProgramUniform1i(shaderProgram, 2, 0);
+		glProgramUniform1i(prog, 2, 0);
 
 		glBindVertexArray(vao);
-		glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, (void*)0);
+		glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, GLBUFFEROFFSETZERO);
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glUseProgram(0);
@@ -408,8 +416,8 @@ void _drawSplash()
 
 		glDeleteVertexArrays(1, &vao);
 		glDeleteBuffers(2, vbo);
-		dv3dmTexManager->Unload(splashTex.first);
-		glDeleteProgram(shaderProgram);
+		mApp->_textureManager->Unload(splashTex.first);
+		mApp->_shaderManager->Unload(hSplashShdr);
 	}
 	else
 	{
@@ -425,7 +433,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	_SetUpLogger();
 	_CreateUserDir();
 	//	Options
-	DV3DVConfig config;
 	ZeroMemory(&config, sizeof(DV3DVConfig));
 	_LoadConfig(config);
 
@@ -468,7 +475,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	LOG(INFO) << "Starting...";
 	//	Init asset manager
 	mResManager = std::make_unique<resman::ResourceManager>();
-	dv3dmTexManager = std::make_unique<dv3d::TextureManager>(mResManager.get());
 	//	Load init
 	mResManager->_ppacManager.LoadPPAC(L"init.ppac");
 	//	Create the window
@@ -477,13 +483,36 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		LOG(ERROR) << "Failed to create window, stopping";
 		return 0;
 	}
+	//	Init application
+	mApp = std::make_unique<DivinitorApp>(mResManager.get());
+	//	Fire off a resize since we missed the window resize
+	mApp->OnViewportResized(oglContext->GetWindowWidth(), oglContext->GetWindowHeight());
+
+	// Starting with VSync on does weirdness with CPU usage, so push a few frames through
+	if (config.vsync) {
+		wglSwapIntervalEXT(1);
+		for (auto i = 0; i < 60; ++i)
+		{
+			oglContext->PreRender();
+			oglContext->PostRender();
+		}
+		wglSwapIntervalEXT(0);
+		for (auto i = 0; i < 60; ++i)
+		{
+			oglContext->PreRender();
+			oglContext->PostRender();
+		}
+		wglSwapIntervalEXT(1);
+	}
+
 	//	Render splash screen
 	_drawSplash();
-
-	Sleep(10000);
-
+	//	Load data directory
+	mResManager->_ppacManager.LoadDir(L"data");
 	//	Prep for main loop
 	auto exitLoop = false;
+	mApp->FirstFrameInit();
+
 	//	Main loop
 	LOG(INFO) << "Entering main loop";
 	while (!exitLoop)
@@ -493,7 +522,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	//	Destroy window
 	KillOGLWindow();
 	//	Shut down managers
-	dv3dmTexManager.reset();
+	//	TODO TEMP
+	mApp.reset();
 	mResManager.reset();
 
 	LOG(INFO) << "Shutdown complete";
@@ -548,6 +578,11 @@ LRESULT CALLBACK WndProc(HWND hWnd,
 	case WM_KEYUP:
 		{
 			OnKeyUp(wParam);
+			return 0;
+		}
+	case WM_MOUSEMOVE:
+		{
+			OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), wParam);
 			return 0;
 		}
 	case WM_SIZE:

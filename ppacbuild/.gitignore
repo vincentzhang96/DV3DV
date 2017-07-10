@@ -3,5 +3,6 @@
 !*.ppacbuild
 !.gitignore
 !.keep
+!*.jar
 # And include subdirs
 !*/
